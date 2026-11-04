@@ -124,11 +124,11 @@ create policy progreso_select on public.progreso for select to authenticated
   using (user_id = (select auth.uid()));
 
 create policy progreso_insert on public.progreso for insert to authenticated
-  with check (user_id = (select auth.uid()) and public.puede_registrar_progreso(materia_id));
+  with check (user_id = (select auth.uid()) and public.puede_registrar_en_materia(materia_id));
 
 create policy progreso_update on public.progreso for update to authenticated
   using (user_id = (select auth.uid()))
-  with check (user_id = (select auth.uid()) and public.puede_registrar_progreso(materia_id));
+  with check (user_id = (select auth.uid()) and public.puede_registrar_en_materia(materia_id));
 
 create policy progreso_delete on public.progreso for delete to authenticated
   using (user_id = (select auth.uid()));
@@ -139,11 +139,11 @@ create policy historial_select on public.historial for select to authenticated
   using (user_id = (select auth.uid()));
 
 create policy historial_insert on public.historial for insert to authenticated
-  with check (user_id = (select auth.uid()));
+  with check (user_id = (select auth.uid()) and public.puede_registrar_en_materia(materia_id));
 
 create policy historial_update on public.historial for update to authenticated
   using (user_id = (select auth.uid()))
-  with check (user_id = (select auth.uid()));
+  with check (user_id = (select auth.uid()) and public.puede_registrar_en_materia(materia_id));
 
 create policy historial_delete on public.historial for delete to authenticated
   using (user_id = (select auth.uid()));

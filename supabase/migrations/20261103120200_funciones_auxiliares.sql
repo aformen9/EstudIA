@@ -111,9 +111,9 @@ as $$
     );
 $$;
 
--- Decisión de la fase 0: progreso solo sobre materias propias o de un plan donde el alumno está
--- inscripto, para que no pueda destrabar material de otra carrera.
-create function public.puede_registrar_progreso(materia_id uuid)
+-- Decisión de la fase 0: progreso e historial solo sobre materias propias o de un plan donde el
+-- alumno está inscripto, para que no pueda destrabar material de otra carrera.
+create function public.puede_registrar_en_materia(materia_id uuid)
 returns boolean
 language sql
 stable
@@ -123,7 +123,7 @@ as $$
   select exists (
     select 1
     from public.materias m
-    where m.id = puede_registrar_progreso.materia_id
+    where m.id = puede_registrar_en_materia.materia_id
       and (
         m.owner_id = auth.uid()
         or (
