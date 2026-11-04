@@ -23,7 +23,7 @@ Fuente de verdad del diseño. Si algo no está acá o es ambiguo: **parar y preg
 | Validación | zod | respaldos importados y, más adelante, herramientas de IA |
 | Navegación | hash propio, sin `react-router` | igual que la referencia |
 | Tests | Vitest (core y web), Testing Library + jsdom (web), `supabase test db` / pgTAP (RLS). Revisión visual en Chrome, sin Playwright | |
-| CI/CD | GitHub Actions + Vercel | |
+| CI/CD | GitHub Actions + Vercel. gitleaks en el CI para detectar claves reales | |
 | Escritorio (fase 4) | Tauri 2 | binarios chicos, auto-update, sidecar para IA local/MCP local |
 | Android (fase 4) | **decisión abierta**: Tauri 2 mobile vs Capacitor | preguntar en fase 4 |
 
@@ -59,7 +59,7 @@ Tres capas. Todas las tablas en `public`, con RLS activado. IDs `uuid` (`gen_ran
 - **universidades**: `id`, `nombre`, `sigla`, `sede`, `estado` (`publicado` | `pendiente`), `creado_por` (uuid → auth.users), `created_at`.
 - **carreras**: `id`, `universidad_id`, `nombre`, `sigla`, `estado`, `creado_por`, `created_at`.
 - **planes**: `id`, `carrera_id`, `version` (ej. `"7023"`), `estado`, `creado_por`, `nota_min` (1), `nota_max` (10), `nota_aprobacion` (4), `cuatrimestres_por_anio` (2), `cierre_cuatrimestres` (jsonb, ej. `[{"cuatrimestre":1,"mes":7},{"cuatrimestre":2,"mes":12}]`; el seed de LCD 7023 usa este valor porque el catálogo no lo trae), `created_at`. Único: (`carrera_id`, `version`).
-- **materias**: `id`, `plan_id`, `codigo` (null solo en materias propias: las del catálogo siempre tienen código), `nombre`, `anio` (0 = extras/idiomas), `cuatrimestre` (null si anual/extra), `tipo` (`Materia` | `Seminario` | …), `area`, `requiere_anio_completo_para_cursar` (int null; ej. 2 = "todo 2° año aprobado"), `owner_id` (null = del catálogo; uuid = materia propia de un alumno, ej. optativa), `orden`, `created_at`. Único: (`plan_id`, `codigo`) cuando `owner_id` es null.
+- **materias**: `id`, `plan_id`, `codigo` (null solo en materias propias: las del catálogo siempre tienen código), `nombre`, `anio` (0 = extras/idiomas), `cuatrimestre` (null si anual/extra), `tipo` (`Materia` | `Seminario` | …), `area`, `requiere_anio_completo_para_cursar` (int null; ej. 2 = "todo 2° año aprobado"), `owner_id` (null = del catálogo; uuid = materia propia de un alumno, ej. optativa), `orden`, `created_at`. Único: (`plan_id`, `codigo`) cuando `owner_id` es null. Un trigger impide borrar una materia del catálogo que tenga `progreso` o `historial` de cualquier alumno, también cuando el borrado viene en cascada desde el plan; las materias propias se borran normal, con sus datos.
 - **correlativas**: `materia_id`, `requiere_id`, `para` (`cursar` | `rendir`), `condicion` (`regular` | `aprobada`). PK (`materia_id`, `requiere_id`, `para`).
 
 Estado `pendiente` = cargado por un alumno (vía IA o manual), visible solo para quien lo creó y para admins hasta que un admin lo publique.
@@ -67,7 +67,7 @@ Estado `pendiente` = cargado por un alumno (vía IA o manual), visible solo para
 ### 4.2 Alumno (privado)
 
 - **perfiles**: `id` (= auth.users.id), `nombre`, `avatar_url`, `es_admin` (bool, default false), `created_at`. Se crea por trigger al registrarse. El alumno **no puede** modificar `es_admin` (grants por columna).
-- **inscripciones**: `id`, `user_id`, `plan_id`, `activa` (bool), `created_at`. Único (`user_id`, `plan_id`). Un alumno puede tener más de una carrera, con **como mucho una inscripción activa** (único parcial por `user_id`). Se activa con la RPC `activar_plan`.
+- **inscripciones**: `id`, `user_id`, `plan_id`, `activa` (bool), `created_at`. Único (`user_id`, `plan_id`). Un alumno puede tener más de una carrera, con **como mucho una inscripción activa** (único parcial por `user_id`). Se activa con la RPC `activar_plan`. La FK a `planes` es `ON DELETE RESTRICT`: no se puede borrar un plan con inscripciones, y por eso tampoco su carrera ni su universidad. No hay estado "archivado" por ahora.
 - **progreso**: `user_id`, `materia_id`, `estado` (`pendiente` | `cursando` | `final` | `aprobada`), `p1`, `p2`, `rec`, `nota_cursada`, `nota_final_examen`, `nota` (nota final de la materia), `aplazos` (`numeric[]`), `updated_at`. PK (`user_id`, `materia_id`). Si no hay fila, la materia está `pendiente`.
 - **historial**: `id`, `user_id`, `materia_id`, `fecha` (date), `tipo` (`Regularidad` | `Examen` | `Promocion` | `En curso`), `nota`, `resultado` (`Aprobado` | `Reprobado` | `Ausente` | `Promocionado` | `En curso`), `fuente` (`siu` | `manual` | `ia`).
 
@@ -86,14 +86,14 @@ Funciones auxiliares `security definer`, `stable`, con `search_path` fijo:
 | Tabla | Leer | Escribir |
 |---|---|---|
 | universidades / carreras / planes | `estado = 'publicado'` o `creado_por = auth.uid()` o admin | insertar: cualquier usuario con sesión, forzando `estado = 'pendiente'` y `creado_por = auth.uid()` (admin puede publicar). Modificar/borrar: admin, o el creador mientras esté `pendiente` |
-| materias / correlativas | si el plan es visible y (`owner_id` es null o `owner_id = auth.uid()`) | materias propias: el dueño. Catálogo: admin o creador de un plan `pendiente` |
+| materias / correlativas | si el plan es visible y (`owner_id` es null o `owner_id = auth.uid()`) | materias propias: el dueño, solo en un plan visible. Catálogo: admin o creador de un plan `pendiente`. Una correlativa solo apunta a una materia visible del mismo plan, y una materia del catálogo no puede depender de una propia |
 | perfiles | el propio (admin: todos) | el propio, solo `nombre` y `avatar_url` |
-| inscripciones / historial | solo propias | solo propias. Activar un plan: RPC `activar_plan(plan_id)`, que inscribe si hace falta y deja ese plan como único activo |
-| progreso | solo propio | solo propio, y solo sobre materias de un plan donde el alumno esté inscripto o materias propias (`owner_id = auth.uid()`) |
-| importación | — | RPC `reemplazar_datos_del_plan(plan_id, datos)` (security invoker, todo o nada): crea o reutiliza materias propias, reemplaza `progreso` e `historial` del alumno en ese plan y devuelve `{ clave: uuid }` de las materias propias |
-| materiales | **solo propias** (admin: todas) | propias; admin puede ocultar/borrar. `oculto` solo lo cambian un admin o el trigger de denuncias: el autor no puede modificarlo |
+| inscripciones | solo propias | solo propias y en un plan visible. Activar un plan: RPC `activar_plan(plan_id)`, que inscribe si hace falta y deja ese plan como único activo |
+| progreso / historial | solo propio | solo propio, y solo sobre materias de un plan donde el alumno esté inscripto o materias propias (`owner_id = auth.uid()`) |
+| importación | — | RPC `reemplazar_datos_del_plan(plan_id, datos)` (security invoker, todo o nada): crea o reutiliza materias propias, reemplaza `progreso` e `historial` del alumno en ese plan y devuelve `{ clave: uuid }` de las materias propias. Reutiliza la materia propia del alumno en ese plan con el mismo código o, sin código, otra sin código y con el mismo nombre: el archivo pisa sus datos y sus correlativas. Las materias propias que no vienen en el archivo se conservan |
+| materiales | **solo propias** (admin: todas) | propias, y solo en una materia visible o sin materia; admin puede ocultar/borrar. `oculto` solo lo cambian un admin o el trigger de denuncias: el autor no puede modificarlo |
 | material compartido | vía RPC `material_compartido(materia_id)` (security definer): devuelve materiales `compartido`, no `oculto`, de esa materia, **solo si `cursa_o_curso(materia_id)`**; el autor se devuelve como `null` si `anonimo`. Del documento solo devuelve `mime`, `bytes` y `paginas`: ni `sha256` ni `id`, porque con el `id` se podría crear un material propio y leer la fila completa. Abrir un documento compartido (fase 1b) requiere una RPC que lea por `material_id` | — |
-| documentos | la tabla, solo si el usuario tiene un material propio que lo referencia. El de un material compartido visible para él se expone solo por RPC y **nunca con su `sha256`**: ninguna RPC ni consulta devuelve el hash de documentos ajenos (ver §12) | vía RPC `registrar_documento(sha256, mime, bytes, paginas, texto)` que hace upsert por `sha256` y devuelve el `id`. Nunca pisa un `texto` existente: solo lo completa si era null |
+| documentos | la tabla, solo si el usuario tiene un material propio que lo referencia, sin excepción para admin (moderar un archivo necesitará otra vía). El de un material compartido visible para él se expone solo por RPC y **nunca con su `sha256`**: ninguna RPC ni consulta devuelve el hash de documentos ajenos (ver §12) | vía RPC `registrar_documento(sha256, mime, bytes, paginas, texto)` que hace upsert por `sha256` y devuelve el `id`. Nunca pisa un `texto` existente: solo lo completa si era null |
 | denuncias | propias (admin: todas) | insertar propias, sobre material que puede ver |
 
 - `anon` (sin sesión): sin acceso a nada.
@@ -114,7 +114,7 @@ Funciones auxiliares `security definer`, `stable`, con `search_path` fijo:
 - Sugerencias al editar (de la referencia): nota final ≥ aprobación → proponer `aprobada`; en curso con parciales aprobados → proponer `final`.
 - La nota de aprobación (4) y la escala (1–10) salen del plan, no se hardcodean.
 - Verificación: `fixtures/caso-prueba-esperado.json` (calculado con la lógica original). "Promedio en el tiempo" no está en el fixture: lleva tests propios con la lógica original.
-- **Importar y restaurar respaldos**: se aceptan el formato legacy y el respaldo nuevo. Sobre datos existentes se muestra un resumen y, con confirmación, se **reemplazan** `progreso` e `historial` de ese plan (mezclar duplicaría el historial, que no tiene clave natural). El historial importado lleva `fuente = 'siu'` si el respaldo dice venir de SIU; si no, `'manual'`. El respaldo nuevo guarda las siglas de universidad y carrera, y se rechaza si no corresponden al plan. Un respaldo legacy sin ningún código en común con el plan se bloquea. Restaurar materiales agrega los que no existan (mismo título y url, o mismo `sha256`) sin borrar nada.
+- **Importar y restaurar respaldos**: se aceptan el formato legacy y el respaldo nuevo. Sobre datos existentes se muestra un resumen y, con confirmación, se **reemplazan** `progreso` e `historial` de ese plan (mezclar duplicaría el historial, que no tiene clave natural). El historial importado lleva `fuente = 'siu'` si el respaldo dice venir de SIU; si no, `'manual'`. El respaldo nuevo guarda las siglas de universidad y carrera, y se rechaza si no corresponden al plan. Un respaldo legacy sin ningún código en común con el plan se bloquea. Restaurar materiales agrega los que no existan (archivo: mismo `sha256`; link: mismo título y url; nota: mismo título y texto) sin borrar nada, y conserva `periodo` y `createdAt`. No es todo o nada: si falla alguno se avisa cuántos faltaron, y reintentar no los duplica.
 
 ## 7. Material de estudio: almacenamiento
 
