@@ -42,7 +42,7 @@ grant execute on function
   public.materia_visible(uuid),
   public.materia_editable(uuid),
   public.correlativa_permitida(uuid, uuid),
-  public.puede_registrar_progreso(uuid),
+  public.puede_registrar_en_materia(uuid),
   public.material_visible(uuid),
   public.documento_propio(uuid),
   public.registrar_documento(text, text, bigint, integer, text),

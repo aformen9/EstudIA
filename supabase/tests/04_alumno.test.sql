@@ -1,7 +1,7 @@
 -- inscripciones, activar_plan, progreso e historial.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(61);
+select plan(66);
 
 create function pg_temp.como(uid uuid) returns void language plpgsql as $$
 begin
@@ -126,6 +126,11 @@ select throws_ok($$insert into public.historial (materia_id, fecha, tipo, result
 select throws_ok($$insert into public.historial (materia_id, fecha, tipo, resultado) values (pg_temp.materia('GMA0136'), '2025-07-01', 'Examen', 'Otro')$$, '23514', null, 'historial: resultado inválido');
 select throws_ok($$insert into public.historial (materia_id, fecha, tipo, resultado, fuente) values (pg_temp.materia('GMA0136'), '2025-07-01', 'Examen', 'Aprobado', 'otra')$$, '23514', null, 'historial: fuente inválida');
 select is(pg_temp.filas($$update public.historial set nota = 9 where id = '50000000-0000-4000-8000-000000000001'$$), 1, 'historial update: edita el propio');
+select throws_ok($$insert into public.historial (materia_id, fecha, tipo, resultado) values ('40000000-0000-4000-8000-000000000001', '2025-07-01', 'Examen', 'Aprobado')$$, '42501', null, 'historial insert: no sobre una materia de un plan sin inscripción');
+select throws_ok($$insert into public.historial (materia_id, fecha, tipo, resultado) values ('40000000-0000-4000-8000-0000000000b1', '2025-07-01', 'Examen', 'Aprobado')$$, '42501', null, 'historial insert: no sobre la materia propia de otro');
+select lives_ok($$insert into public.historial (materia_id, fecha, tipo, resultado) values ('40000000-0000-4000-8000-0000000000a2', '2025-07-01', 'Examen', 'Aprobado')$$, 'historial insert: sobre materia propia en un plan sin inscripción');
+select is(pg_temp.filas($$delete from public.historial where materia_id = '40000000-0000-4000-8000-0000000000a2'$$), 1, 'historial delete: limpia la de la materia propia');
+select throws_ok($$update public.historial set materia_id = '40000000-0000-4000-8000-000000000001' where id = '50000000-0000-4000-8000-000000000001'$$, '42501', null, 'historial update: no la mueve a una materia de un plan sin inscripción');
 select throws_ok($$update public.historial set user_id = '00000000-0000-4000-8000-00000000000b' where id = '50000000-0000-4000-8000-000000000001'$$, '42501', null, 'historial update: no regala la fila a otro');
 
 select pg_temp.como('00000000-0000-4000-8000-00000000000b');
