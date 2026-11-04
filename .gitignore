@@ -14,6 +14,9 @@ supabase/.temp/
 # Código de la app de referencia: solo local, nunca se sube
 referencia/
 
+# Configuración local de herramientas
+.codex/
+
 # Sistema y logs
 .DS_Store
 *.log
