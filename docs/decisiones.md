@@ -113,4 +113,6 @@ Una línea por decisión de Agu. Agregar al final, con fecha. Si una decisión n
 - La vista Materiales filtra igual que Inicio y el contador: plan activo y "sin materia".
 - Crear y borrar materias propias entra en la tanda 4.
 - Seguridad de Materiales: links solo `http` y `https`, archivos locales separados por usuario, y un HTML o SVG subido no se abre dentro de la app.
-- Cerrar sesión no borra los archivos locales por defecto. El diálogo suma una casilla desmarcada, "Borrar también mis archivos de este dispositivo", con el aviso de que en la fase 0 no se pueden recuperar.
+- Cerrar sesión no borra los archivos locales por defecto. El diálogo suma una casilla desmarcada, "Borrar también mis archivos de este dispositivo", con el aviso de que en la fase 0 no se pueden recuperar. La casilla borra solo los archivos del usuario que cierra sesión.
+- Durante el onboarding, el diálogo de cerrar sesión aparece solo si el usuario tiene archivos en este dispositivo; si no, cierra directo.
+- `.codex/` no se sube al repo: queda en `.gitignore`.
