@@ -14,6 +14,11 @@ Prerrequisito: fase 1 aprobada.
 - Términos de uso breves al compartir por primera vez (responsabilidad del contenido, retiro ante reclamos).
 - Indicador en Inicio: "Hay N materiales nuevos en tus materias en curso".
 
+### Duplicados al subir (`arquitectura.md` §7)
+- Mismo `sha256`, compartido en esa misma materia y visible para el alumno: mostrar "Este archivo ya está en el material de la materia, ¿lo querés ver?" y llevarlo ahí, sin guardar nada nuevo.
+- Mismo `sha256`, solo como privado de otro usuario: reutilizar en silencio; para el alumno aparece como subido por él, sin aviso.
+- Casi duplicados: similitud de texto con `pg_trgm` contra el material compartido de la materia. Si se parece mucho, preguntar "¿Es el mismo?" con las opciones Ver / Subir igual. **El umbral se define y se prueba con PDFs reales en esta fase.**
+
 ### Cierre de cuatrimestre
 - Según `planes.cierre_cuatrimestres`, al entrar después del cierre, la app pregunta por cada materia `cursando`: Regularicé · Promocioné · Aprobé el final · Quedé libre · La abandoné. Actualiza estado (+ historial con `fuente = 'manual'`), recalcula correlativas y muestra "Ya podés cursar: …".
 - Si hay importador de Guaraní configurado, ofrecer revalidar contra Guaraní.
@@ -25,3 +30,6 @@ Prerrequisito: fase 1 aprobada.
 3. Flujo completo con dos cuentas de prueba (capturas).
 4. Simulando la fecha de cierre, el diálogo aparece, actualiza estados y "podés cursar" cambia según correlativas.
 5. Nada compartido expone el `user_id` de un autor anónimo (revisar respuesta de la RPC en Network).
+6. Ninguna vía devuelve el `sha256` de documentos ajenos, tampoco las detecciones de duplicados (tests de RLS).
+7. Subir un archivo ya compartido en la materia y visible lleva al material existente sin crear filas; si solo existe como privado de otro, se reutiliza sin ningún aviso que delate que ya existía.
+8. Con PDFs reales, un casi duplicado dispara "¿Es el mismo?", y tanto Ver como Subir igual funcionan. El umbral elegido queda registrado en `docs/decisiones.md`.
