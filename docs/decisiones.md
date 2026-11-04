@@ -44,3 +44,9 @@ Una línea por decisión de Agu. Agregar al final, con fecha. Si una decisión n
 - Logo: **la E hecha de nodos conectados** (remite a las correlativas y a la constelación del fondo).
 - Commits con el mail `noreply` de GitHub, configurado solo en este repo, para no publicar el mail personal.
 - Crédito del README: "Basado en Mi Plan de Estudio, de Lucía Formenti".
+- Repo fuera de iCloud, en `~/Projects/EstudIA`: la sincronización desalojaba archivos y hacía fallar los tests por timeout.
+- El respaldo nuevo guarda las siglas de universidad y carrera, para no aceptar uno de otra carrera con la misma versión de plan.
+- Un respaldo legacy sin ningún código en común con el plan se bloquea con un mensaje claro, en vez de crear todo como materias propias.
+- Restaurar materiales agrega los que no existan (mismo título y url, o mismo `sha256`) sin borrar nada. Si complica, en la fase 0 se pueden omitir.
+- Hash de documentos: en la fase 0, ninguna RPC ni consulta devuelve el `sha256` de documentos ajenos. La solución de fondo queda como pendiente bloqueante de la fase 1 (`arquitectura.md` §12): preguntarle a Agu antes de elegir.
+- Push al remoto recién cuando esté el CI.
