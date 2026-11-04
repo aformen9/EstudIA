@@ -62,3 +62,4 @@ Una línea por decisión de Agu. Agregar al final, con fecha. Si una decisión n
 - Restaurar materiales también omite notas con el mismo título y texto, y conserva `periodo` y `createdAt`.
 - Durante el desarrollo de `web` se usa Supabase local con un login de prueba que solo existe en `import.meta.env.DEV`, con un test que confirma que no llega al build de producción. Supabase remoto y Google los crea Agu más adelante.
 - El CI y el primer push se adelantan: van antes de `web` y no al final de la fase, con gitleaks sobre todo el historial antes de pushear.
+- El proyecto remoto de Supabase se crea con "Automatically expose new tables" desactivado. `supabase/config.toml` usa lo mismo (`auto_expose_new_tables = false`) y `08_grants.test.sql` fija la lista exacta de GRANT: todo objeto nuevo necesita el suyo, y `anon` no recibe nada.
