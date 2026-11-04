@@ -11,16 +11,18 @@
   --glass-line: rgba(255, 255, 255, 0.9);
   --ink: #2b1326;
   --ink-2: #6e4b63;
-  --ink-3: #a5869b;
+  --ink-3: #87647b;
   --line: #f5dbe8;
   --line-2: #eccbdb;
-  --accent: #e0367f;
+  --accent: #c61f67;
   --accent-2: #f472b6;
   --accent-soft: #ffe3f0;
   --accent-ink: #ffffff;
-  --lav: #8b5cf6;
+  /* Inicio del gradiente con texto encima: --accent-2 no llega a AA con --accent-ink. */
+  --accent-fuerte: #e0117e;
+  --lav: #763ff4;
   --lav-soft: #efe7ff;
-  --ok: #15803d;
+  --ok: #13793a;
   --ok-bg: #e2f7e9;
   --cur: #c2410c;
   --cur-bg: #ffeddb;
@@ -53,13 +55,14 @@
   --glass-line: rgba(255, 255, 255, 0.06);
   --ink: #fbe9f3;
   --ink-2: #d5a8c2;
-  --ink-3: #95768b;
+  --ink-3: #9c7f92;
   --line: #33232f;
   --line-2: #43303e;
   --accent: #ff5ea3;
   --accent-2: #f472b6;
   --accent-soft: #3d1a2e;
   --accent-ink: #1a0712;
+  --accent-fuerte: #f472b6;
   --lav: #a78bfa;
   --lav-soft: #2a2142;
   --ok: #4ade80;
@@ -743,9 +746,9 @@ h3 {
   transform: translateY(0) scale(0.98);
 }
 .btn.primary {
-  background: linear-gradient(135deg, var(--accent-2), var(--accent));
+  background: linear-gradient(135deg, var(--accent-fuerte), var(--accent));
   border: 0;
-  color: #fff;
+  color: var(--accent-ink);
   box-shadow: 0 8px 20px -8px var(--accent);
 }
 .btn.primary:hover {
@@ -2078,8 +2081,8 @@ details.edit[open] > div {
   font-family: var(--display);
   font-weight: 800;
   font-size: 1.15rem;
-  color: #fff;
-  background: linear-gradient(135deg, var(--accent-2), var(--accent) 55%, var(--lav));
+  color: var(--accent-ink);
+  background: linear-gradient(135deg, var(--accent-fuerte), var(--accent) 55%, var(--lav));
   box-shadow: 0 8px 22px -6px var(--accent);
   isolation: isolate;
 }

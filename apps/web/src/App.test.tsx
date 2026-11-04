@@ -128,6 +128,7 @@ describe("App", () => {
     fireEvent.click(screen.getByRole("button", { name: "Respaldo y ajustes" }));
     fireEvent.click(screen.getByRole("button", { name: /Cerrar sesión/ }));
     await waitFor(() => expect(salir).toHaveBeenCalledOnce());
+    expect(salir).toHaveBeenCalledWith({ scope: "local" });
 
     act(() => avisar("SIGNED_OUT", null));
     expect(await screen.findByRole("button", { name: "Entrar con Google" })).toBeTruthy();
