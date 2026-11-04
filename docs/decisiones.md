@@ -115,4 +115,6 @@ Una línea por decisión de Agu. Agregar al final, con fecha. Si una decisión n
 - Seguridad de Materiales: links solo `http` y `https`, archivos locales separados por usuario, y un HTML o SVG subido no se abre dentro de la app.
 - Cerrar sesión no borra los archivos locales por defecto. El diálogo suma una casilla desmarcada, "Borrar también mis archivos de este dispositivo", con el aviso de que en la fase 0 no se pueden recuperar. La casilla borra solo los archivos del usuario que cierra sesión.
 - Durante el onboarding, el diálogo de cerrar sesión aparece solo si el usuario tiene archivos en este dispositivo; si no, cierra directo.
-- `.codex/` no se sube al repo: queda en `.gitignore`.
+- `.codex/` y `AGENTS.md` no se suben al repo: quedan en `.gitignore`.
+- Avatar: en todos los lugares se usa la foto de la cuenta de Google (`user_metadata.avatar_url` o `picture`), con `referrerpolicy="no-referrer"`. Sin foto o si falla la carga, se muestra la inicial.
+- Brillo que sigue al cursor en la grilla del onboarding: se conserva pero fluido, a 60 fps, medido antes y después. Si en listas largas no se puede, se desactiva solo ahí.
