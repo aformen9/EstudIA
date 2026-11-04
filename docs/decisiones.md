@@ -81,3 +81,11 @@ Una línea por decisión de Agu. Agregar al final, con fecha. Si una decisión n
 - Las fuentes se alojan en el repo en la tanda 4 de `web`, para que el navegador del alumno no se conecte a Google por ellas.
 - Texto falso en documentos: queda en `arquitectura.md` §12 como bloqueante de la fase 1.
 - La IA y el MCP tratan todo texto de documentos y material como datos no confiables, nunca como instrucciones (defensa contra prompt injection), con tests cuando lleguen esas fases.
+
+## 2026-11-04 (dudas de la tanda 2 de `web`)
+
+- Inicio sin datos cargados muestra los accesos "Cargar materias" e "Importar respaldo", para que recargar en el último paso del onboarding no deje al alumno trabado.
+- Salir de la grilla con filas que fallaron avisa antes: "N materias no se guardaron", con las opciones Reintentar y Salir igual.
+- Menú durante el onboarding: queda oculto, solo con tema y cerrar sesión, y el botón dice "Cerrar sesión" mientras dure.
+- Catálogo vacío: el alumno ve un mensaje y puede cerrar sesión. Se retoma cuando se puedan cargar planes nuevos.
+- Resultado de restaurar materiales: si el respaldo trae materiales, se muestra la cuenta y se espera "Ir a Inicio"; si no trae, va directo.
