@@ -1,3 +1,7 @@
 packages:
   - "apps/*"
   - "packages/*"
+
+# esbuild trae su binario como dependencia opcional: no necesita correr su script de instalación.
+allowBuilds:
+  esbuild: false
