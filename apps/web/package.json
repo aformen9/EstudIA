@@ -9,6 +9,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
+    "test:integracion": "vitest run --config vitest.integracion.config.ts",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
