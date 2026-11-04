@@ -1,0 +1,727 @@
+import { describe, expect, it } from "vitest";
+import legacyCaso from "../../../../fixtures/caso-prueba-legacy.json";
+import { fila, materia, planBase, planLcd, evento } from "../pruebas/auxiliares";
+import {
+  crearRespaldo,
+  datosAlumnoDesdeImportacion,
+  detectarFormatoRespaldo,
+  estadoCorrelativas,
+  FORMATO_RESPALDO,
+  importarArchivo,
+  importarLegacy,
+  leerRespaldo,
+  parsearArchivo,
+  progresoCarrera,
+  promedio,
+  type DatosAlumno,
+  type Material,
+  type PlanCompleto,
+  type TipoAviso,
+} from "../index";
+
+const planChico: PlanCompleto = {
+  plan: planBase(),
+  materias: [
+    materia("uuid-a", { codigo: "AAA" }),
+    materia("uuid-b", { codigo: "BBB" }),
+    materia("uuid-p", { codigo: "PRO", ownerId: "alumno" }),
+  ],
+  correlativas: [],
+};
+
+function legacy(materias: unknown[], extra: object = {}) {
+  return { version: 2, materias, ...extra };
+}
+
+function importarOk(json: unknown, plan: PlanCompleto = planChico) {
+  const resultado = importarLegacy(json, plan);
+  if (!resultado.ok) throw new Error(resultado.error);
+  return resultado;
+}
+
+function avisosDe(resultado: { reporte: { avisos: { tipo: TipoAviso }[] } }, tipo: TipoAviso) {
+  return resultado.reporte.avisos.filter((a) => a.tipo === tipo);
+}
+
+describe("importarLegacy: archivos inválidos", () => {
+  it.each([[null], ["texto"], [42], [[]], [{}], [{ materias: "no" }]])(
+    "rechaza %j con un mensaje en español, sin lanzar",
+    (json) => {
+      expect(importarLegacy(json, planChico)).toEqual({
+        ok: false,
+        error: "El respaldo no es válido: no tiene una lista de materias.",
+      });
+    },
+  );
+
+  it("dice qué materia no tiene nombre o id", () => {
+    expect(importarLegacy(legacy([{ id: "x", nombre: "Bien" }, { id: "y" }]), planChico)).toEqual({
+      ok: false,
+      error: "El respaldo no es válido: la materia número 2 no tiene nombre.",
+    });
+    expect(importarLegacy(legacy([{ nombre: "Sin id" }]), planChico)).toEqual({
+      ok: false,
+      error: "El respaldo no es válido: la materia número 1 no tiene id.",
+    });
+  });
+
+  it("acepta una lista vacía de materias y deja todo pendiente", () => {
+    const resultado = importarOk(legacy([]));
+    expect(resultado.datos).toEqual({ materiasPropias: [], progreso: [], historial: [] });
+    expect(resultado.resumen.porEstado.pendiente).toBe(2);
+    expect(avisosDe(resultado, "materia-sin-datos")).toHaveLength(2);
+  });
+
+  it("importa contra un plan vacío: todo pasa a materias propias", () => {
+    const planVacio: PlanCompleto = { plan: planBase(), materias: [], correlativas: [] };
+    const resultado = importarOk(
+      legacy([
+        { id: "x", codigo: "AAA", nombre: "X", anio: 1, sem: 1, estado: "aprobada", nota: 8 },
+      ]),
+      planVacio,
+    );
+    expect(resultado.resumen).toMatchObject({
+      totalMaterias: 1,
+      materiasConMatch: 0,
+      materiasPropias: 1,
+    });
+  });
+});
+
+describe("importarLegacy: match y materias propias", () => {
+  it("usa uuid del catálogo para las materias con match, sin tocar materias propias del plan", () => {
+    const resultado = importarOk(
+      legacy([
+        { id: "AAA", codigo: "AAA", nombre: "A", estado: "aprobada", nota: 8, final: 8 },
+        { id: "PRO", codigo: "PRO", nombre: "Propia vieja", anio: 1, sem: 1, estado: "cursando" },
+      ]),
+    );
+    expect(resultado.datos.progreso.map((p) => [p.materiaId, p.estado, p.notaFinalExamen])).toEqual(
+      [
+        ["uuid-a", "aprobada", 8],
+        ["PRO", "cursando", null],
+      ],
+    );
+    expect(resultado.datos.materiasPropias.map((m) => m.clave)).toEqual(["PRO"]);
+  });
+
+  it("no guarda filas de materias sin ningún dato", () => {
+    const resultado = importarOk(
+      legacy([
+        { id: "AAA", codigo: "AAA", nombre: "A", estado: "pendiente", p1: null, aplazos: [] },
+      ]),
+    );
+    expect(resultado.datos.progreso).toEqual([]);
+  });
+
+  it("pasa a propia a la materia sin match, con sus datos y su clave", () => {
+    const resultado = importarOk(
+      legacy([
+        {
+          id: "m123",
+          nombre: "Optativa",
+          anio: 3,
+          sem: 2,
+          tipo: "Seminario",
+          reqModuloCursar: 2,
+          estado: "cursando",
+          p1: 7,
+        },
+      ]),
+    );
+    expect(resultado.datos.materiasPropias).toEqual([
+      {
+        clave: "m123",
+        codigo: null,
+        nombre: "Optativa",
+        anio: 3,
+        cuatrimestre: 2,
+        tipo: "Seminario",
+        area: null,
+        requiereAnioCompletoParaCursar: 2,
+        correlativas: [],
+      },
+    ]);
+    expect(resultado.datos.progreso[0]).toMatchObject({ materiaId: "m123", p1: 7 });
+    expect(avisosDe(resultado, "materia-sin-match")[0]).toMatchObject({ materia: "m123" });
+    expect(resultado.resumen).toMatchObject({ materiasPropias: 1, totalMaterias: 3 });
+  });
+
+  it("resuelve correlativas de propias contra uuid o clave y reporta el resto", () => {
+    const resultado = importarOk(
+      legacy([
+        { id: "AAA", codigo: "AAA", nombre: "A", estado: "aprobada" },
+        {
+          id: "p1",
+          nombre: "Propia 1",
+          anio: 1,
+          sem: 1,
+          estado: "pendiente",
+          reqCursar: ["AAA", { id: "p2", cond: "regular" }, { id: "FANTASMA", cond: "regular" }],
+          reqRendir: ["BBB", { cond: "aprobada" }, { id: "p1" }],
+        },
+        { id: "p2", codigo: "ZZZ", nombre: "Propia 2", anio: 1, sem: 1, estado: "pendiente" },
+      ]),
+    );
+    const propia = resultado.datos.materiasPropias.find((m) => m.clave === "p1");
+    expect(propia?.correlativas).toEqual([
+      { requiere: "uuid-a", para: "cursar", condicion: "aprobada" },
+      { requiere: "p2", para: "cursar", condicion: "regular" },
+      { requiere: "uuid-b", para: "rendir", condicion: "aprobada" },
+    ]);
+    expect(avisosDe(resultado, "correlativa-sin-resolver")).toHaveLength(3);
+  });
+
+  it("toma una sola vez a dos materias del respaldo con el mismo código", () => {
+    const resultado = importarOk(
+      legacy([
+        { id: "x1", codigo: "AAA", nombre: "A", estado: "aprobada", nota: 8 },
+        { id: "x2", codigo: "AAA", nombre: "A otra", estado: "cursando" },
+        { id: "x1", nombre: "Id repetido", estado: "cursando" },
+      ]),
+    );
+    expect(resultado.datos.progreso).toHaveLength(1);
+    expect(resultado.datos.materiasPropias).toHaveLength(0);
+    expect(avisosDe(resultado, "materia-descartada")).toHaveLength(2);
+  });
+
+  it("descarta la materia cuyo id choca con un uuid del catálogo", () => {
+    const resultado = importarOk(
+      legacy([{ id: "uuid-a", nombre: "Trampa", anio: 1, estado: "cursando" }]),
+    );
+    expect(resultado.datos.materiasPropias).toEqual([]);
+    expect(resultado.datos.progreso).toEqual([]);
+    expect(avisosDe(resultado, "materia-descartada")).toHaveLength(1);
+  });
+
+  it("reporta el año inválido de una propia", () => {
+    const resultado = importarOk(legacy([{ id: "p", nombre: "P", anio: "dos", sem: 2 }]));
+    expect(resultado.datos.materiasPropias[0]).toMatchObject({ anio: 0, cuatrimestre: null });
+    expect(avisosDe(resultado, "dato-invalido")).toHaveLength(1);
+  });
+
+  it("lleva el caso de prueba con una materia extra sin match a 51 materias", () => {
+    const conExtra = {
+      ...legacyCaso,
+      materias: [
+        ...legacyCaso.materias,
+        { id: "m1", nombre: "Optativa", anio: 1, sem: 1, estado: "aprobada", nota: 9 },
+      ],
+    };
+    const plan = planLcd();
+    const resultado = importarOk(conExtra, plan);
+    const datos = datosAlumnoDesdeImportacion(plan, resultado.datos);
+    expect(progresoCarrera(datos).total).toBe(51);
+    expect(progresoCarrera(datos).porEstado.aprobada).toBe(27);
+    expect(promedio(datos, false).n).toBe(27);
+  });
+});
+
+describe("importarLegacy: datos que no se confían", () => {
+  it("deja pendiente un estado desconocido y lo reporta", () => {
+    const resultado = importarOk(
+      legacy([{ id: "AAA", codigo: "AAA", nombre: "A", estado: "recursando", p1: 5 }]),
+    );
+    expect(resultado.datos.progreso[0]?.estado).toBe("pendiente");
+    expect(avisosDe(resultado, "estado-desconocido")[0]).toMatchObject({
+      materia: "AAA",
+      valor: "recursando",
+    });
+  });
+
+  it("descarta y reporta notas fuera de escala o que no son números", () => {
+    const resultado = importarOk(
+      legacy([
+        {
+          id: "AAA",
+          codigo: "AAA",
+          nombre: "A",
+          estado: "aprobada",
+          nota: 11,
+          final: "9",
+          p1: 0,
+          p2: 7,
+          aplazos: [2, 40, "x"],
+        },
+      ]),
+    );
+    expect(resultado.datos.progreso[0]).toMatchObject({
+      nota: null,
+      notaFinalExamen: null,
+      p1: null,
+      p2: 7,
+      aplazos: [2],
+    });
+    expect(avisosDe(resultado, "nota-fuera-de-escala")).toHaveLength(5);
+  });
+
+  it("valida contra la escala del plan, no contra 1-10", () => {
+    const plan: PlanCompleto = {
+      ...planChico,
+      plan: planBase({ notaMin: 1, notaMax: 7, notaAprobacion: 4 }),
+    };
+    const crudo = legacy([
+      { id: "AAA", codigo: "AAA", nombre: "A", estado: "aprobada", nota: 9, aplazos: [8, 3] },
+    ]);
+    const resultado = importarOk(crudo, plan);
+    expect(resultado.datos.progreso[0]).toMatchObject({ nota: null, aplazos: [3] });
+    expect(importarOk(crudo).datos.progreso[0]).toMatchObject({ nota: 9, aplazos: [8, 3] });
+  });
+
+  it("limpia el historial: descarta eventos inválidos y notas fuera de escala", () => {
+    const historial = [
+      { fecha: "2024-01-01T10:00:00Z", tipo: "Examen", nota: 7, resultado: "Aprobado" },
+      { fecha: "2024-13-45", tipo: "Examen", nota: 7, resultado: "Aprobado" },
+      { fecha: "2024-01-02", tipo: "Otro", nota: 7, resultado: "Aprobado" },
+      { fecha: "2024-01-03", tipo: "Examen", nota: 7, resultado: "Quizás" },
+      "basura",
+      { fecha: "2024-01-04", tipo: "Examen", nota: 99, resultado: "Reprobado" },
+    ];
+    const resultado = importarOk(
+      legacy([{ id: "AAA", codigo: "AAA", nombre: "A", estado: "final", historial }]),
+    );
+    expect(resultado.datos.historial).toEqual([
+      evento("uuid-a", "2024-01-01", "Examen", "Aprobado", 7),
+      evento("uuid-a", "2024-01-04", "Examen", "Reprobado", null),
+    ]);
+    expect(avisosDe(resultado, "evento-descartado")).toHaveLength(4);
+    expect(avisosDe(resultado, "nota-fuera-de-escala")).toHaveLength(1);
+    expect(resultado.resumen.eventos).toBe(2);
+  });
+
+  it("reporta campos que no son listas sin romper", () => {
+    const resultado = importarOk(
+      legacy([
+        { id: "AAA", codigo: "AAA", nombre: "A", estado: "final", aplazos: 2, historial: "no" },
+        { id: "p", nombre: "P", anio: 1, reqCursar: "AAA" },
+      ]),
+    );
+    expect(avisosDe(resultado, "dato-invalido")).toHaveLength(2);
+    expect(avisosDe(resultado, "correlativa-sin-resolver")).toHaveLength(1);
+  });
+});
+
+describe("importarLegacy: fuente del historial", () => {
+  const conEvento = (fuente: unknown) =>
+    legacy(
+      [
+        {
+          id: "AAA",
+          codigo: "AAA",
+          nombre: "A",
+          estado: "final",
+          historial: [{ fecha: "2024-01-01", tipo: "Regularidad", nota: 7, resultado: "Aprobado" }],
+        },
+      ],
+      { fuente },
+    );
+
+  it.each([
+    ["SIU Guaraní", "siu"],
+    ["SIU", "siu"],
+    ["siu guaraní", "manual"],
+    ["Importado de SIU", "manual"],
+    [undefined, "manual"],
+    [3, "manual"],
+  ])("con fuente %j usa %s", (fuente, esperada) => {
+    expect(importarOk(conEvento(fuente)).datos.historial[0]?.fuente).toBe(esperada);
+  });
+});
+
+/* ---------- Respaldo nuevo ---------- */
+
+const planOrigen = planLcd(1);
+const planDestino = planLcd(2);
+const uuid = (plan: PlanCompleto, codigo: string) =>
+  plan.materias.find((m) => m.codigo === codigo)?.id as string;
+
+const ID_A = uuid(planOrigen, "GMA0136");
+const ID_B = uuid(planOrigen, "GES0132");
+const SHA = "a".repeat(64);
+
+function datosOrigen(): DatosAlumno {
+  return {
+    ...planOrigen,
+    materias: [
+      ...planOrigen.materias,
+      materia("propia-1", { codigo: null, nombre: "Optativa", area: "Libre", ownerId: "alumno" }),
+      materia("propia-2", { codigo: "OPT2", nombre: "Otra", ownerId: "alumno", anio: 0 }),
+    ],
+    correlativas: [
+      ...planOrigen.correlativas,
+      { materiaId: "propia-1", requiereId: ID_A, para: "cursar", condicion: "regular" },
+      { materiaId: "propia-1", requiereId: "propia-2", para: "rendir", condicion: "aprobada" },
+    ],
+    progreso: [
+      fila(ID_A, { estado: "aprobada", nota: 8, notaFinalExamen: 8, aplazos: [2] }),
+      fila(ID_B, { estado: "cursando", p1: 6 }),
+      fila("propia-1", { estado: "aprobada", nota: 10 }),
+    ],
+    historial: [
+      { ...evento(ID_A, "2024-01-01", "Examen", "Reprobado", 2), fuente: "siu" },
+      { ...evento(ID_A, "2024-03-01", "Examen", "Aprobado", 8), fuente: "ia" },
+      evento("propia-1", "2024-04-01", "Promocion", "Promocionado", 10),
+    ],
+  };
+}
+
+const baseMaterial = {
+  visibilidad: "compartido" as const,
+  anonimo: true,
+  oculto: true,
+  periodo: "2025-2C",
+  createdAt: "2025-01-01T00:00:00.000Z",
+};
+
+const materialesOrigen: Material[] = [
+  {
+    ...baseMaterial,
+    id: "l",
+    tipo: "link",
+    materiaId: ID_A,
+    titulo: "Clase",
+    url: "https://x.org",
+  },
+  { ...baseMaterial, id: "n", tipo: "nota", materiaId: "propia-1", titulo: "Nota", texto: "Hola" },
+  {
+    ...baseMaterial,
+    id: "a",
+    tipo: "archivo",
+    materiaId: null,
+    titulo: "Apunte.pdf",
+    driveFileId: "drive",
+    documento: { id: "doc", sha256: SHA, mime: "application/pdf", bytes: 10, paginas: 2 },
+  },
+];
+
+function respaldoJson(cambios: object = {}) {
+  const { respaldo } = crearRespaldo(datosOrigen(), materialesOrigen, "2026-11-03T00:00:00.000Z");
+  return { ...JSON.parse(JSON.stringify(respaldo)), ...cambios };
+}
+
+function leerOk(json: unknown, plan: PlanCompleto = planDestino) {
+  const resultado = leerRespaldo(json, plan);
+  if (!resultado.ok) throw new Error(resultado.error);
+  return resultado;
+}
+
+describe("crearRespaldo", () => {
+  it("referencia al catálogo por código y a lo propio por clave, sin uuids del catálogo", () => {
+    const json = respaldoJson();
+    expect(json).toMatchObject({
+      formato: FORMATO_RESPALDO,
+      version: 1,
+      creadoEn: "2026-11-03T00:00:00.000Z",
+      plan: { version: "7023" },
+    });
+    expect(json.progreso[0].materia).toEqual({ codigo: "GMA0136" });
+    expect(json.progreso[2].materia).toEqual({ clave: "propia-1" });
+    expect(JSON.stringify(json)).not.toContain(ID_A);
+  });
+
+  it("guarda los archivos solo como metadatos", () => {
+    const archivo = respaldoJson().materiales[2];
+    expect(archivo).toEqual({
+      materia: null,
+      titulo: "Apunte.pdf",
+      periodo: "2025-2C",
+      createdAt: "2025-01-01T00:00:00.000Z",
+      tipo: "archivo",
+      sha256: SHA,
+      mime: "application/pdf",
+      bytes: 10,
+      paginas: 2,
+    });
+  });
+
+  it("no guarda visibilidad, anonimato ni ocultamiento", () => {
+    const texto = JSON.stringify(respaldoJson());
+    expect(texto).not.toContain("visibilidad");
+    expect(texto).not.toContain("oculto");
+    expect(texto).not.toContain("anonimo");
+  });
+
+  it("devuelve los materiales de otro plan como omitidos", () => {
+    const ajeno: Material = {
+      ...baseMaterial,
+      id: "z",
+      tipo: "nota",
+      materiaId: "otro-plan",
+      titulo: "Z",
+      texto: "z",
+    };
+    const { respaldo, materialesOmitidos } = crearRespaldo(datosOrigen(), [ajeno], "2026");
+    expect(respaldo.materiales).toEqual([]);
+    expect(materialesOmitidos).toEqual([ajeno]);
+  });
+});
+
+describe("leerRespaldo: ida y vuelta", () => {
+  it("recupera lo mismo en otro entorno, con otros uuids", () => {
+    const resultado = leerOk(respaldoJson());
+    const idA = uuid(planDestino, "GMA0136");
+    const idB = uuid(planDestino, "GES0132");
+    expect(idA).not.toBe(ID_A);
+    expect(resultado.reporte.avisos).toEqual([]);
+
+    const original = datosOrigen();
+    const traducir = (id: string) => (id === ID_A ? idA : id === ID_B ? idB : id);
+    expect(resultado.datos.progreso).toEqual(
+      original.progreso.map((p) => ({ ...p, materiaId: traducir(p.materiaId) })),
+    );
+    expect(resultado.datos.historial).toEqual(
+      original.historial.map((h) => ({ ...h, materiaId: traducir(h.materiaId) })),
+    );
+    expect(resultado.datos.materiasPropias).toEqual([
+      {
+        clave: "propia-1",
+        codigo: null,
+        nombre: "Optativa",
+        anio: 1,
+        cuatrimestre: 1,
+        tipo: "Materia",
+        area: "Libre",
+        requiereAnioCompletoParaCursar: null,
+        correlativas: [
+          { requiere: idA, para: "cursar", condicion: "regular" },
+          { requiere: "propia-2", para: "rendir", condicion: "aprobada" },
+        ],
+      },
+      {
+        clave: "propia-2",
+        codigo: "OPT2",
+        nombre: "Otra",
+        anio: 0,
+        cuatrimestre: 1,
+        tipo: "Materia",
+        area: null,
+        requiereAnioCompletoParaCursar: null,
+        correlativas: [],
+      },
+    ]);
+    expect(resultado.materiales).toEqual([
+      { ...materialComun(idA), tipo: "link", titulo: "Clase", url: "https://x.org" },
+      { ...materialComun("propia-1"), tipo: "nota", titulo: "Nota", texto: "Hola" },
+      {
+        ...materialComun(null),
+        tipo: "archivo",
+        titulo: "Apunte.pdf",
+        sha256: SHA,
+        mime: "application/pdf",
+        bytes: 10,
+        paginas: 2,
+      },
+    ]);
+    expect(resultado.resumen).toEqual({
+      totalMaterias: 52,
+      porEstado: { aprobada: 2, cursando: 1, final: 0, pendiente: 49 },
+      materiasConMatch: 2,
+      materiasPropias: 2,
+      eventos: 3,
+      materiales: 3,
+      avisos: 0,
+    });
+  });
+
+  it("da los mismos cálculos después de la ida y vuelta", () => {
+    const original = datosOrigen();
+    const resultado = leerOk(respaldoJson());
+    const restaurados = datosAlumnoDesdeImportacion(planDestino, resultado.datos);
+    expect(progresoCarrera(restaurados)).toEqual(progresoCarrera(original));
+    expect(promedio(restaurados, true)).toEqual(promedio(original, true));
+    const propia = restaurados.materias.find((m) => m.id === "propia-1")!;
+    expect(estadoCorrelativas(restaurados, propia, "cursar").ok).toBe(true);
+    expect(estadoCorrelativas(restaurados, propia, "rendir").faltan[0]?.materia.id).toBe(
+      "propia-2",
+    );
+  });
+
+  it("un respaldo creado sobre lo restaurado es igual al original", () => {
+    const original = respaldoJson();
+    const resultado = leerOk(original);
+    const restaurados = datosAlumnoDesdeImportacion(planDestino, resultado.datos);
+    const segundo = crearRespaldo(restaurados, [], "2026-11-03T00:00:00.000Z").respaldo;
+    expect(JSON.parse(JSON.stringify(segundo))).toEqual({ ...original, materiales: [] });
+  });
+});
+
+function materialComun(materiaId: string | null) {
+  return { materiaId, periodo: "2025-2C", createdAt: "2025-01-01T00:00:00.000Z" };
+}
+
+describe("leerRespaldo: rechazos", () => {
+  it("rechaza un respaldo de otro plan por versión", () => {
+    expect(leerRespaldo(respaldoJson({ plan: { version: "9999" } }), planDestino)).toEqual({
+      ok: false,
+      error:
+        "Este respaldo es del plan 9999 y estás en el plan 7023. Cambiá de plan para restaurarlo.",
+    });
+  });
+
+  it("rechaza un respaldo de otro plan con la misma versión y otros códigos", () => {
+    const otroPlan: PlanCompleto = { ...planChico, plan: planBase({ version: "7023" }) };
+    const resultado = leerRespaldo(respaldoJson(), otroPlan);
+    expect(resultado).toEqual({
+      ok: false,
+      error: "Este respaldo es de otro plan: ninguna de sus materias está en el plan 7023.",
+    });
+  });
+
+  it("rechaza una versión de formato más nueva", () => {
+    const resultado = leerRespaldo(respaldoJson({ version: 2 }), planDestino);
+    expect(resultado.ok).toBe(false);
+    if (!resultado.ok) expect(resultado.error).toContain("más nueva");
+  });
+
+  it.each([
+    [null],
+    [{ materias: [] }],
+    [{ formato: "otra-app", version: 1 }],
+    [{ formato: FORMATO_RESPALDO }],
+    [{ formato: FORMATO_RESPALDO, version: 1 }],
+  ])("rechaza %j sin lanzar", (json) => {
+    const resultado = leerRespaldo(json, planDestino);
+    expect(resultado.ok).toBe(false);
+    if (!resultado.ok) expect(resultado.error).toMatch(/respaldo/i);
+  });
+
+  it("indica el dato inválido", () => {
+    const resultado = leerRespaldo(respaldoJson({ historial: "no" }), planDestino);
+    expect(resultado).toEqual({
+      ok: false,
+      error: 'El respaldo no es válido: revisá el dato en "historial".',
+    });
+  });
+});
+
+describe("leerRespaldo: datos que no se confían", () => {
+  it("reporta y descarta lo que no se puede mapear, sin perder el resto", () => {
+    const base = respaldoJson();
+    const json = {
+      ...base,
+      progreso: [
+        ...base.progreso,
+        { materia: { codigo: "NOEXISTE" }, estado: "aprobada", nota: 9 },
+        { materia: { codigo: "GCO0137" }, estado: "volando", nota: 15, aplazos: [99] },
+        { materia: { codigo: "GCO0137" }, estado: "aprobada" },
+      ],
+      historial: [
+        ...base.historial,
+        {
+          materia: { clave: "fantasma" },
+          fecha: "2024-01-01",
+          tipo: "Examen",
+          resultado: "Ausente",
+        },
+        {
+          materia: { codigo: "GCO0137" },
+          fecha: "2024-01-01",
+          tipo: "Examen",
+          resultado: "Ausente",
+          nota: null,
+          fuente: "chat",
+        },
+      ],
+    };
+    const resultado = leerOk(json);
+    const fila = resultado.datos.progreso.find((p) => p.materiaId === uuid(planDestino, "GCO0137"));
+    expect(fila).toMatchObject({ estado: "pendiente", nota: null, aplazos: [] });
+    expect(avisosDe(resultado, "referencia-sin-resolver")).toHaveLength(2);
+    expect(avisosDe(resultado, "estado-desconocido")).toHaveLength(1);
+    expect(avisosDe(resultado, "nota-fuera-de-escala")).toHaveLength(2);
+    expect(avisosDe(resultado, "dato-invalido")).toHaveLength(2);
+    expect(resultado.datos.historial.at(-1)?.fuente).toBe("manual");
+  });
+
+  it("descarta links que no son http(s) y sha256 inválidos", () => {
+    const comun = { materia: null, titulo: "M", periodo: null, createdAt: "2025" };
+    const resultado = leerOk(
+      respaldoJson({
+        materiales: [
+          { ...comun, tipo: "link", url: "javascript:alert(1)" },
+          { ...comun, tipo: "archivo", sha256: "corto", mime: null, bytes: null, paginas: null },
+          { ...comun, tipo: "link", url: "HTTPS://ok.org" },
+        ],
+      }),
+    );
+    expect(resultado.materiales.map((m) => m.tipo)).toEqual(["link"]);
+    expect(avisosDe(resultado, "material-descartado")).toHaveLength(2);
+  });
+
+  it("deja sin materia un material cuya materia no está en el plan", () => {
+    const comun = { titulo: "M", periodo: null, createdAt: "2025" };
+    const resultado = leerOk(
+      respaldoJson({
+        materiales: [{ ...comun, materia: { codigo: "NOEXISTE" }, tipo: "nota", texto: "t" }],
+      }),
+    );
+    expect(resultado.materiales[0]?.materiaId).toBeNull();
+    expect(avisosDe(resultado, "referencia-sin-resolver")).toHaveLength(1);
+  });
+
+  it("reporta correlativas sin resolver y claves repetidas de materias propias", () => {
+    const base = respaldoJson();
+    const propia = {
+      ...base.materiasPropias[1],
+      clave: "nueva",
+      correlativas: [
+        { requiere: { codigo: "NOEXISTE" }, para: "cursar", condicion: "regular" },
+        { requiere: { clave: "nueva" }, para: "cursar", condicion: "regular" },
+      ],
+    };
+    const resultado = leerOk({
+      ...base,
+      materiasPropias: [...base.materiasPropias, propia, base.materiasPropias[0]],
+    });
+    expect(avisosDe(resultado, "correlativa-sin-resolver")).toHaveLength(2);
+    expect(avisosDe(resultado, "materia-descartada")).toHaveLength(1);
+    expect(resultado.datos.materiasPropias).toHaveLength(3);
+  });
+
+  it("valida las notas contra la escala del plan de destino", () => {
+    const plan = {
+      ...planDestino,
+      plan: planBase({ notaMin: 1, notaMax: 7, notaAprobacion: 6 }),
+    };
+    const resultado = leerOk(respaldoJson(), plan);
+    const fila = resultado.datos.progreso.find((p) => p.materiaId === "propia-1");
+    expect(fila?.nota).toBeNull();
+    expect(avisosDe(resultado, "nota-fuera-de-escala").length).toBeGreaterThan(0);
+  });
+});
+
+describe("una sola entrada para la UI", () => {
+  it("detecta el formato", () => {
+    expect(detectarFormatoRespaldo(legacyCaso)).toBe("legacy");
+    expect(detectarFormatoRespaldo(respaldoJson())).toBe("nuevo");
+    expect(detectarFormatoRespaldo({ materias: 3 })).toBeNull();
+    expect(detectarFormatoRespaldo({ formato: "otro", materias: [] })).toBeNull();
+    expect(detectarFormatoRespaldo(null)).toBeNull();
+    expect(detectarFormatoRespaldo([1])).toBeNull();
+  });
+
+  it("importa cada formato por la misma función", () => {
+    const viejo = importarArchivo(legacyCaso, planDestino);
+    expect(viejo).toMatchObject({ ok: true, formato: "legacy", materiales: [] });
+    const nuevo = importarArchivo(respaldoJson(), planDestino);
+    expect(nuevo).toMatchObject({ ok: true, formato: "nuevo" });
+    if (nuevo.ok) expect(nuevo.materiales).toHaveLength(3);
+  });
+
+  it("rechaza lo desconocido y deja pasar el error de cada lector", () => {
+    expect(importarArchivo({ hola: 1 }, planDestino)).toEqual({
+      ok: false,
+      error: "El archivo no parece un respaldo de EstudIA ni de Mi Plan de Estudio.",
+    });
+    expect(importarArchivo(legacy([{ id: "x" }]), planDestino).ok).toBe(false);
+    expect(importarArchivo(respaldoJson({ plan: { version: "1" } }), planDestino).ok).toBe(false);
+  });
+
+  it("parsea el texto del archivo con un mensaje claro", () => {
+    expect(parsearArchivo('{"a":1}')).toEqual({ ok: true, json: { a: 1 } });
+    expect(parsearArchivo("{roto")).toEqual({
+      ok: false,
+      error: "El archivo no es un JSON válido.",
+    });
+  });
+});
