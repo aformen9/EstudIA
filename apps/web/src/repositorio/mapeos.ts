@@ -102,20 +102,26 @@ export function planDesdeFila(fila: FilaPlan): Plan {
 }
 
 /** Plan con sus siglas, por el join plan → carrera → universidad. */
-export const COLUMNAS_PLAN_CON_SIGLAS = `${COLUMNAS_PLAN}, carreras(sigla, universidades(sigla))`;
+export const COLUMNAS_PLAN_CON_SIGLAS = `${COLUMNAS_PLAN}, carreras(sigla, nombre, universidades(sigla))`;
 
 export interface FilaPlanConSiglas extends FilaPlan {
   /** Null si la RLS no deja ver la carrera o la universidad. */
-  carreras: { sigla: string | null; universidades: { sigla: string | null } | null } | null;
+  carreras: {
+    sigla: string | null;
+    nombre: string | null;
+    universidades: { sigla: string | null } | null;
+  } | null;
 }
 
 export function siglasDesdeFila(fila: FilaPlanConSiglas): {
   universidadSigla: string | null;
   carreraSigla: string | null;
+  carreraNombre: string | null;
 } {
   return {
     universidadSigla: fila.carreras?.universidades?.sigla ?? null,
     carreraSigla: fila.carreras?.sigla ?? null,
+    carreraNombre: fila.carreras?.nombre ?? null,
   };
 }
 

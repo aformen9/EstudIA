@@ -83,6 +83,8 @@ export interface PlanCompleto {
   /** Junto con `plan.version`, identifican al plan entre entornos (los uuid cambian). */
   universidadSigla: string | null;
   carreraSigla: string | null;
+  /** Para mostrar. Null si la RLS no deja ver la carrera. */
+  carreraNombre: string | null;
   materias: Materia[];
   correlativas: Correlativa[];
 }

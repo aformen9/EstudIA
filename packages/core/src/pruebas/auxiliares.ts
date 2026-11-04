@@ -56,7 +56,14 @@ export function planLcd(entorno = 0): PlanCompleto {
       condicion: c.condicion as Correlativa["condicion"],
     })),
   );
-  return { plan, universidadSigla: "UCA", carreraSigla: "LCD", materias, correlativas };
+  return {
+    plan,
+    universidadSigla: "UCA",
+    carreraSigla: "LCD",
+    carreraNombre: "Ciencias de Datos",
+    materias,
+    correlativas,
+  };
 }
 
 export function materia(id: string, cambios: Partial<Materia> = {}): Materia {
@@ -106,6 +113,7 @@ export function datosDe(cambios: Partial<DatosAlumno> = {}): DatosAlumno {
     plan: planBase(),
     universidadSigla: "UCA",
     carreraSigla: "LCD",
+    carreraNombre: "Ciencias de Datos",
     materias: [],
     correlativas: [],
     progreso: [],

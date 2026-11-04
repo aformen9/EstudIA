@@ -1,3 +1,4 @@
+import { materiasPropiasConservadas } from "./previsualizar";
 import { notaEnEscala } from "../calculo/sugerencias";
 import type {
   DatosImportados,
@@ -219,7 +220,9 @@ export function resumirImportacion(
   avisos: Avisos,
 ): ResumenImportacion {
   const totalMaterias =
-    plan.materias.filter((m) => m.ownerId === null).length + datos.materiasPropias.length;
+    plan.materias.filter((m) => m.ownerId === null).length +
+    materiasPropiasConservadas(plan, datos).length +
+    datos.materiasPropias.length;
   const porEstado = { pendiente: 0, cursando: 0, final: 0, aprobada: 0 };
   for (const fila of datos.progreso) porEstado[fila.estado]++;
   porEstado.pendiente = totalMaterias - porEstado.cursando - porEstado.final - porEstado.aprobada;
