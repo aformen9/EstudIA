@@ -1,0 +1,1069 @@
+{
+  "_explicacion": "Resultados calculados con la lógica ORIGINAL de app.js (Mi Plan de Estudio) sobre fixtures/caso-prueba-legacy.json (alumno inventado). El core nuevo tiene que dar exactamente esto (redondeo a 4 decimales).",
+  "totalMaterias": 50,
+  "porEstado": {
+    "aprobada": 26,
+    "cursando": 5,
+    "final": 2,
+    "pendiente": 17
+  },
+  "porcentajeAprobado": 52,
+  "porcentajeCursado": 56,
+  "promedioSinAplazos": 7.7308,
+  "promedioConAplazos": 7.3571,
+  "cantidadNotasSinAplazos": 26,
+  "cantidadNotasConAplazos": 28,
+  "aplazos": [
+    {
+      "codigo": "GMA1234",
+      "nota": 2
+    },
+    {
+      "codigo": "GCO0406",
+      "nota": 3
+    }
+  ],
+  "promedioPorCuatrimestre": [
+    {
+      "anio": 1,
+      "cuatrimestre": 1,
+      "conAplazos": false,
+      "promedio": 8.2,
+      "n": 5
+    },
+    {
+      "anio": 1,
+      "cuatrimestre": 1,
+      "conAplazos": true,
+      "promedio": 8.2,
+      "n": 5
+    },
+    {
+      "anio": 1,
+      "cuatrimestre": 2,
+      "conAplazos": false,
+      "promedio": 7.4,
+      "n": 5
+    },
+    {
+      "anio": 1,
+      "cuatrimestre": 2,
+      "conAplazos": true,
+      "promedio": 6.5,
+      "n": 6
+    },
+    {
+      "anio": 2,
+      "cuatrimestre": 1,
+      "conAplazos": false,
+      "promedio": 7.4,
+      "n": 5
+    },
+    {
+      "anio": 2,
+      "cuatrimestre": 1,
+      "conAplazos": true,
+      "promedio": 7.4,
+      "n": 5
+    },
+    {
+      "anio": 2,
+      "cuatrimestre": 2,
+      "conAplazos": false,
+      "promedio": 8,
+      "n": 5
+    },
+    {
+      "anio": 2,
+      "cuatrimestre": 2,
+      "conAplazos": true,
+      "promedio": 7.1667,
+      "n": 6
+    },
+    {
+      "anio": 3,
+      "cuatrimestre": 1,
+      "conAplazos": false,
+      "promedio": 7.75,
+      "n": 4
+    },
+    {
+      "anio": 3,
+      "cuatrimestre": 1,
+      "conAplazos": true,
+      "promedio": 7.75,
+      "n": 4
+    }
+  ],
+  "promedioPorArea": [
+    {
+      "area": "Matemática",
+      "conAplazos": false,
+      "promedio": 7.6,
+      "n": 5
+    },
+    {
+      "area": "Computación",
+      "conAplazos": false,
+      "promedio": 7.6667,
+      "n": 6
+    },
+    {
+      "area": "Estadística e IA",
+      "conAplazos": false,
+      "promedio": 8.5,
+      "n": 4
+    },
+    {
+      "area": "Ingeniería de datos",
+      "conAplazos": false,
+      "promedio": 7.6667,
+      "n": 3
+    },
+    {
+      "area": "Laboratorios",
+      "conAplazos": false,
+      "promedio": 8,
+      "n": 1
+    },
+    {
+      "area": "Formación humanística",
+      "conAplazos": false,
+      "promedio": 7.4,
+      "n": 5
+    },
+    {
+      "area": "Idiomas",
+      "conAplazos": false,
+      "promedio": 7.5,
+      "n": 2
+    },
+    {
+      "area": "Matemática",
+      "conAplazos": true,
+      "promedio": 6.6667,
+      "n": 6
+    },
+    {
+      "area": "Computación",
+      "conAplazos": true,
+      "promedio": 7,
+      "n": 7
+    },
+    {
+      "area": "Estadística e IA",
+      "conAplazos": true,
+      "promedio": 8.5,
+      "n": 4
+    },
+    {
+      "area": "Ingeniería de datos",
+      "conAplazos": true,
+      "promedio": 7.6667,
+      "n": 3
+    },
+    {
+      "area": "Laboratorios",
+      "conAplazos": true,
+      "promedio": 8,
+      "n": 1
+    },
+    {
+      "area": "Formación humanística",
+      "conAplazos": true,
+      "promedio": 7.4,
+      "n": 5
+    },
+    {
+      "area": "Idiomas",
+      "conAplazos": true,
+      "promedio": 7.5,
+      "n": 2
+    }
+  ],
+  "podesCursar": [
+    "GES0314",
+    "GWA6803"
+  ],
+  "correlativas": {
+    "GMA0136": {
+      "cursar": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": true
+      },
+      "rendir": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": true
+      }
+    },
+    "GES0132": {
+      "cursar": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": true
+      },
+      "rendir": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": true
+      }
+    },
+    "GCO0137": {
+      "cursar": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": true
+      },
+      "rendir": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": true
+      }
+    },
+    "GTC0134": {
+      "cursar": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": true
+      },
+      "rendir": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": true
+      }
+    },
+    "GFF0881": {
+      "cursar": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": true
+      },
+      "rendir": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": true
+      }
+    },
+    "GMA0126": {
+      "cursar": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": false
+      },
+      "rendir": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": false
+      }
+    },
+    "GMA1234": {
+      "cursar": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": false
+      },
+      "rendir": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": false
+      }
+    },
+    "GCO0119": {
+      "cursar": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": false
+      },
+      "rendir": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": false
+      }
+    },
+    "GTC0120": {
+      "cursar": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": false
+      },
+      "rendir": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": false
+      }
+    },
+    "GFF0882": {
+      "cursar": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": false
+      },
+      "rendir": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": true
+      }
+    },
+    "GMA0230": {
+      "cursar": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": false
+      },
+      "rendir": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": false
+      }
+    },
+    "GMA0327": {
+      "cursar": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": false
+      },
+      "rendir": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": false
+      }
+    },
+    "GCO0331": {
+      "cursar": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": false
+      },
+      "rendir": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": false
+      }
+    },
+    "GES0235": {
+      "cursar": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": false
+      },
+      "rendir": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": false
+      }
+    },
+    "GFF0883": {
+      "cursar": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": false
+      },
+      "rendir": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": false
+      }
+    },
+    "GCO0406": {
+      "cursar": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": false
+      },
+      "rendir": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": false
+      }
+    },
+    "GCO0411": {
+      "cursar": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": false
+      },
+      "rendir": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": false
+      }
+    },
+    "GMA0212": {
+      "cursar": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": false
+      },
+      "rendir": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": false
+      }
+    },
+    "GCO0213": {
+      "cursar": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": false
+      },
+      "rendir": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": false
+      }
+    },
+    "GES0215": {
+      "cursar": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": false
+      },
+      "rendir": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": false
+      }
+    },
+    "GFF0884": {
+      "cursar": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": false
+      },
+      "rendir": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": true
+      }
+    },
+    "GES0310": {
+      "cursar": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": false
+      },
+      "rendir": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": false
+      }
+    },
+    "GTC0312": {
+      "cursar": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": false
+      },
+      "rendir": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": false
+      }
+    },
+    "GES0315": {
+      "cursar": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": false
+      },
+      "rendir": {
+        "faltan": [
+          "GMA0212"
+        ],
+        "moduloPendientes": null,
+        "n": 1,
+        "ok": false,
+        "vacio": false
+      }
+    },
+    "GES0314": {
+      "cursar": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": false
+      },
+      "rendir": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": false
+      }
+    },
+    "GAP0314": {
+      "cursar": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": false
+      },
+      "rendir": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": false
+      }
+    },
+    "GFF0885": {
+      "cursar": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": false
+      },
+      "rendir": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": false
+      }
+    },
+    "GTC0319": {
+      "cursar": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": false
+      },
+      "rendir": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": false
+      }
+    },
+    "GES0320": {
+      "cursar": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": false
+      },
+      "rendir": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": false
+      }
+    },
+    "GMA0322": {
+      "cursar": {
+        "faltan": [
+          "GES0314"
+        ],
+        "moduloPendientes": null,
+        "n": 1,
+        "ok": false,
+        "vacio": false
+      },
+      "rendir": {
+        "faltan": [
+          "GMA0212",
+          "GES0314"
+        ],
+        "moduloPendientes": null,
+        "n": 2,
+        "ok": false,
+        "vacio": false
+      }
+    },
+    "GTC0324": {
+      "cursar": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": false
+      },
+      "rendir": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": false
+      }
+    },
+    "GAP0324": {
+      "cursar": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": false
+      },
+      "rendir": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": false
+      }
+    },
+    "GFF0886": {
+      "cursar": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": false
+      },
+      "rendir": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": true
+      }
+    },
+    "GES0431": {
+      "cursar": {
+        "faltan": [
+          "GES0320"
+        ],
+        "moduloPendientes": [
+          "GMA0212"
+        ],
+        "n": 2,
+        "ok": false,
+        "vacio": false
+      },
+      "rendir": {
+        "faltan": [
+          "GES0320"
+        ],
+        "moduloPendientes": null,
+        "n": 1,
+        "ok": false,
+        "vacio": false
+      }
+    },
+    "GMA0432": {
+      "cursar": {
+        "faltan": [
+          "GMA0322"
+        ],
+        "moduloPendientes": [
+          "GMA0212"
+        ],
+        "n": 2,
+        "ok": false,
+        "vacio": false
+      },
+      "rendir": {
+        "faltan": [
+          "GMA0322"
+        ],
+        "moduloPendientes": null,
+        "n": 1,
+        "ok": false,
+        "vacio": false
+      }
+    },
+    "GTC0433": {
+      "cursar": {
+        "faltan": [
+          "GTC0324"
+        ],
+        "moduloPendientes": [
+          "GMA0212"
+        ],
+        "n": 2,
+        "ok": false,
+        "vacio": false
+      },
+      "rendir": {
+        "faltan": [
+          "GTC0324"
+        ],
+        "moduloPendientes": null,
+        "n": 1,
+        "ok": false,
+        "vacio": false
+      }
+    },
+    "GCO0434": {
+      "cursar": {
+        "faltan": [
+          "GTC0324"
+        ],
+        "moduloPendientes": [
+          "GMA0212"
+        ],
+        "n": 2,
+        "ok": false,
+        "vacio": false
+      },
+      "rendir": {
+        "faltan": [
+          "GTC0324"
+        ],
+        "moduloPendientes": null,
+        "n": 1,
+        "ok": false,
+        "vacio": false
+      }
+    },
+    "GAP0435": {
+      "cursar": {
+        "faltan": [
+          "GAP0324"
+        ],
+        "moduloPendientes": [
+          "GMA0212"
+        ],
+        "n": 2,
+        "ok": false,
+        "vacio": false
+      },
+      "rendir": {
+        "faltan": [
+          "GAP0324"
+        ],
+        "moduloPendientes": null,
+        "n": 1,
+        "ok": false,
+        "vacio": false
+      }
+    },
+    "GFF0887": {
+      "cursar": {
+        "faltan": [],
+        "moduloPendientes": [
+          "GMA0212"
+        ],
+        "n": 1,
+        "ok": false,
+        "vacio": false
+      },
+      "rendir": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": true
+      }
+    },
+    "GFF0889": {
+      "cursar": {
+        "faltan": [],
+        "moduloPendientes": [
+          "GMA0212"
+        ],
+        "n": 1,
+        "ok": false,
+        "vacio": false
+      },
+      "rendir": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": false
+      }
+    },
+    "GES0436": {
+      "cursar": {
+        "faltan": [
+          "GES0431"
+        ],
+        "moduloPendientes": [
+          "GMA0212"
+        ],
+        "n": 2,
+        "ok": false,
+        "vacio": false
+      },
+      "rendir": {
+        "faltan": [
+          "GES0431"
+        ],
+        "moduloPendientes": null,
+        "n": 1,
+        "ok": false,
+        "vacio": false
+      }
+    },
+    "GES0437": {
+      "cursar": {
+        "faltan": [
+          "GES0431"
+        ],
+        "moduloPendientes": [
+          "GMA0212"
+        ],
+        "n": 2,
+        "ok": false,
+        "vacio": false
+      },
+      "rendir": {
+        "faltan": [
+          "GES0431"
+        ],
+        "moduloPendientes": null,
+        "n": 1,
+        "ok": false,
+        "vacio": false
+      }
+    },
+    "GTC0437": {
+      "cursar": {
+        "faltan": [
+          "GTC0433"
+        ],
+        "moduloPendientes": [
+          "GMA0212"
+        ],
+        "n": 2,
+        "ok": false,
+        "vacio": false
+      },
+      "rendir": {
+        "faltan": [
+          "GTC0433"
+        ],
+        "moduloPendientes": null,
+        "n": 1,
+        "ok": false,
+        "vacio": false
+      }
+    },
+    "GAP0439": {
+      "cursar": {
+        "faltan": [
+          "GES0431"
+        ],
+        "moduloPendientes": [
+          "GMA0212"
+        ],
+        "n": 2,
+        "ok": false,
+        "vacio": false
+      },
+      "rendir": {
+        "faltan": [
+          "GES0431"
+        ],
+        "moduloPendientes": null,
+        "n": 1,
+        "ok": false,
+        "vacio": false
+      }
+    },
+    "GAP0440": {
+      "cursar": {
+        "faltan": [
+          "GAP0435"
+        ],
+        "moduloPendientes": [
+          "GMA0212"
+        ],
+        "n": 2,
+        "ok": false,
+        "vacio": false
+      },
+      "rendir": {
+        "faltan": [
+          "GAP0435"
+        ],
+        "moduloPendientes": null,
+        "n": 1,
+        "ok": false,
+        "vacio": false
+      }
+    },
+    "GFF0888": {
+      "cursar": {
+        "faltan": [
+          "GFF0887"
+        ],
+        "moduloPendientes": [
+          "GMA0212"
+        ],
+        "n": 2,
+        "ok": false,
+        "vacio": false
+      },
+      "rendir": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": true
+      }
+    },
+    "GFF0890": {
+      "cursar": {
+        "faltan": [
+          "GFF0889"
+        ],
+        "moduloPendientes": [
+          "GMA0212"
+        ],
+        "n": 2,
+        "ok": false,
+        "vacio": false
+      },
+      "rendir": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": true
+      }
+    },
+    "GWA6801": {
+      "cursar": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": true
+      },
+      "rendir": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": true
+      }
+    },
+    "GWA6802": {
+      "cursar": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": true
+      },
+      "rendir": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": true
+      }
+    },
+    "GWA6803": {
+      "cursar": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": true
+      },
+      "rendir": {
+        "faltan": [],
+        "moduloPendientes": null,
+        "n": 0,
+        "ok": true,
+        "vacio": true
+      }
+    }
+  }
+}

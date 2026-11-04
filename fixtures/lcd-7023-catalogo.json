@@ -1,0 +1,1014 @@
+{
+  "_explicacion": "Catálogo del plan LCD 7023 (UCA) extraído del respaldo de SIU Guaraní del 03/11/2026. Sin notas ni datos personales. Fuente para el seed de Supabase.",
+  "universidad": {
+    "nombre": "Pontificia Universidad Católica Argentina",
+    "sigla": "UCA",
+    "sede": "Rosario"
+  },
+  "carrera": {
+    "nombre": "Licenciatura en Ciencias de Datos",
+    "sigla": "LCD"
+  },
+  "plan": {
+    "version": "7023",
+    "escala": {
+      "min": 1,
+      "max": 10,
+      "aprobacion": 4
+    },
+    "cuatrimestresPorAnio": 2
+  },
+  "areasPorPrefijo": {
+    "GMA": "Matemática",
+    "GCO": "Computación",
+    "GES": "Estadística e IA",
+    "GTC": "Ingeniería de datos",
+    "GAP": "Laboratorios",
+    "GFF": "Formación humanística",
+    "GWA": "Idiomas"
+  },
+  "materias": [
+    {
+      "codigo": "GMA0136",
+      "nombre": "Cálculo Elemental",
+      "anio": 1,
+      "cuatrimestre": 1,
+      "tipo": "Materia",
+      "area": "Matemática",
+      "requiereAnioCompletoParaCursar": null,
+      "correlativas": []
+    },
+    {
+      "codigo": "GES0132",
+      "nombre": "Introducción a la Ciencia de Datos",
+      "anio": 1,
+      "cuatrimestre": 1,
+      "tipo": "Materia",
+      "area": "Estadística e IA",
+      "requiereAnioCompletoParaCursar": null,
+      "correlativas": []
+    },
+    {
+      "codigo": "GCO0137",
+      "nombre": "Informática General",
+      "anio": 1,
+      "cuatrimestre": 1,
+      "tipo": "Materia",
+      "area": "Computación",
+      "requiereAnioCompletoParaCursar": null,
+      "correlativas": []
+    },
+    {
+      "codigo": "GTC0134",
+      "nombre": "Introducción a la Ingeniería de Datos",
+      "anio": 1,
+      "cuatrimestre": 1,
+      "tipo": "Materia",
+      "area": "Ingeniería de datos",
+      "requiereAnioCompletoParaCursar": null,
+      "correlativas": []
+    },
+    {
+      "codigo": "GFF0881",
+      "nombre": "Filosofía y Antropología",
+      "anio": 1,
+      "cuatrimestre": 1,
+      "tipo": "Materia",
+      "area": "Formación humanística",
+      "requiereAnioCompletoParaCursar": null,
+      "correlativas": []
+    },
+    {
+      "codigo": "GMA0126",
+      "nombre": "Álgebra y Geometría",
+      "anio": 1,
+      "cuatrimestre": 2,
+      "tipo": "Materia",
+      "area": "Matemática",
+      "requiereAnioCompletoParaCursar": null,
+      "correlativas": [
+        {
+          "para": "cursar",
+          "requiere": "GMA0136",
+          "condicion": "regular"
+        },
+        {
+          "para": "rendir",
+          "requiere": "GMA0136",
+          "condicion": "aprobada"
+        }
+      ]
+    },
+    {
+      "codigo": "GMA1234",
+      "nombre": "Probabilidad y Estadística",
+      "anio": 1,
+      "cuatrimestre": 2,
+      "tipo": "Materia",
+      "area": "Matemática",
+      "requiereAnioCompletoParaCursar": null,
+      "correlativas": [
+        {
+          "para": "cursar",
+          "requiere": "GMA0136",
+          "condicion": "regular"
+        },
+        {
+          "para": "rendir",
+          "requiere": "GMA0136",
+          "condicion": "aprobada"
+        }
+      ]
+    },
+    {
+      "codigo": "GCO0119",
+      "nombre": "Programación Orientada a Datos",
+      "anio": 1,
+      "cuatrimestre": 2,
+      "tipo": "Materia",
+      "area": "Computación",
+      "requiereAnioCompletoParaCursar": null,
+      "correlativas": [
+        {
+          "para": "cursar",
+          "requiere": "GES0132",
+          "condicion": "regular"
+        },
+        {
+          "para": "rendir",
+          "requiere": "GES0132",
+          "condicion": "aprobada"
+        }
+      ]
+    },
+    {
+      "codigo": "GTC0120",
+      "nombre": "Exploración de Datos",
+      "anio": 1,
+      "cuatrimestre": 2,
+      "tipo": "Materia",
+      "area": "Ingeniería de datos",
+      "requiereAnioCompletoParaCursar": null,
+      "correlativas": [
+        {
+          "para": "cursar",
+          "requiere": "GTC0134",
+          "condicion": "regular"
+        },
+        {
+          "para": "rendir",
+          "requiere": "GTC0134",
+          "condicion": "aprobada"
+        }
+      ]
+    },
+    {
+      "codigo": "GFF0882",
+      "nombre": "Seminario I",
+      "anio": 1,
+      "cuatrimestre": 2,
+      "tipo": "Seminario",
+      "area": "Formación humanística",
+      "requiereAnioCompletoParaCursar": null,
+      "correlativas": [
+        {
+          "para": "cursar",
+          "requiere": "GFF0881",
+          "condicion": "regular"
+        }
+      ]
+    },
+    {
+      "codigo": "GMA0230",
+      "nombre": "Cálculo Avanzado",
+      "anio": 2,
+      "cuatrimestre": 1,
+      "tipo": "Materia",
+      "area": "Matemática",
+      "requiereAnioCompletoParaCursar": null,
+      "correlativas": [
+        {
+          "para": "cursar",
+          "requiere": "GMA0136",
+          "condicion": "regular"
+        },
+        {
+          "para": "cursar",
+          "requiere": "GMA0126",
+          "condicion": "regular"
+        },
+        {
+          "para": "rendir",
+          "requiere": "GMA0136",
+          "condicion": "aprobada"
+        },
+        {
+          "para": "rendir",
+          "requiere": "GMA0126",
+          "condicion": "aprobada"
+        }
+      ]
+    },
+    {
+      "codigo": "GMA0327",
+      "nombre": "Matemática Discreta",
+      "anio": 2,
+      "cuatrimestre": 1,
+      "tipo": "Materia",
+      "area": "Matemática",
+      "requiereAnioCompletoParaCursar": null,
+      "correlativas": [
+        {
+          "para": "cursar",
+          "requiere": "GMA0136",
+          "condicion": "regular"
+        },
+        {
+          "para": "cursar",
+          "requiere": "GMA0126",
+          "condicion": "regular"
+        },
+        {
+          "para": "rendir",
+          "requiere": "GMA0136",
+          "condicion": "aprobada"
+        },
+        {
+          "para": "rendir",
+          "requiere": "GMA0126",
+          "condicion": "aprobada"
+        }
+      ]
+    },
+    {
+      "codigo": "GCO0331",
+      "nombre": "Estructura de Datos",
+      "anio": 2,
+      "cuatrimestre": 1,
+      "tipo": "Materia",
+      "area": "Computación",
+      "requiereAnioCompletoParaCursar": null,
+      "correlativas": [
+        {
+          "para": "cursar",
+          "requiere": "GMA0126",
+          "condicion": "regular"
+        },
+        {
+          "para": "rendir",
+          "requiere": "GMA0126",
+          "condicion": "aprobada"
+        }
+      ]
+    },
+    {
+      "codigo": "GES0235",
+      "nombre": "Visualización de Datos",
+      "anio": 2,
+      "cuatrimestre": 1,
+      "tipo": "Materia",
+      "area": "Estadística e IA",
+      "requiereAnioCompletoParaCursar": null,
+      "correlativas": [
+        {
+          "para": "cursar",
+          "requiere": "GTC0120",
+          "condicion": "regular"
+        },
+        {
+          "para": "rendir",
+          "requiere": "GTC0120",
+          "condicion": "aprobada"
+        }
+      ]
+    },
+    {
+      "codigo": "GFF0883",
+      "nombre": "Ética y sus Fundamentos",
+      "anio": 2,
+      "cuatrimestre": 1,
+      "tipo": "Materia",
+      "area": "Formación humanística",
+      "requiereAnioCompletoParaCursar": null,
+      "correlativas": [
+        {
+          "para": "cursar",
+          "requiere": "GFF0881",
+          "condicion": "regular"
+        },
+        {
+          "para": "rendir",
+          "requiere": "GFF0881",
+          "condicion": "aprobada"
+        }
+      ]
+    },
+    {
+      "codigo": "GCO0406",
+      "nombre": "Bases de Datos Relacionales",
+      "anio": 2,
+      "cuatrimestre": 2,
+      "tipo": "Materia",
+      "area": "Computación",
+      "requiereAnioCompletoParaCursar": null,
+      "correlativas": [
+        {
+          "para": "cursar",
+          "requiere": "GCO0331",
+          "condicion": "regular"
+        },
+        {
+          "para": "rendir",
+          "requiere": "GCO0331",
+          "condicion": "aprobada"
+        }
+      ]
+    },
+    {
+      "codigo": "GCO0411",
+      "nombre": "Algoritmia y Lógica Computacional",
+      "anio": 2,
+      "cuatrimestre": 2,
+      "tipo": "Materia",
+      "area": "Computación",
+      "requiereAnioCompletoParaCursar": null,
+      "correlativas": [
+        {
+          "para": "cursar",
+          "requiere": "GCO0331",
+          "condicion": "regular"
+        },
+        {
+          "para": "rendir",
+          "requiere": "GCO0331",
+          "condicion": "aprobada"
+        }
+      ]
+    },
+    {
+      "codigo": "GMA0212",
+      "nombre": "Métodos y Cómputo Numéricos",
+      "anio": 2,
+      "cuatrimestre": 2,
+      "tipo": "Materia",
+      "area": "Matemática",
+      "requiereAnioCompletoParaCursar": null,
+      "correlativas": [
+        {
+          "para": "cursar",
+          "requiere": "GMA0327",
+          "condicion": "regular"
+        },
+        {
+          "para": "rendir",
+          "requiere": "GMA0327",
+          "condicion": "aprobada"
+        }
+      ]
+    },
+    {
+      "codigo": "GCO0213",
+      "nombre": "Programación Funcional",
+      "anio": 2,
+      "cuatrimestre": 2,
+      "tipo": "Materia",
+      "area": "Computación",
+      "requiereAnioCompletoParaCursar": null,
+      "correlativas": [
+        {
+          "para": "cursar",
+          "requiere": "GCO0119",
+          "condicion": "regular"
+        },
+        {
+          "para": "rendir",
+          "requiere": "GCO0119",
+          "condicion": "aprobada"
+        }
+      ]
+    },
+    {
+      "codigo": "GES0215",
+      "nombre": "Estadística Avanzada y Modelos de Regresión",
+      "anio": 2,
+      "cuatrimestre": 2,
+      "tipo": "Materia",
+      "area": "Estadística e IA",
+      "requiereAnioCompletoParaCursar": null,
+      "correlativas": [
+        {
+          "para": "cursar",
+          "requiere": "GMA1234",
+          "condicion": "regular"
+        },
+        {
+          "para": "rendir",
+          "requiere": "GMA1234",
+          "condicion": "aprobada"
+        }
+      ]
+    },
+    {
+      "codigo": "GFF0884",
+      "nombre": "Seminario II",
+      "anio": 2,
+      "cuatrimestre": 2,
+      "tipo": "Seminario",
+      "area": "Formación humanística",
+      "requiereAnioCompletoParaCursar": null,
+      "correlativas": [
+        {
+          "para": "cursar",
+          "requiere": "GFF0883",
+          "condicion": "regular"
+        }
+      ]
+    },
+    {
+      "codigo": "GES0310",
+      "nombre": "Inteligencia Artificial y Aprendizaje Automático I",
+      "anio": 3,
+      "cuatrimestre": 1,
+      "tipo": "Materia",
+      "area": "Estadística e IA",
+      "requiereAnioCompletoParaCursar": null,
+      "correlativas": [
+        {
+          "para": "cursar",
+          "requiere": "GES0215",
+          "condicion": "regular"
+        },
+        {
+          "para": "rendir",
+          "requiere": "GES0215",
+          "condicion": "aprobada"
+        }
+      ]
+    },
+    {
+      "codigo": "GTC0312",
+      "nombre": "Minería de Datos y Big Data",
+      "anio": 3,
+      "cuatrimestre": 1,
+      "tipo": "Materia",
+      "area": "Ingeniería de datos",
+      "requiereAnioCompletoParaCursar": null,
+      "correlativas": [
+        {
+          "para": "cursar",
+          "requiere": "GCO0406",
+          "condicion": "regular"
+        },
+        {
+          "para": "rendir",
+          "requiere": "GCO0406",
+          "condicion": "aprobada"
+        }
+      ]
+    },
+    {
+      "codigo": "GES0315",
+      "nombre": "Análisis y Predicción en Series de Tiempo",
+      "anio": 3,
+      "cuatrimestre": 1,
+      "tipo": "Materia",
+      "area": "Estadística e IA",
+      "requiereAnioCompletoParaCursar": null,
+      "correlativas": [
+        {
+          "para": "cursar",
+          "requiere": "GMA0212",
+          "condicion": "regular"
+        },
+        {
+          "para": "rendir",
+          "requiere": "GMA0212",
+          "condicion": "aprobada"
+        }
+      ]
+    },
+    {
+      "codigo": "GES0314",
+      "nombre": "Simulación y Procesos Estocásticos",
+      "anio": 3,
+      "cuatrimestre": 1,
+      "tipo": "Materia",
+      "area": "Estadística e IA",
+      "requiereAnioCompletoParaCursar": null,
+      "correlativas": [
+        {
+          "para": "cursar",
+          "requiere": "GCO0411",
+          "condicion": "regular"
+        },
+        {
+          "para": "rendir",
+          "requiere": "GCO0411",
+          "condicion": "aprobada"
+        }
+      ]
+    },
+    {
+      "codigo": "GAP0314",
+      "nombre": "Laboratorio: Consultoría en Datos I",
+      "anio": 3,
+      "cuatrimestre": 1,
+      "tipo": "Materia",
+      "area": "Laboratorios",
+      "requiereAnioCompletoParaCursar": null,
+      "correlativas": [
+        {
+          "para": "cursar",
+          "requiere": "GES0215",
+          "condicion": "regular"
+        },
+        {
+          "para": "rendir",
+          "requiere": "GES0215",
+          "condicion": "aprobada"
+        }
+      ]
+    },
+    {
+      "codigo": "GFF0885",
+      "nombre": "Introducción a la Teología",
+      "anio": 3,
+      "cuatrimestre": 1,
+      "tipo": "Materia",
+      "area": "Formación humanística",
+      "requiereAnioCompletoParaCursar": null,
+      "correlativas": [
+        {
+          "para": "cursar",
+          "requiere": "GFF0881",
+          "condicion": "regular"
+        },
+        {
+          "para": "rendir",
+          "requiere": "GFF0881",
+          "condicion": "aprobada"
+        }
+      ]
+    },
+    {
+      "codigo": "GTC0319",
+      "nombre": "Ingeniería de Datos",
+      "anio": 3,
+      "cuatrimestre": 2,
+      "tipo": "Materia",
+      "area": "Ingeniería de datos",
+      "requiereAnioCompletoParaCursar": null,
+      "correlativas": [
+        {
+          "para": "cursar",
+          "requiere": "GTC0120",
+          "condicion": "regular"
+        },
+        {
+          "para": "cursar",
+          "requiere": "GCO0406",
+          "condicion": "regular"
+        },
+        {
+          "para": "rendir",
+          "requiere": "GTC0120",
+          "condicion": "aprobada"
+        },
+        {
+          "para": "rendir",
+          "requiere": "GCO0406",
+          "condicion": "aprobada"
+        }
+      ]
+    },
+    {
+      "codigo": "GES0320",
+      "nombre": "Inteligencia Artificial y Aprendizaje Automático II",
+      "anio": 3,
+      "cuatrimestre": 2,
+      "tipo": "Materia",
+      "area": "Estadística e IA",
+      "requiereAnioCompletoParaCursar": null,
+      "correlativas": [
+        {
+          "para": "cursar",
+          "requiere": "GES0310",
+          "condicion": "regular"
+        },
+        {
+          "para": "rendir",
+          "requiere": "GES0310",
+          "condicion": "aprobada"
+        }
+      ]
+    },
+    {
+      "codigo": "GMA0322",
+      "nombre": "Optimización",
+      "anio": 3,
+      "cuatrimestre": 2,
+      "tipo": "Materia",
+      "area": "Matemática",
+      "requiereAnioCompletoParaCursar": null,
+      "correlativas": [
+        {
+          "para": "cursar",
+          "requiere": "GMA0212",
+          "condicion": "regular"
+        },
+        {
+          "para": "cursar",
+          "requiere": "GES0314",
+          "condicion": "regular"
+        },
+        {
+          "para": "rendir",
+          "requiere": "GMA0212",
+          "condicion": "aprobada"
+        },
+        {
+          "para": "rendir",
+          "requiere": "GES0314",
+          "condicion": "aprobada"
+        }
+      ]
+    },
+    {
+      "codigo": "GTC0324",
+      "nombre": "Inteligencia Empresarial",
+      "anio": 3,
+      "cuatrimestre": 2,
+      "tipo": "Materia",
+      "area": "Ingeniería de datos",
+      "requiereAnioCompletoParaCursar": null,
+      "correlativas": [
+        {
+          "para": "cursar",
+          "requiere": "GCO0406",
+          "condicion": "regular"
+        },
+        {
+          "para": "rendir",
+          "requiere": "GCO0406",
+          "condicion": "aprobada"
+        }
+      ]
+    },
+    {
+      "codigo": "GAP0324",
+      "nombre": "Laboratorio: Consultoría en Datos II",
+      "anio": 3,
+      "cuatrimestre": 2,
+      "tipo": "Materia",
+      "area": "Laboratorios",
+      "requiereAnioCompletoParaCursar": null,
+      "correlativas": [
+        {
+          "para": "cursar",
+          "requiere": "GAP0314",
+          "condicion": "regular"
+        },
+        {
+          "para": "rendir",
+          "requiere": "GAP0314",
+          "condicion": "aprobada"
+        }
+      ]
+    },
+    {
+      "codigo": "GFF0886",
+      "nombre": "Seminario III",
+      "anio": 3,
+      "cuatrimestre": 2,
+      "tipo": "Seminario",
+      "area": "Formación humanística",
+      "requiereAnioCompletoParaCursar": null,
+      "correlativas": [
+        {
+          "para": "cursar",
+          "requiere": "GFF0885",
+          "condicion": "regular"
+        }
+      ]
+    },
+    {
+      "codigo": "GES0431",
+      "nombre": "Inteligencia Artificial y Aprendizaje Profundo I",
+      "anio": 4,
+      "cuatrimestre": 1,
+      "tipo": "Materia",
+      "area": "Estadística e IA",
+      "requiereAnioCompletoParaCursar": 2,
+      "correlativas": [
+        {
+          "para": "cursar",
+          "requiere": "GES0320",
+          "condicion": "regular"
+        },
+        {
+          "para": "rendir",
+          "requiere": "GES0320",
+          "condicion": "aprobada"
+        }
+      ]
+    },
+    {
+      "codigo": "GMA0432",
+      "nombre": "Teoría de Juegos",
+      "anio": 4,
+      "cuatrimestre": 1,
+      "tipo": "Materia",
+      "area": "Matemática",
+      "requiereAnioCompletoParaCursar": 2,
+      "correlativas": [
+        {
+          "para": "cursar",
+          "requiere": "GMA0322",
+          "condicion": "regular"
+        },
+        {
+          "para": "rendir",
+          "requiere": "GMA0322",
+          "condicion": "aprobada"
+        }
+      ]
+    },
+    {
+      "codigo": "GTC0433",
+      "nombre": "Bases de Datos Documentales y de Clave-Valor",
+      "anio": 4,
+      "cuatrimestre": 1,
+      "tipo": "Materia",
+      "area": "Ingeniería de datos",
+      "requiereAnioCompletoParaCursar": 2,
+      "correlativas": [
+        {
+          "para": "cursar",
+          "requiere": "GTC0324",
+          "condicion": "regular"
+        },
+        {
+          "para": "rendir",
+          "requiere": "GTC0324",
+          "condicion": "aprobada"
+        }
+      ]
+    },
+    {
+      "codigo": "GCO0434",
+      "nombre": "Análisis y Procesamiento de Eventos o Streaming",
+      "anio": 4,
+      "cuatrimestre": 1,
+      "tipo": "Materia",
+      "area": "Computación",
+      "requiereAnioCompletoParaCursar": 2,
+      "correlativas": [
+        {
+          "para": "cursar",
+          "requiere": "GTC0324",
+          "condicion": "regular"
+        },
+        {
+          "para": "rendir",
+          "requiere": "GTC0324",
+          "condicion": "aprobada"
+        }
+      ]
+    },
+    {
+      "codigo": "GAP0435",
+      "nombre": "Laboratorio: Consultoría en Datos III",
+      "anio": 4,
+      "cuatrimestre": 1,
+      "tipo": "Materia",
+      "area": "Laboratorios",
+      "requiereAnioCompletoParaCursar": 2,
+      "correlativas": [
+        {
+          "para": "cursar",
+          "requiere": "GAP0324",
+          "condicion": "regular"
+        },
+        {
+          "para": "rendir",
+          "requiere": "GAP0324",
+          "condicion": "aprobada"
+        }
+      ]
+    },
+    {
+      "codigo": "GFF0887",
+      "nombre": "Síntesis Teológica",
+      "anio": 4,
+      "cuatrimestre": 1,
+      "tipo": "Materia",
+      "area": "Formación humanística",
+      "requiereAnioCompletoParaCursar": 2,
+      "correlativas": [
+        {
+          "para": "cursar",
+          "requiere": "GFF0885",
+          "condicion": "regular"
+        }
+      ]
+    },
+    {
+      "codigo": "GFF0889",
+      "nombre": "Moral y Compromiso Social",
+      "anio": 4,
+      "cuatrimestre": 1,
+      "tipo": "Materia",
+      "area": "Formación humanística",
+      "requiereAnioCompletoParaCursar": 2,
+      "correlativas": [
+        {
+          "para": "cursar",
+          "requiere": "GFF0883",
+          "condicion": "regular"
+        },
+        {
+          "para": "cursar",
+          "requiere": "GFF0885",
+          "condicion": "regular"
+        },
+        {
+          "para": "rendir",
+          "requiere": "GFF0883",
+          "condicion": "aprobada"
+        },
+        {
+          "para": "rendir",
+          "requiere": "GFF0885",
+          "condicion": "aprobada"
+        }
+      ]
+    },
+    {
+      "codigo": "GES0436",
+      "nombre": "Inteligencia Artificial y Aprendizaje Profundo II",
+      "anio": 4,
+      "cuatrimestre": 2,
+      "tipo": "Materia",
+      "area": "Estadística e IA",
+      "requiereAnioCompletoParaCursar": 2,
+      "correlativas": [
+        {
+          "para": "cursar",
+          "requiere": "GES0431",
+          "condicion": "regular"
+        },
+        {
+          "para": "rendir",
+          "requiere": "GES0431",
+          "condicion": "aprobada"
+        }
+      ]
+    },
+    {
+      "codigo": "GES0437",
+      "nombre": "Procesamiento de Lenguaje Natural",
+      "anio": 4,
+      "cuatrimestre": 2,
+      "tipo": "Materia",
+      "area": "Estadística e IA",
+      "requiereAnioCompletoParaCursar": 2,
+      "correlativas": [
+        {
+          "para": "cursar",
+          "requiere": "GES0431",
+          "condicion": "regular"
+        },
+        {
+          "para": "rendir",
+          "requiere": "GES0431",
+          "condicion": "aprobada"
+        }
+      ]
+    },
+    {
+      "codigo": "GTC0437",
+      "nombre": "Bases de Datos Orientadas a Grafos",
+      "anio": 4,
+      "cuatrimestre": 2,
+      "tipo": "Materia",
+      "area": "Ingeniería de datos",
+      "requiereAnioCompletoParaCursar": 2,
+      "correlativas": [
+        {
+          "para": "cursar",
+          "requiere": "GTC0433",
+          "condicion": "regular"
+        },
+        {
+          "para": "rendir",
+          "requiere": "GTC0433",
+          "condicion": "aprobada"
+        }
+      ]
+    },
+    {
+      "codigo": "GAP0439",
+      "nombre": "Seminario de Tendencias en Ciencias de Datos",
+      "anio": 4,
+      "cuatrimestre": 2,
+      "tipo": "Materia",
+      "area": "Laboratorios",
+      "requiereAnioCompletoParaCursar": 2,
+      "correlativas": [
+        {
+          "para": "cursar",
+          "requiere": "GES0431",
+          "condicion": "regular"
+        },
+        {
+          "para": "rendir",
+          "requiere": "GES0431",
+          "condicion": "aprobada"
+        }
+      ]
+    },
+    {
+      "codigo": "GAP0440",
+      "nombre": "Laboratorio: Consultoría en Datos IV",
+      "anio": 4,
+      "cuatrimestre": 2,
+      "tipo": "Materia",
+      "area": "Laboratorios",
+      "requiereAnioCompletoParaCursar": 2,
+      "correlativas": [
+        {
+          "para": "cursar",
+          "requiere": "GAP0435",
+          "condicion": "regular"
+        },
+        {
+          "para": "rendir",
+          "requiere": "GAP0435",
+          "condicion": "aprobada"
+        }
+      ]
+    },
+    {
+      "codigo": "GFF0888",
+      "nombre": "Seminario IV",
+      "anio": 4,
+      "cuatrimestre": 2,
+      "tipo": "Seminario",
+      "area": "Formación humanística",
+      "requiereAnioCompletoParaCursar": 2,
+      "correlativas": [
+        {
+          "para": "cursar",
+          "requiere": "GFF0887",
+          "condicion": "regular"
+        }
+      ]
+    },
+    {
+      "codigo": "GFF0890",
+      "nombre": "Seminario V",
+      "anio": 4,
+      "cuatrimestre": 2,
+      "tipo": "Seminario",
+      "area": "Formación humanística",
+      "requiereAnioCompletoParaCursar": 2,
+      "correlativas": [
+        {
+          "para": "cursar",
+          "requiere": "GFF0889",
+          "condicion": "regular"
+        }
+      ]
+    },
+    {
+      "codigo": "GWA6801",
+      "nombre": "Evaluación de Nivel de Idioma Castellano",
+      "anio": 0,
+      "cuatrimestre": null,
+      "tipo": "Materia",
+      "area": "Idiomas",
+      "requiereAnioCompletoParaCursar": null,
+      "correlativas": []
+    },
+    {
+      "codigo": "GWA6802",
+      "nombre": "Evaluación de Nivel de Idioma Inglés I",
+      "anio": 0,
+      "cuatrimestre": null,
+      "tipo": "Materia",
+      "area": "Idiomas",
+      "requiereAnioCompletoParaCursar": null,
+      "correlativas": []
+    },
+    {
+      "codigo": "GWA6803",
+      "nombre": "Evaluación de Nivel de Idioma Inglés II",
+      "anio": 0,
+      "cuatrimestre": null,
+      "tipo": "Materia",
+      "area": "Idiomas",
+      "requiereAnioCompletoParaCursar": null,
+      "correlativas": []
+    }
+  ]
+}
