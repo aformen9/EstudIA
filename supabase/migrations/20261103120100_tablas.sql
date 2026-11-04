@@ -85,7 +85,8 @@ create table public.perfiles (
 create table public.inscripciones (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
-  plan_id uuid not null references public.planes (id) on delete cascade,
+  -- Restrict: borrar un plan con alumnos se llevaría sus datos. También frena borrar su carrera o universidad.
+  plan_id uuid not null references public.planes (id) on delete restrict,
   activa boolean not null default false,
   created_at timestamptz not null default now(),
   unique (user_id, plan_id)

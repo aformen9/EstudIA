@@ -64,6 +64,38 @@ create trigger materiales_sin_materia_a_privado
   when (old.materia_id is not null and new.materia_id is null)
   execute function public.material_sin_materia_a_privado();
 
+/* ---------- Materias del catálogo con datos de alumnos ---------- */
+
+-- Borrar la materia se llevaría en cascada el progreso y el historial de sus alumnos, también si el
+-- borrado viene desde el plan. Security definer: la RLS le oculta a quien borra los datos ajenos.
+-- El bloqueo de la fila hace esperar a las escrituras en curso y frena las nuevas hasta terminar.
+create function public.materia_proteger_datos_de_alumnos()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if old.owner_id is not null then
+    return old;
+  end if;
+
+  perform 1 from public.materias m where m.id = old.id for update;
+
+  if exists (select 1 from public.progreso p where p.materia_id = old.id)
+    or exists (select 1 from public.historial h where h.materia_id = old.id) then
+    raise exception 'la materia % del catálogo tiene progreso o historial de alumnos', old.codigo
+      using errcode = '23503';
+  end if;
+
+  return old;
+end;
+$$;
+
+create trigger materias_proteger_datos_de_alumnos
+  before delete on public.materias
+  for each row execute function public.materia_proteger_datos_de_alumnos();
+
 /* ---------- materiales.oculto ---------- */
 
 -- Solo cambian `oculto` un admin o el trigger de denuncias. El trigger de denuncias corre dentro de
