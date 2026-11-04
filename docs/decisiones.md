@@ -89,3 +89,16 @@ Una línea por decisión de Agu. Agregar al final, con fecha. Si una decisión n
 - Menú durante el onboarding: queda oculto, solo con tema y cerrar sesión, y el botón dice "Cerrar sesión" mientras dure.
 - Catálogo vacío: el alumno ve un mensaje y puede cerrar sesión. Se retoma cuando se puedan cargar planes nuevos.
 - Resultado de restaurar materiales: si el respaldo trae materiales, se muestra la cuenta y se espera "Ir a Inicio"; si no trae, va directo.
+
+## 2026-11-04 (dudas de la tanda 3 de `web`)
+
+- Inicio y el contador del menú muestran solo los materiales del plan activo y los "sin materia". Los de otro plan vuelven a verse al cambiar de plan.
+- Los accesos de Inicio desaparecen cuando el alumno marca una materia, aunque la vuelva a poner en Pendiente. El panel y Ajustes cubren ese caso.
+- Durante todo el onboarding el menú queda oculto, también en el paso 4, y "Cerrar sesión" cierra directo, sin popover.
+- Inicio sin datos muestra el Inicio completo más los accesos.
+- Reintentar con éxito en el aviso de la grilla termina de salir, porque el alumno ya había pedido salir.
+- Recargar o cerrar la pestaña con filas que fallaron muestra el aviso nativo del navegador (`beforeunload`). Salir por el menú no avisa: alcanza con el indicador de guardado.
+- El guardado tiene un tiempo máximo: nunca queda en "Terminando de guardar…"; pasa a "No se pudo guardar", con reintentar.
+- La lógica que quedó en `web` pasa a `packages/core`, con sus tests.
+- El nombre completo de la carrera se ve en escritorio, con tooltip o en dos líneas.
+- El peso del JS se revisa al cerrar `web`.
