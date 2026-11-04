@@ -2438,3 +2438,371 @@ details.edit[open] > div {
   transform-origin: 86px 86px;
   transition: transform 1.4s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
+
+/* ================= entrada de datos: onboarding, grilla e importar ================= */
+.save-state.err {
+  color: var(--fin);
+}
+.save-state.err .dot {
+  background: var(--fin);
+  box-shadow: 0 0 0 3px var(--fin-bg);
+}
+.save-state.idle .dot {
+  background: var(--pend);
+  box-shadow: 0 0 0 3px var(--pend-bg);
+}
+.topbar .save-state {
+  padding: 0;
+  font-size: 11.5px;
+}
+.topbar-title {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+.sr-solo {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+.acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.onboarding {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.onboarding h2:focus {
+  outline: none;
+}
+
+/* Pasos: lista de opciones */
+.opciones {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.opciones fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.opcion {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 10px 14px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  cursor: pointer;
+  transition:
+    border-color 0.2s,
+    background 0.2s;
+}
+.opcion:hover {
+  border-color: var(--accent-2);
+}
+.opcion:has(input:checked) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.opcion input {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  accent-color: var(--accent);
+}
+.opcion-txt {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.opcion-txt small {
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+
+/* Paso final: los dos caminos */
+.caminos {
+  display: grid;
+  gap: 10px;
+}
+.camino {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-height: 72px;
+  padding: 14px 16px;
+  text-align: left;
+  color: var(--ink);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  transition:
+    border-color 0.2s,
+    transform 0.15s;
+}
+.camino:hover {
+  border-color: var(--accent-2);
+  transform: translateY(-1px);
+}
+.camino small {
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+
+/* Grilla rápida */
+.grilla,
+.grilla-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.grilla {
+  gap: 18px;
+}
+.grilla-fila {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+}
+.grilla-nombre {
+  font-weight: 600;
+  font-size: 13.5px;
+  min-width: 0;
+}
+.grilla-ops {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+}
+/* `.p-*` pone el color del estado: el resto del tiempo la opción queda neutra. */
+.grilla-op {
+  position: relative;
+  display: flex;
+  background: none;
+}
+.grilla-op input {
+  /* El navegador mira el margen del elemento con foco: así la barra superior y el pie fijo no lo tapan. */
+  scroll-margin-block: 80px 150px;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.grilla-op span {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 4px;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.15;
+  font-weight: 600;
+  color: var(--ink-2);
+  border: 1px solid var(--line-2);
+  border-radius: 10px;
+  transition:
+    background 0.2s,
+    border-color 0.2s;
+}
+.grilla-op input:hover + span {
+  border-color: var(--accent-2);
+}
+.grilla-op input:focus-visible + span {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.grilla-op input:checked + span {
+  font-weight: 800;
+  border: 2px solid currentColor;
+}
+.grilla-op.p-aprobada input:checked + span {
+  color: var(--ok);
+  background: var(--ok-bg);
+}
+.grilla-op.p-cursando input:checked + span {
+  color: var(--cur);
+  background: var(--cur-bg);
+}
+.grilla-op.p-final input:checked + span {
+  color: var(--fin);
+  background: var(--fin-bg);
+}
+.grilla-op.p-pendiente input:checked + span {
+  color: var(--pend);
+  background: var(--pend-bg);
+}
+.grilla-error {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.grilla-error .msg {
+  margin: 0;
+  flex: 1 1 200px;
+}
+.grilla-pie {
+  position: sticky;
+  bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+.grilla-conteo {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ink-2);
+  flex: 1 1 220px;
+}
+@media (min-width: 761px) {
+  .grilla-fila {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 400px);
+    align-items: center;
+  }
+  .grilla-error {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Importar */
+.importar {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.importar:focus {
+  outline: none;
+}
+.importar h3 {
+  margin-bottom: 8px;
+}
+.importar-archivo {
+  overflow-wrap: anywhere;
+  font-weight: 600;
+}
+.elegir-archivo {
+  position: relative;
+  display: inline-flex;
+}
+.elegir-archivo input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+.elegir-archivo input:disabled {
+  cursor: not-allowed;
+}
+.elegir-archivo input:disabled + .btn {
+  opacity: 0.55;
+}
+.elegir-archivo input:focus-visible + .btn {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.datos-previa {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+.datos-previa > div {
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  min-width: 0;
+}
+.datos-previa dt {
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.datos-previa dd {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 1.15rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+@media (min-width: 761px) {
+  .datos-previa {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+.avisos {
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.avisos summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+.avisos ul,
+.fallidos {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  overflow-wrap: anywhere;
+}
+.fallidos {
+  font-size: 13px;
+  color: var(--ink);
+}
+.confirmar-reemplazo {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.confirmar-reemplazo input {
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  flex-shrink: 0;
+  accent-color: var(--accent);
+}
