@@ -36,7 +36,7 @@ Reemplaza a `useAbrirMateria` y su aviso "Próximamente" (`apps/web/src/plan/abr
   - Archivos locales separados por `user.id`, para que otra cuenta en el mismo navegador no los vea.
   - Un HTML o SVG subido no se ejecuta en el origen de la app: abrir solo tipos seguros (PDF, imágenes rasterizadas) y descargar el resto.
   - El `sha256` de documentos ajenos no se pide ni se muestra.
-- Duda sin decidir, para Agu: ¿se borran los archivos locales al cerrar sesión? Hasta que decida, no se borran.
+- Cerrar sesión no borra los archivos locales por defecto. El diálogo suma una casilla desmarcada, "Borrar también mis archivos de este dispositivo", con el aviso de que en la fase 0 no se pueden recuperar. Borra solo los del usuario que cierra sesión (con test).
 
 ### 3. Ajustes (`#ajustes`)
 
