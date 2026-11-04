@@ -108,3 +108,8 @@ Una línea por decisión de Agu. Agregar al final, con fecha. Si una decisión n
 - Correlativas en ciclo entre materias propias: no se guardan, y se explica qué materias forman el ciclo.
 - Al editar correlativas, las ya marcadas conservan su condición; las nuevas usan la predeterminada (cursar: regular; rendir: aprobada).
 - Notas en el panel: selector de enteros, como la referencia. Una nota guardada con decimales aparece como opción extra y se conserva. Desde el panel no se cargan decimales nuevos.
+- Cuando haya carreras con decimales, el selector debería salir de la escala del plan, con un "paso" de nota (queda abierto en `arquitectura.md` §12).
+- El bloqueo por ciclos solo mira los que pasan por la materia editada. Un ciclo importado impide guardarla hasta sacarlo. Puede bloquear de más con promociones y no mira la regla de año completo.
+- La vista Materiales filtra igual que Inicio y el contador: plan activo y "sin materia".
+- Crear y borrar materias propias entra en la tanda 4.
+- Seguridad de Materiales: links solo `http` y `https`, archivos locales separados por usuario, y un HTML o SVG subido no se abre dentro de la app.
