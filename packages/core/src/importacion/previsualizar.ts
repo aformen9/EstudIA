@@ -4,16 +4,35 @@ import type { Correlativa, DatosAlumno, DatosImportados, Materia, PlanCompleto }
 export const OWNER_VISTA_PREVIA = "vista-previa";
 
 /**
+ * Las materias propias que siguen existiendo después de importar: `reemplazar_datos_del_plan` conserva
+ * las que no vienen en el archivo. Usa su misma regla: mismo código o, sin código, mismo nombre.
+ */
+export function materiasPropiasConservadas(plan: PlanCompleto, datos: DatosImportados): Materia[] {
+  return plan.materias.filter(
+    (materia) =>
+      materia.ownerId !== null &&
+      !datos.materiasPropias.some((importada) =>
+        importada.codigo === null
+          ? materia.codigo === null && materia.nombre === importada.nombre
+          : materia.codigo === importada.codigo,
+      ),
+  );
+}
+
+/**
  * Arma los `DatosAlumno` que quedarían después de aplicar una importación, para calcular sobre ellos
- * antes de guardar. Las materias propias usan su `clave` como id. Toma solo las materias del catálogo.
+ * antes de guardar. Las materias propias del archivo usan su `clave` como id. Las propias que no
+ * vienen en el archivo se conservan, sin progreso ni historial porque esos se reemplazan.
  */
 export function datosAlumnoDesdeImportacion(
   plan: PlanCompleto,
   datos: DatosImportados,
 ): DatosAlumno {
   const catalogo = plan.materias.filter((m) => m.ownerId === null);
-  const idsCatalogo = new Set(catalogo.map((m) => m.id));
-  const ordenInicial = catalogo.reduce((max, m) => Math.max(max, m.orden), -1) + 1;
+  const conservadas = materiasPropiasConservadas(plan, datos);
+  const idsQueSiguen = new Set([...catalogo, ...conservadas].map((m) => m.id));
+  const ordenInicial =
+    [...catalogo, ...conservadas].reduce((max, m) => Math.max(max, m.orden), -1) + 1;
 
   const propias = datos.materiasPropias.map((materia, i): Materia => ({
     id: materia.clave,
@@ -29,7 +48,7 @@ export function datosAlumnoDesdeImportacion(
     orden: ordenInicial + i,
   }));
   const correlativas: Correlativa[] = [
-    ...plan.correlativas.filter((c) => idsCatalogo.has(c.materiaId)),
+    ...plan.correlativas.filter((c) => idsQueSiguen.has(c.materiaId)),
     ...datos.materiasPropias.flatMap((materia) =>
       materia.correlativas.map(({ requiere, para, condicion }) => ({
         materiaId: materia.clave,
@@ -44,7 +63,8 @@ export function datosAlumnoDesdeImportacion(
     plan: plan.plan,
     universidadSigla: plan.universidadSigla,
     carreraSigla: plan.carreraSigla,
-    materias: [...catalogo, ...propias],
+    carreraNombre: plan.carreraNombre,
+    materias: [...catalogo, ...conservadas, ...propias],
     correlativas,
     progreso: datos.progreso,
     historial: datos.historial,

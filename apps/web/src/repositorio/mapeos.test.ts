@@ -31,7 +31,7 @@ const filaPlan: FilaPlanConSiglas = {
   nota_aprobacion: 4,
   cuatrimestres_por_anio: 2,
   cierre_cuatrimestres: [{ cuatrimestre: 1, mes: 7 }],
-  carreras: { sigla: "LCD", universidades: { sigla: "UCA" } },
+  carreras: { sigla: "LCD", nombre: "Ciencias de Datos", universidades: { sigla: "UCA" } },
 };
 
 const baseMaterial: FilaMaterial = {
@@ -89,14 +89,22 @@ describe("catálogo", () => {
   });
 
   it("siglas, también cuando la RLS oculta la carrera o la universidad", () => {
-    expect(siglasDesdeFila(filaPlan)).toEqual({ universidadSigla: "UCA", carreraSigla: "LCD" });
+    expect(siglasDesdeFila(filaPlan)).toEqual({
+      universidadSigla: "UCA",
+      carreraSigla: "LCD",
+      carreraNombre: "Ciencias de Datos",
+    });
     expect(siglasDesdeFila({ ...filaPlan, carreras: null })).toEqual({
       universidadSigla: null,
       carreraSigla: null,
+      carreraNombre: null,
     });
     expect(
-      siglasDesdeFila({ ...filaPlan, carreras: { sigla: "LCD", universidades: null } }),
-    ).toEqual({ universidadSigla: null, carreraSigla: "LCD" });
+      siglasDesdeFila({
+        ...filaPlan,
+        carreras: { sigla: "LCD", nombre: "Datos", universidades: null },
+      }),
+    ).toEqual({ universidadSigla: null, carreraSigla: "LCD", carreraNombre: "Datos" });
   });
 
   it("materia", () => {

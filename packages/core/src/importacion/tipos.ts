@@ -33,7 +33,7 @@ export interface ReporteImportacion {
 }
 
 export interface ResumenImportacion {
-  /** Materias del catálogo más materias propias importadas. */
+  /** Materias del catálogo, más las propias del archivo y las propias que se conservan. */
   totalMaterias: number;
   porEstado: ConteoEstados;
   /** Materias del catálogo a las que apunta el archivo. */

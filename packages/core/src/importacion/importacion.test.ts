@@ -25,6 +25,7 @@ const planChico: PlanCompleto = {
   plan: planBase(),
   universidadSigla: "UCA",
   carreraSigla: "LCD",
+  carreraNombre: "Ciencias de Datos",
   materias: [
     materia("uuid-a", { codigo: "AAA" }),
     materia("uuid-b", { codigo: "BBB" }),
@@ -164,7 +165,8 @@ describe("importarLegacy: match y materias propias", () => {
     ]);
     expect(resultado.datos.progreso[0]).toMatchObject({ materiaId: "m123", p1: 7 });
     expect(avisosDe(resultado, "materia-sin-match")[0]).toMatchObject({ materia: "m123" });
-    expect(resultado.resumen).toMatchObject({ materiasPropias: 1, totalMaterias: 3 });
+    // 2 del catálogo, la del archivo y PRO, la propia que ya tenía y se conserva.
+    expect(resultado.resumen).toMatchObject({ materiasPropias: 1, totalMaterias: 4 });
   });
 
   it("resuelve correlativas de propias contra uuid o clave y reporta el resto", () => {
@@ -234,6 +236,50 @@ describe("importarLegacy: match y materias propias", () => {
     expect(progresoCarrera(datos).total).toBe(51);
     expect(progresoCarrera(datos).porEstado.aprobada).toBe(27);
     expect(promedio(datos, false).n).toBe(27);
+  });
+});
+
+describe("vista previa con materias propias que ya existían", () => {
+  const planConPropias: PlanCompleto = {
+    ...planChico,
+    materias: [
+      materia("uuid-a", { codigo: "AAA" }),
+      materia("uuid-p", { codigo: "PRO", ownerId: "alumno" }),
+      materia("uuid-s", { codigo: null, nombre: "Sin código", ownerId: "alumno" }),
+    ],
+    correlativas: [
+      { materiaId: "uuid-p", requiereId: "uuid-a", para: "cursar", condicion: "aprobada" },
+      { materiaId: "uuid-s", requiereId: "uuid-a", para: "cursar", condicion: "aprobada" },
+    ],
+  };
+
+  it("conserva las que no vienen en el archivo y cuentan en el total, como hace la RPC", () => {
+    const resultado = importarOk(legacy([ANCLA]), planConPropias);
+    expect(resultado.resumen.totalMaterias).toBe(3);
+    expect(resultado.resumen.porEstado.pendiente).toBe(3);
+    const datos = datosAlumnoDesdeImportacion(planConPropias, resultado.datos);
+    expect(datos.materias.map((m) => m.id)).toEqual(["uuid-a", "uuid-p", "uuid-s"]);
+    expect(datos.correlativas).toHaveLength(2);
+    expect(progresoCarrera(datos).total).toBe(3);
+  });
+
+  it("no cuenta dos veces a la que viene en el archivo: mismo código", () => {
+    const resultado = importarOk(
+      legacy([ANCLA, { id: "x", codigo: "PRO", nombre: "Otro nombre" }]),
+      planConPropias,
+    );
+    expect(resultado.resumen.totalMaterias).toBe(3);
+    const datos = datosAlumnoDesdeImportacion(planConPropias, resultado.datos);
+    expect(datos.materias.map((m) => m.id)).toEqual(["uuid-a", "uuid-s", "x"]);
+    expect(datos.correlativas.some((c) => c.materiaId === "uuid-p")).toBe(false);
+  });
+
+  it("no cuenta dos veces a la que viene en el archivo: sin código y mismo nombre", () => {
+    const resultado = importarOk(
+      legacy([ANCLA, { id: "y", nombre: "Sin código" }]),
+      planConPropias,
+    );
+    expect(resultado.resumen.totalMaterias).toBe(3);
   });
 });
 
