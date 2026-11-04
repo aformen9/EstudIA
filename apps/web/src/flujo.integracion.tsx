@@ -6,7 +6,7 @@
  * Ver vitest.integracion.config.ts: al terminar hay que hacer `supabase db reset`.
  */
 import { conteoPorEstado, type DatosAlumno } from "@estudia/core";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { loadEnv } from "vite";
@@ -74,9 +74,11 @@ describe("Criterio 5: importar el caso de prueba por la interfaz", () => {
       await screen.findByRole("heading", { name: "Llevás 26 de 50 materias aprobadas" }, ESPERA),
     ).toBeTruthy();
     expect(window.location.hash).toBe("#inicio");
-    expect(
-      screen.getByText("Licenciatura en Ciencias de Datos · Plan 7023 · Promedio 7,73"),
-    ).toBeTruthy();
+    const main = within(screen.getByRole("main"));
+    expect(main.getByText("Licenciatura en Ciencias de Datos · Plan 7023")).toBeTruthy();
+    const promedio = main.getByRole("link", { name: /Promedio/ });
+    expect(promedio.textContent).toContain("7,73");
+    expect(promedio.textContent).toContain("con aplazos 7,36");
 
     // Lo que quedó en la base, leído aparte de la caché de la interfaz.
     const repositorio = crearRepositorioSupabase(conexion.cliente);

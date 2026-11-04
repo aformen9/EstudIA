@@ -1032,7 +1032,7 @@ h3 {
   gap: 12px;
   min-width: 0;
 }
-.hero-txt h1 {
+.hero-txt h2 {
   font-size: clamp(1.7rem, 3.2vw, 2.4rem);
   font-weight: 800;
   line-height: 1.05;
@@ -2805,4 +2805,34 @@ details.edit[open] > div {
   margin-top: 1px;
   flex-shrink: 0;
   accent-color: var(--accent);
+}
+
+/* ================= vistas de datos ================= */
+a.btn,
+a.mini {
+  text-decoration: none;
+}
+/* Sin el <section> la distancia sería la de `.main`: el grupo la mantiene. */
+.grupo-materias {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.nota-cursada {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 1.6rem;
+  color: var(--accent);
+}
+.chart .marca:focus-visible .dot,
+.chart .marca:focus-visible .bar,
+.chart .marca:focus-visible .hbar {
+  stroke: var(--ink);
+  stroke-width: 2.5;
+}
+.grilla-aviso {
+  flex: 1 1 100%;
+}
+.grilla-aviso > span:first-child {
+  font-weight: 700;
 }
