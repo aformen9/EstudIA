@@ -14,11 +14,21 @@ import type {
   Universidad,
 } from "./tipos";
 
+/** `periodo` y `createdAt` solo hacen falta al restaurar: si no vienen, null y la fecha actual. */
+interface NuevoMaterialBase {
+  materiaId: string | null;
+  titulo: string;
+  periodo?: string | null;
+  createdAt?: string;
+}
+
 /** Datos de un material nuevo. `visibilidad` y `anonimo` se comparten recién en la fase 1b. */
-export type NuevoMaterial =
-  | { tipo: "archivo"; materiaId: string | null; titulo: string; documentoId: string }
-  | { tipo: "link"; materiaId: string | null; titulo: string; url: string }
-  | { tipo: "nota"; materiaId: string | null; titulo: string; texto: string };
+export type NuevoMaterial = NuevoMaterialBase &
+  (
+    | { tipo: "archivo"; documentoId: string }
+    | { tipo: "link"; url: string }
+    | { tipo: "nota"; texto: string }
+  );
 
 export interface NuevoDocumento {
   sha256: string;
@@ -61,11 +71,18 @@ export interface Repositorio {
 
   /* Material */
   listarMateriales(): Promise<Material[]>;
-  /** Registra por `sha256` sin pisar un texto existente. */
+  /**
+   * Registra por `sha256` sin pisar un texto existente. La RPC devuelve solo el id y la fila no se
+   * puede leer hasta tener un material propio: el `Documento` se arma con los datos de entrada.
+   */
   registrarDocumento(documento: NuevoDocumento): Promise<Documento>;
   agregarMaterial(material: NuevoMaterial): Promise<Material>;
   borrarMaterial(materialId: string): Promise<void>;
 
-  /** Reemplaza de una vez (todo o nada) `progreso` e `historial` del plan. */
-  reemplazarDatosDelPlan(planId: string, datos: DatosImportados): Promise<void>;
+  /**
+   * Reemplaza de una vez (todo o nada) `progreso` e `historial` del plan. Hay que activar el plan
+   * antes: la RLS rechaza filas de un plan sin inscripción. Devuelve `clave → uuid` de las materias
+   * propias del archivo.
+   */
+  reemplazarDatosDelPlan(planId: string, datos: DatosImportados): Promise<Record<string, string>>;
 }

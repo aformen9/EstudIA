@@ -80,6 +80,9 @@ export interface Correlativa {
 /** Un plan con todo lo visible para el alumno, incluidas sus materias propias. */
 export interface PlanCompleto {
   plan: Plan;
+  /** Junto con `plan.version`, identifican al plan entre entornos (los uuid cambian). */
+  universidadSigla: string | null;
+  carreraSigla: string | null;
   materias: Materia[];
   correlativas: Correlativa[];
 }
