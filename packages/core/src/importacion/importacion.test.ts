@@ -19,8 +19,12 @@ import {
   type TipoAviso,
 } from "../index";
 
+const ANCLA = { id: "ancla", codigo: "AAA", nombre: "Con match" };
+
 const planChico: PlanCompleto = {
   plan: planBase(),
+  universidadSigla: "UCA",
+  carreraSigla: "LCD",
   materias: [
     materia("uuid-a", { codigo: "AAA" }),
     materia("uuid-b", { codigo: "BBB" }),
@@ -65,26 +69,41 @@ describe("importarLegacy: archivos inválidos", () => {
     });
   });
 
-  it("acepta una lista vacía de materias y deja todo pendiente", () => {
-    const resultado = importarOk(legacy([]));
-    expect(resultado.datos).toEqual({ materiasPropias: [], progreso: [], historial: [] });
-    expect(resultado.resumen.porEstado.pendiente).toBe(2);
-    expect(avisosDe(resultado, "materia-sin-datos")).toHaveLength(2);
+  it("bloquea un respaldo sin ningún código en común con el plan", () => {
+    expect(
+      importarLegacy(
+        legacy([
+          { id: "x", codigo: "ZZZ", nombre: "X", estado: "aprobada", nota: 8 },
+          { id: "y", nombre: "Sin código", estado: "cursando" },
+        ]),
+        planChico,
+      ),
+    ).toEqual({
+      ok: false,
+      error:
+        "Este respaldo es de otra carrera: ninguna de sus materias está en el plan 7023. Elegí la carrera correcta y probá de nuevo.",
+    });
   });
 
-  it("importa contra un plan vacío: todo pasa a materias propias", () => {
-    const planVacio: PlanCompleto = { plan: planBase(), materias: [], correlativas: [] };
-    const resultado = importarOk(
-      legacy([
-        { id: "x", codigo: "AAA", nombre: "X", anio: 1, sem: 1, estado: "aprobada", nota: 8 },
-      ]),
-      planVacio,
+  it("bloquea una lista vacía de materias", () => {
+    expect(importarLegacy(legacy([]), planChico).ok).toBe(false);
+  });
+
+  it("una materia propia del alumno con ese código no cuenta como coincidencia", () => {
+    expect(importarLegacy(legacy([{ id: "x", codigo: "PRO", nombre: "X" }]), planChico).ok).toBe(
+      false,
     );
-    expect(resultado.resumen).toMatchObject({
-      totalMaterias: 1,
-      materiasConMatch: 0,
-      materiasPropias: 1,
-    });
+  });
+
+  it("bloquea un respaldo contra un plan sin catálogo", () => {
+    const planVacio: PlanCompleto = { ...planChico, materias: [] };
+    const json = legacy([{ id: "x", codigo: "AAA", nombre: "X", estado: "aprobada", nota: 8 }]);
+    expect(importarLegacy(json, planVacio).ok).toBe(false);
+  });
+
+  it("con una sola coincidencia alcanza: el resto pasa a materias propias", () => {
+    const resultado = importarOk(legacy([ANCLA, { id: "x", codigo: "ZZZ", nombre: "X" }]));
+    expect(resultado.resumen).toMatchObject({ materiasConMatch: 1, materiasPropias: 1 });
   });
 });
 
@@ -127,6 +146,7 @@ describe("importarLegacy: match y materias propias", () => {
           estado: "cursando",
           p1: 7,
         },
+        ANCLA,
       ]),
     );
     expect(resultado.datos.materiasPropias).toEqual([
@@ -187,7 +207,7 @@ describe("importarLegacy: match y materias propias", () => {
 
   it("descarta la materia cuyo id choca con un uuid del catálogo", () => {
     const resultado = importarOk(
-      legacy([{ id: "uuid-a", nombre: "Trampa", anio: 1, estado: "cursando" }]),
+      legacy([{ id: "uuid-a", nombre: "Trampa", anio: 1, estado: "cursando" }, ANCLA]),
     );
     expect(resultado.datos.materiasPropias).toEqual([]);
     expect(resultado.datos.progreso).toEqual([]);
@@ -195,7 +215,7 @@ describe("importarLegacy: match y materias propias", () => {
   });
 
   it("reporta el año inválido de una propia", () => {
-    const resultado = importarOk(legacy([{ id: "p", nombre: "P", anio: "dos", sem: 2 }]));
+    const resultado = importarOk(legacy([{ id: "p", nombre: "P", anio: "dos", sem: 2 }, ANCLA]));
     expect(resultado.datos.materiasPropias[0]).toMatchObject({ anio: 0, cuatrimestre: null });
     expect(avisosDe(resultado, "dato-invalido")).toHaveLength(1);
   });
@@ -412,7 +432,7 @@ describe("crearRespaldo", () => {
       formato: FORMATO_RESPALDO,
       version: 1,
       creadoEn: "2026-11-03T00:00:00.000Z",
-      plan: { version: "7023" },
+      plan: { universidad: "UCA", carrera: "LCD", version: "7023" },
     });
     expect(json.progreso[0].materia).toEqual({ codigo: "GMA0136" });
     expect(json.progreso[2].materia).toEqual({ clave: "propia-1" });
@@ -551,11 +571,39 @@ function materialComun(materiaId: string | null) {
 
 describe("leerRespaldo: rechazos", () => {
   it("rechaza un respaldo de otro plan por versión", () => {
-    expect(leerRespaldo(respaldoJson({ plan: { version: "9999" } }), planDestino)).toEqual({
+    const plan = { universidad: "UCA", carrera: "LCD", version: "9999" };
+    expect(leerRespaldo(respaldoJson({ plan }), planDestino)).toEqual({
       ok: false,
       error:
-        "Este respaldo es del plan 9999 y estás en el plan 7023. Cambiá de plan para restaurarlo.",
+        "Este respaldo es de UCA LCD plan 9999 y estás en UCA LCD plan 7023. Cambiá de plan para restaurarlo.",
     });
+  });
+
+  it("rechaza un respaldo de otra carrera con la misma versión y los mismos códigos", () => {
+    const plan = { universidad: "UCA", carrera: "OTRA", version: "7023" };
+    expect(leerRespaldo(respaldoJson({ plan }), planDestino)).toEqual({
+      ok: false,
+      error:
+        "Este respaldo es de UCA OTRA plan 7023 y estás en UCA LCD plan 7023. Cambiá de plan para restaurarlo.",
+    });
+  });
+
+  it("rechaza un respaldo de otra universidad con la misma carrera y versión", () => {
+    const plan = { universidad: "UBA", carrera: "LCD", version: "7023" };
+    expect(leerRespaldo(respaldoJson({ plan }), planDestino).ok).toBe(false);
+  });
+
+  it("una sigla vacía solo coincide con otra vacía", () => {
+    const plan = { universidad: null, carrera: "LCD", version: "7023" };
+    expect(leerRespaldo(respaldoJson({ plan }), planDestino).ok).toBe(false);
+    const sinSigla: PlanCompleto = { ...planDestino, universidadSigla: null };
+    expect(leerRespaldo(respaldoJson({ plan }), sinSigla).ok).toBe(true);
+    expect(leerRespaldo(respaldoJson(), sinSigla).ok).toBe(false);
+  });
+
+  it("rechaza un respaldo sin las siglas del plan", () => {
+    const resultado = leerRespaldo(respaldoJson({ plan: { version: "7023" } }), planDestino);
+    expect(resultado.ok).toBe(false);
   });
 
   it("rechaza un respaldo de otro plan con la misma versión y otros códigos", () => {

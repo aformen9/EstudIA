@@ -177,6 +177,14 @@ export function importarLegacy(json: unknown, plan: PlanCompleto): ResultadoImpo
     if (!destinos.has(materia.id) && !chocaConCatalogo) destinos.set(materia.id, destino);
   }
 
+  // Sin ningún código en común es de otra carrera: si no, todo pasaría a materias propias.
+  if (conMatch.size === 0) {
+    return {
+      ok: false,
+      error: `Este respaldo es de otra carrera: ninguna de sus materias está en el plan ${plan.plan.version}. Elegí la carrera correcta y probá de nuevo.`,
+    };
+  }
+
   const materiasPropias: MateriaPropiaImportada[] = [];
   const progreso: ProgresoMateria[] = [];
   const historial: EventoHistorial[] = [];

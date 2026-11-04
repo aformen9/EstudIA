@@ -42,6 +42,8 @@ export function datosAlumnoDesdeImportacion(
 
   return {
     plan: plan.plan,
+    universidadSigla: plan.universidadSigla,
+    carreraSigla: plan.carreraSigla,
     materias: [...catalogo, ...propias],
     correlativas,
     progreso: datos.progreso,

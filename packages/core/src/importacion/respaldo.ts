@@ -79,7 +79,7 @@ export interface RespaldoEstudia {
   formato: typeof FORMATO_RESPALDO;
   version: typeof VERSION_RESPALDO;
   creadoEn: string;
-  plan: { version: string };
+  plan: { universidad: string | null; carrera: string | null; version: string };
   materiasPropias: RespaldoMateriaPropia[];
   progreso: RespaldoProgreso[];
   historial: RespaldoEvento[];
@@ -175,7 +175,11 @@ export function crearRespaldo(
       formato: FORMATO_RESPALDO,
       version: VERSION_RESPALDO,
       creadoEn,
-      plan: { version: datos.plan.version },
+      plan: {
+        universidad: datos.universidadSigla,
+        carrera: datos.carreraSigla,
+        version: datos.plan.version,
+      },
       materiasPropias,
       progreso,
       historial,
@@ -201,7 +205,11 @@ const esquemaMaterialBase = {
 
 const esquemaRespaldo = z.object({
   creadoEn: z.string().min(1),
-  plan: z.object({ version: z.string().min(1) }),
+  plan: z.object({
+    universidad: z.string().nullable(),
+    carrera: z.string().nullable(),
+    version: z.string().min(1),
+  }),
   materiasPropias: z.array(
     z.object({
       clave: z.string().min(1),
@@ -284,6 +292,14 @@ function codigosReferenciados(respaldo: LecturaRespaldo): Set<string> {
   return codigos;
 }
 
+function nombreDelPlan(
+  universidad: string | null,
+  carrera: string | null,
+  version: string,
+): string {
+  return [universidad, carrera, `plan ${version}`].filter((parte) => parte !== null).join(" ");
+}
+
 function versionNoSoportada(json: object): string | null {
   const version = "version" in json ? json.version : undefined;
   if (version === VERSION_RESPALDO) return null;
@@ -296,8 +312,8 @@ function versionNoSoportada(json: object): string | null {
 /**
  * Lee un respaldo nuevo contra el plan. Rechaza un archivo inválido o de otro plan con un mensaje
  * claro; lo que no se puede mapear dentro de un archivo válido se reporta. Nunca lanza excepciones
- * por el contenido del archivo. Un plan se reconoce por su versión y por compartir códigos con el
- * catálogo.
+ * por el contenido del archivo. Un plan se reconoce por sus siglas de universidad y carrera, su
+ * versión y por compartir códigos con el catálogo. Una sigla vacía solo coincide con otra vacía.
  */
 export function leerRespaldo(json: unknown, plan: PlanCompleto): ResultadoRespaldo {
   if (typeof json !== "object" || json === null || !("formato" in json)) {
@@ -319,10 +335,17 @@ export function leerRespaldo(json: unknown, plan: PlanCompleto): ResultadoRespal
   }
   const respaldo = lectura.data;
 
-  if (respaldo.plan.version !== plan.plan.version) {
+  const origen = respaldo.plan;
+  if (
+    origen.universidad !== plan.universidadSigla ||
+    origen.carrera !== plan.carreraSigla ||
+    origen.version !== plan.plan.version
+  ) {
+    const deOrigen = nombreDelPlan(origen.universidad, origen.carrera, origen.version);
+    const actual = nombreDelPlan(plan.universidadSigla, plan.carreraSigla, plan.plan.version);
     return {
       ok: false,
-      error: `Este respaldo es del plan ${respaldo.plan.version} y estás en el plan ${plan.plan.version}. Cambiá de plan para restaurarlo.`,
+      error: `Este respaldo es de ${deOrigen} y estás en ${actual}. Cambiá de plan para restaurarlo.`,
     };
   }
   const catalogo = catalogoPorCodigo(plan);
