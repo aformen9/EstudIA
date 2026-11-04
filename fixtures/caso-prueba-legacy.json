@@ -1,0 +1,1834 @@
+{
+  "version": 2,
+  "fuente": "Caso sintético (alumno inventado)",
+  "actualizado": "2026-11-03T00:00:00.000Z",
+  "perfil": {
+    "nombre": "Alumno de prueba",
+    "carrera": "Licenciatura en Ciencias de Datos",
+    "universidad": "UCA",
+    "plan": "LCD 7023"
+  },
+  "materias": [
+    {
+      "id": "GMA0136",
+      "codigo": "GMA0136",
+      "nombre": "Cálculo Elemental",
+      "anio": 1,
+      "sem": 1,
+      "tipo": "Materia",
+      "reqCursar": [],
+      "reqRendir": [],
+      "reqModuloCursar": null,
+      "p1": null,
+      "p2": null,
+      "rec": null,
+      "aplazos": [],
+      "historial": [
+        {
+          "fecha": "2023-06-22",
+          "tipo": "Regularidad",
+          "nota": 7,
+          "resultado": "Aprobado"
+        },
+        {
+          "fecha": "2023-07-11",
+          "tipo": "Examen",
+          "nota": 9,
+          "resultado": "Aprobado"
+        }
+      ],
+      "nota": 9,
+      "final": 9,
+      "notaCursada": 7,
+      "estado": "aprobada"
+    },
+    {
+      "id": "GES0132",
+      "codigo": "GES0132",
+      "nombre": "Introducción a la Ciencia de Datos",
+      "anio": 1,
+      "sem": 1,
+      "tipo": "Materia",
+      "reqCursar": [],
+      "reqRendir": [],
+      "reqModuloCursar": null,
+      "p1": null,
+      "p2": null,
+      "rec": null,
+      "aplazos": [],
+      "historial": [
+        {
+          "fecha": "2023-06-22",
+          "tipo": "Regularidad",
+          "nota": 6,
+          "resultado": "Aprobado"
+        },
+        {
+          "fecha": "2023-07-11",
+          "tipo": "Examen",
+          "nota": 8,
+          "resultado": "Aprobado"
+        }
+      ],
+      "nota": 8,
+      "final": 8,
+      "notaCursada": 6,
+      "estado": "aprobada"
+    },
+    {
+      "id": "GCO0137",
+      "codigo": "GCO0137",
+      "nombre": "Informática General",
+      "anio": 1,
+      "sem": 1,
+      "tipo": "Materia",
+      "reqCursar": [],
+      "reqRendir": [],
+      "reqModuloCursar": null,
+      "p1": null,
+      "p2": null,
+      "rec": null,
+      "aplazos": [],
+      "historial": [
+        {
+          "fecha": "2023-06-22",
+          "tipo": "Regularidad",
+          "nota": 10,
+          "resultado": "Aprobado"
+        },
+        {
+          "fecha": "2023-07-11",
+          "tipo": "Examen",
+          "nota": 7,
+          "resultado": "Aprobado"
+        }
+      ],
+      "nota": 7,
+      "final": 7,
+      "notaCursada": 10,
+      "estado": "aprobada"
+    },
+    {
+      "id": "GTC0134",
+      "codigo": "GTC0134",
+      "nombre": "Introducción a la Ingeniería de Datos",
+      "anio": 1,
+      "sem": 1,
+      "tipo": "Materia",
+      "reqCursar": [],
+      "reqRendir": [],
+      "reqModuloCursar": null,
+      "p1": null,
+      "p2": null,
+      "rec": null,
+      "aplazos": [],
+      "historial": [
+        {
+          "fecha": "2023-06-22",
+          "tipo": "Regularidad",
+          "nota": 8,
+          "resultado": "Aprobado"
+        },
+        {
+          "fecha": "2023-07-11",
+          "tipo": "Examen",
+          "nota": 9,
+          "resultado": "Aprobado"
+        }
+      ],
+      "nota": 9,
+      "final": 9,
+      "notaCursada": 8,
+      "estado": "aprobada"
+    },
+    {
+      "id": "GFF0881",
+      "codigo": "GFF0881",
+      "nombre": "Filosofía y Antropología",
+      "anio": 1,
+      "sem": 1,
+      "tipo": "Materia",
+      "reqCursar": [],
+      "reqRendir": [],
+      "reqModuloCursar": null,
+      "p1": null,
+      "p2": null,
+      "rec": null,
+      "aplazos": [],
+      "historial": [
+        {
+          "fecha": "2023-06-22",
+          "tipo": "Regularidad",
+          "nota": 6,
+          "resultado": "Aprobado"
+        },
+        {
+          "fecha": "2023-07-11",
+          "tipo": "Examen",
+          "nota": 8,
+          "resultado": "Aprobado"
+        }
+      ],
+      "nota": 8,
+      "final": 8,
+      "notaCursada": 6,
+      "estado": "aprobada"
+    },
+    {
+      "id": "GMA0126",
+      "codigo": "GMA0126",
+      "nombre": "Álgebra y Geometría",
+      "anio": 1,
+      "sem": 2,
+      "tipo": "Materia",
+      "reqCursar": [
+        {
+          "id": "GMA0136",
+          "cond": "regular"
+        }
+      ],
+      "reqRendir": [
+        {
+          "id": "GMA0136",
+          "cond": "aprobada"
+        }
+      ],
+      "reqModuloCursar": null,
+      "p1": null,
+      "p2": null,
+      "rec": null,
+      "aplazos": [],
+      "historial": [
+        {
+          "fecha": "2023-11-23",
+          "tipo": "Regularidad",
+          "nota": 7,
+          "resultado": "Aprobado"
+        },
+        {
+          "fecha": "2023-12-12",
+          "tipo": "Examen",
+          "nota": 10,
+          "resultado": "Aprobado"
+        }
+      ],
+      "nota": 10,
+      "final": 10,
+      "notaCursada": 7,
+      "estado": "aprobada"
+    },
+    {
+      "id": "GMA1234",
+      "codigo": "GMA1234",
+      "nombre": "Probabilidad y Estadística",
+      "anio": 1,
+      "sem": 2,
+      "tipo": "Materia",
+      "reqCursar": [
+        {
+          "id": "GMA0136",
+          "cond": "regular"
+        }
+      ],
+      "reqRendir": [
+        {
+          "id": "GMA0136",
+          "cond": "aprobada"
+        }
+      ],
+      "reqModuloCursar": null,
+      "p1": null,
+      "p2": null,
+      "rec": null,
+      "aplazos": [
+        2
+      ],
+      "historial": [
+        {
+          "fecha": "2023-11-23",
+          "tipo": "Regularidad",
+          "nota": 9,
+          "resultado": "Aprobado"
+        },
+        {
+          "fecha": "2023-12-12",
+          "tipo": "Examen",
+          "nota": 2,
+          "resultado": "Reprobado"
+        },
+        {
+          "fecha": "2024-02-12",
+          "tipo": "Examen",
+          "nota": 6,
+          "resultado": "Aprobado"
+        }
+      ],
+      "nota": 6,
+      "final": 6,
+      "notaCursada": 9,
+      "estado": "aprobada"
+    },
+    {
+      "id": "GCO0119",
+      "codigo": "GCO0119",
+      "nombre": "Programación Orientada a Datos",
+      "anio": 1,
+      "sem": 2,
+      "tipo": "Materia",
+      "reqCursar": [
+        {
+          "id": "GES0132",
+          "cond": "regular"
+        }
+      ],
+      "reqRendir": [
+        {
+          "id": "GES0132",
+          "cond": "aprobada"
+        }
+      ],
+      "reqModuloCursar": null,
+      "p1": null,
+      "p2": null,
+      "rec": null,
+      "aplazos": [],
+      "historial": [
+        {
+          "fecha": "2023-11-23",
+          "tipo": "Regularidad",
+          "nota": 8,
+          "resultado": "Aprobado"
+        },
+        {
+          "fecha": "2023-12-12",
+          "tipo": "Examen",
+          "nota": null,
+          "resultado": "Ausente"
+        },
+        {
+          "fecha": "2024-02-12",
+          "tipo": "Examen",
+          "nota": 6,
+          "resultado": "Aprobado"
+        }
+      ],
+      "nota": 6,
+      "final": 6,
+      "notaCursada": 8,
+      "estado": "aprobada"
+    },
+    {
+      "id": "GTC0120",
+      "codigo": "GTC0120",
+      "nombre": "Exploración de Datos",
+      "anio": 1,
+      "sem": 2,
+      "tipo": "Materia",
+      "reqCursar": [
+        {
+          "id": "GTC0134",
+          "cond": "regular"
+        }
+      ],
+      "reqRendir": [
+        {
+          "id": "GTC0134",
+          "cond": "aprobada"
+        }
+      ],
+      "reqModuloCursar": null,
+      "p1": null,
+      "p2": null,
+      "rec": null,
+      "aplazos": [],
+      "historial": [
+        {
+          "fecha": "2023-11-23",
+          "tipo": "Regularidad",
+          "nota": 7,
+          "resultado": "Aprobado"
+        },
+        {
+          "fecha": "2023-12-12",
+          "tipo": "Examen",
+          "nota": 6,
+          "resultado": "Aprobado"
+        }
+      ],
+      "nota": 6,
+      "final": 6,
+      "notaCursada": 7,
+      "estado": "aprobada"
+    },
+    {
+      "id": "GFF0882",
+      "codigo": "GFF0882",
+      "nombre": "Seminario I",
+      "anio": 1,
+      "sem": 2,
+      "tipo": "Seminario",
+      "reqCursar": [
+        {
+          "id": "GFF0881",
+          "cond": "regular"
+        }
+      ],
+      "reqRendir": [],
+      "reqModuloCursar": null,
+      "p1": null,
+      "p2": null,
+      "rec": null,
+      "aplazos": [],
+      "historial": [
+        {
+          "fecha": "2023-11-23",
+          "tipo": "Promocion",
+          "nota": 9,
+          "resultado": "Promocionado"
+        }
+      ],
+      "nota": 9,
+      "final": null,
+      "notaCursada": null,
+      "estado": "aprobada"
+    },
+    {
+      "id": "GMA0230",
+      "codigo": "GMA0230",
+      "nombre": "Cálculo Avanzado",
+      "anio": 2,
+      "sem": 1,
+      "tipo": "Materia",
+      "reqCursar": [
+        {
+          "id": "GMA0136",
+          "cond": "regular"
+        },
+        {
+          "id": "GMA0126",
+          "cond": "regular"
+        }
+      ],
+      "reqRendir": [
+        {
+          "id": "GMA0136",
+          "cond": "aprobada"
+        },
+        {
+          "id": "GMA0126",
+          "cond": "aprobada"
+        }
+      ],
+      "reqModuloCursar": null,
+      "p1": null,
+      "p2": null,
+      "rec": null,
+      "aplazos": [],
+      "historial": [
+        {
+          "fecha": "2024-06-23",
+          "tipo": "Regularidad",
+          "nota": 2,
+          "resultado": "Reprobado"
+        },
+        {
+          "fecha": "2025-06-24",
+          "tipo": "Regularidad",
+          "nota": 8,
+          "resultado": "Aprobado"
+        },
+        {
+          "fecha": "2025-07-13",
+          "tipo": "Examen",
+          "nota": 7,
+          "resultado": "Aprobado"
+        }
+      ],
+      "nota": 7,
+      "final": 7,
+      "notaCursada": 8,
+      "estado": "aprobada"
+    },
+    {
+      "id": "GMA0327",
+      "codigo": "GMA0327",
+      "nombre": "Matemática Discreta",
+      "anio": 2,
+      "sem": 1,
+      "tipo": "Materia",
+      "reqCursar": [
+        {
+          "id": "GMA0136",
+          "cond": "regular"
+        },
+        {
+          "id": "GMA0126",
+          "cond": "regular"
+        }
+      ],
+      "reqRendir": [
+        {
+          "id": "GMA0136",
+          "cond": "aprobada"
+        },
+        {
+          "id": "GMA0126",
+          "cond": "aprobada"
+        }
+      ],
+      "reqModuloCursar": null,
+      "p1": null,
+      "p2": null,
+      "rec": null,
+      "aplazos": [],
+      "historial": [
+        {
+          "fecha": "2024-06-23",
+          "tipo": "Regularidad",
+          "nota": 9,
+          "resultado": "Aprobado"
+        },
+        {
+          "fecha": "2024-07-12",
+          "tipo": "Examen",
+          "nota": 6,
+          "resultado": "Aprobado"
+        }
+      ],
+      "nota": 6,
+      "final": 6,
+      "notaCursada": 9,
+      "estado": "aprobada"
+    },
+    {
+      "id": "GCO0331",
+      "codigo": "GCO0331",
+      "nombre": "Estructura de Datos",
+      "anio": 2,
+      "sem": 1,
+      "tipo": "Materia",
+      "reqCursar": [
+        {
+          "id": "GMA0126",
+          "cond": "regular"
+        }
+      ],
+      "reqRendir": [
+        {
+          "id": "GMA0126",
+          "cond": "aprobada"
+        }
+      ],
+      "reqModuloCursar": null,
+      "p1": null,
+      "p2": null,
+      "rec": null,
+      "aplazos": [],
+      "historial": [
+        {
+          "fecha": "2024-06-23",
+          "tipo": "Regularidad",
+          "nota": 8,
+          "resultado": "Aprobado"
+        },
+        {
+          "fecha": "2024-07-12",
+          "tipo": "Examen",
+          "nota": 10,
+          "resultado": "Aprobado"
+        }
+      ],
+      "nota": 10,
+      "final": 10,
+      "notaCursada": 8,
+      "estado": "aprobada"
+    },
+    {
+      "id": "GES0235",
+      "codigo": "GES0235",
+      "nombre": "Visualización de Datos",
+      "anio": 2,
+      "sem": 1,
+      "tipo": "Materia",
+      "reqCursar": [
+        {
+          "id": "GTC0120",
+          "cond": "regular"
+        }
+      ],
+      "reqRendir": [
+        {
+          "id": "GTC0120",
+          "cond": "aprobada"
+        }
+      ],
+      "reqModuloCursar": null,
+      "p1": null,
+      "p2": null,
+      "rec": null,
+      "aplazos": [],
+      "historial": [
+        {
+          "fecha": "2024-06-23",
+          "tipo": "Regularidad",
+          "nota": 7,
+          "resultado": "Aprobado"
+        },
+        {
+          "fecha": "2024-07-12",
+          "tipo": "Examen",
+          "nota": 8,
+          "resultado": "Aprobado"
+        }
+      ],
+      "nota": 8,
+      "final": 8,
+      "notaCursada": 7,
+      "estado": "aprobada"
+    },
+    {
+      "id": "GFF0883",
+      "codigo": "GFF0883",
+      "nombre": "Ética y sus Fundamentos",
+      "anio": 2,
+      "sem": 1,
+      "tipo": "Materia",
+      "reqCursar": [
+        {
+          "id": "GFF0881",
+          "cond": "regular"
+        }
+      ],
+      "reqRendir": [
+        {
+          "id": "GFF0881",
+          "cond": "aprobada"
+        }
+      ],
+      "reqModuloCursar": null,
+      "p1": null,
+      "p2": null,
+      "rec": null,
+      "aplazos": [],
+      "historial": [
+        {
+          "fecha": "2024-06-23",
+          "tipo": "Regularidad",
+          "nota": 9,
+          "resultado": "Aprobado"
+        },
+        {
+          "fecha": "2024-07-12",
+          "tipo": "Examen",
+          "nota": 6,
+          "resultado": "Aprobado"
+        }
+      ],
+      "nota": 6,
+      "final": 6,
+      "notaCursada": 9,
+      "estado": "aprobada"
+    },
+    {
+      "id": "GCO0406",
+      "codigo": "GCO0406",
+      "nombre": "Bases de Datos Relacionales",
+      "anio": 2,
+      "sem": 2,
+      "tipo": "Materia",
+      "reqCursar": [
+        {
+          "id": "GCO0331",
+          "cond": "regular"
+        }
+      ],
+      "reqRendir": [
+        {
+          "id": "GCO0331",
+          "cond": "aprobada"
+        }
+      ],
+      "reqModuloCursar": null,
+      "p1": null,
+      "p2": null,
+      "rec": null,
+      "aplazos": [
+        3
+      ],
+      "historial": [
+        {
+          "fecha": "2024-11-24",
+          "tipo": "Regularidad",
+          "nota": 8,
+          "resultado": "Aprobado"
+        },
+        {
+          "fecha": "2024-12-14",
+          "tipo": "Examen",
+          "nota": 3,
+          "resultado": "Reprobado"
+        },
+        {
+          "fecha": "2025-02-14",
+          "tipo": "Examen",
+          "nota": 6,
+          "resultado": "Aprobado"
+        }
+      ],
+      "nota": 6,
+      "final": 6,
+      "notaCursada": 8,
+      "estado": "aprobada"
+    },
+    {
+      "id": "GCO0411",
+      "codigo": "GCO0411",
+      "nombre": "Algoritmia y Lógica Computacional",
+      "anio": 2,
+      "sem": 2,
+      "tipo": "Materia",
+      "reqCursar": [
+        {
+          "id": "GCO0331",
+          "cond": "regular"
+        }
+      ],
+      "reqRendir": [
+        {
+          "id": "GCO0331",
+          "cond": "aprobada"
+        }
+      ],
+      "reqModuloCursar": null,
+      "p1": null,
+      "p2": null,
+      "rec": null,
+      "aplazos": [],
+      "historial": [
+        {
+          "fecha": "2024-11-24",
+          "tipo": "Regularidad",
+          "nota": 7,
+          "resultado": "Aprobado"
+        },
+        {
+          "fecha": "2024-12-14",
+          "tipo": "Examen",
+          "nota": 10,
+          "resultado": "Aprobado"
+        }
+      ],
+      "nota": 10,
+      "final": 10,
+      "notaCursada": 7,
+      "estado": "aprobada"
+    },
+    {
+      "id": "GMA0212",
+      "codigo": "GMA0212",
+      "nombre": "Métodos y Cómputo Numéricos",
+      "anio": 2,
+      "sem": 2,
+      "tipo": "Materia",
+      "reqCursar": [
+        {
+          "id": "GMA0327",
+          "cond": "regular"
+        }
+      ],
+      "reqRendir": [
+        {
+          "id": "GMA0327",
+          "cond": "aprobada"
+        }
+      ],
+      "reqModuloCursar": null,
+      "p1": null,
+      "p2": null,
+      "rec": null,
+      "aplazos": [],
+      "historial": [
+        {
+          "fecha": "2024-11-24",
+          "tipo": "Regularidad",
+          "nota": 9,
+          "resultado": "Aprobado"
+        }
+      ],
+      "nota": null,
+      "final": null,
+      "notaCursada": 9,
+      "estado": "final"
+    },
+    {
+      "id": "GCO0213",
+      "codigo": "GCO0213",
+      "nombre": "Programación Funcional",
+      "anio": 2,
+      "sem": 2,
+      "tipo": "Materia",
+      "reqCursar": [
+        {
+          "id": "GCO0119",
+          "cond": "regular"
+        }
+      ],
+      "reqRendir": [
+        {
+          "id": "GCO0119",
+          "cond": "aprobada"
+        }
+      ],
+      "reqModuloCursar": null,
+      "p1": null,
+      "p2": null,
+      "rec": null,
+      "aplazos": [],
+      "historial": [
+        {
+          "fecha": "2024-11-24",
+          "tipo": "Regularidad",
+          "nota": 8,
+          "resultado": "Aprobado"
+        },
+        {
+          "fecha": "2024-12-14",
+          "tipo": "Examen",
+          "nota": 7,
+          "resultado": "Aprobado"
+        }
+      ],
+      "nota": 7,
+      "final": 7,
+      "notaCursada": 8,
+      "estado": "aprobada"
+    },
+    {
+      "id": "GES0215",
+      "codigo": "GES0215",
+      "nombre": "Estadística Avanzada y Modelos de Regresión",
+      "anio": 2,
+      "sem": 2,
+      "tipo": "Materia",
+      "reqCursar": [
+        {
+          "id": "GMA1234",
+          "cond": "regular"
+        }
+      ],
+      "reqRendir": [
+        {
+          "id": "GMA1234",
+          "cond": "aprobada"
+        }
+      ],
+      "reqModuloCursar": null,
+      "p1": null,
+      "p2": null,
+      "rec": null,
+      "aplazos": [],
+      "historial": [
+        {
+          "fecha": "2024-11-24",
+          "tipo": "Regularidad",
+          "nota": 6,
+          "resultado": "Aprobado"
+        },
+        {
+          "fecha": "2024-12-14",
+          "tipo": "Examen",
+          "nota": 9,
+          "resultado": "Aprobado"
+        }
+      ],
+      "nota": 9,
+      "final": 9,
+      "notaCursada": 6,
+      "estado": "aprobada"
+    },
+    {
+      "id": "GFF0884",
+      "codigo": "GFF0884",
+      "nombre": "Seminario II",
+      "anio": 2,
+      "sem": 2,
+      "tipo": "Seminario",
+      "reqCursar": [
+        {
+          "id": "GFF0883",
+          "cond": "regular"
+        }
+      ],
+      "reqRendir": [],
+      "reqModuloCursar": null,
+      "p1": null,
+      "p2": null,
+      "rec": null,
+      "aplazos": [],
+      "historial": [
+        {
+          "fecha": "2024-11-24",
+          "tipo": "Promocion",
+          "nota": 8,
+          "resultado": "Promocionado"
+        }
+      ],
+      "nota": 8,
+      "final": null,
+      "notaCursada": null,
+      "estado": "aprobada"
+    },
+    {
+      "id": "GES0310",
+      "codigo": "GES0310",
+      "nombre": "Inteligencia Artificial y Aprendizaje Automático I",
+      "anio": 3,
+      "sem": 1,
+      "tipo": "Materia",
+      "reqCursar": [
+        {
+          "id": "GES0215",
+          "cond": "regular"
+        }
+      ],
+      "reqRendir": [
+        {
+          "id": "GES0215",
+          "cond": "aprobada"
+        }
+      ],
+      "reqModuloCursar": null,
+      "p1": null,
+      "p2": null,
+      "rec": null,
+      "aplazos": [],
+      "historial": [
+        {
+          "fecha": "2025-06-24",
+          "tipo": "Regularidad",
+          "nota": 7,
+          "resultado": "Aprobado"
+        },
+        {
+          "fecha": "2025-07-13",
+          "tipo": "Examen",
+          "nota": 9,
+          "resultado": "Aprobado"
+        }
+      ],
+      "nota": 9,
+      "final": 9,
+      "notaCursada": 7,
+      "estado": "aprobada"
+    },
+    {
+      "id": "GTC0312",
+      "codigo": "GTC0312",
+      "nombre": "Minería de Datos y Big Data",
+      "anio": 3,
+      "sem": 1,
+      "tipo": "Materia",
+      "reqCursar": [
+        {
+          "id": "GCO0406",
+          "cond": "regular"
+        }
+      ],
+      "reqRendir": [
+        {
+          "id": "GCO0406",
+          "cond": "aprobada"
+        }
+      ],
+      "reqModuloCursar": null,
+      "p1": null,
+      "p2": null,
+      "rec": null,
+      "aplazos": [],
+      "historial": [
+        {
+          "fecha": "2025-06-24",
+          "tipo": "Regularidad",
+          "nota": 6,
+          "resultado": "Aprobado"
+        },
+        {
+          "fecha": "2025-07-13",
+          "tipo": "Examen",
+          "nota": 8,
+          "resultado": "Aprobado"
+        }
+      ],
+      "nota": 8,
+      "final": 8,
+      "notaCursada": 6,
+      "estado": "aprobada"
+    },
+    {
+      "id": "GES0315",
+      "codigo": "GES0315",
+      "nombre": "Análisis y Predicción en Series de Tiempo",
+      "anio": 3,
+      "sem": 1,
+      "tipo": "Materia",
+      "reqCursar": [
+        {
+          "id": "GMA0212",
+          "cond": "regular"
+        }
+      ],
+      "reqRendir": [
+        {
+          "id": "GMA0212",
+          "cond": "aprobada"
+        }
+      ],
+      "reqModuloCursar": null,
+      "p1": null,
+      "p2": null,
+      "rec": null,
+      "aplazos": [],
+      "historial": [
+        {
+          "fecha": "2025-06-24",
+          "tipo": "Regularidad",
+          "nota": 10,
+          "resultado": "Aprobado"
+        }
+      ],
+      "nota": null,
+      "final": null,
+      "notaCursada": 10,
+      "estado": "final"
+    },
+    {
+      "id": "GES0314",
+      "codigo": "GES0314",
+      "nombre": "Simulación y Procesos Estocásticos",
+      "anio": 3,
+      "sem": 1,
+      "tipo": "Materia",
+      "reqCursar": [
+        {
+          "id": "GCO0411",
+          "cond": "regular"
+        }
+      ],
+      "reqRendir": [
+        {
+          "id": "GCO0411",
+          "cond": "aprobada"
+        }
+      ],
+      "reqModuloCursar": null,
+      "p1": null,
+      "p2": null,
+      "rec": null,
+      "aplazos": [],
+      "historial": [],
+      "nota": null,
+      "final": null,
+      "notaCursada": null,
+      "estado": "pendiente"
+    },
+    {
+      "id": "GAP0314",
+      "codigo": "GAP0314",
+      "nombre": "Laboratorio: Consultoría en Datos I",
+      "anio": 3,
+      "sem": 1,
+      "tipo": "Materia",
+      "reqCursar": [
+        {
+          "id": "GES0215",
+          "cond": "regular"
+        }
+      ],
+      "reqRendir": [
+        {
+          "id": "GES0215",
+          "cond": "aprobada"
+        }
+      ],
+      "reqModuloCursar": null,
+      "p1": null,
+      "p2": null,
+      "rec": null,
+      "aplazos": [],
+      "historial": [
+        {
+          "fecha": "2025-06-24",
+          "tipo": "Regularidad",
+          "nota": 7,
+          "resultado": "Aprobado"
+        },
+        {
+          "fecha": "2025-07-13",
+          "tipo": "Examen",
+          "nota": 8,
+          "resultado": "Aprobado"
+        }
+      ],
+      "nota": 8,
+      "final": 8,
+      "notaCursada": 7,
+      "estado": "aprobada"
+    },
+    {
+      "id": "GFF0885",
+      "codigo": "GFF0885",
+      "nombre": "Introducción a la Teología",
+      "anio": 3,
+      "sem": 1,
+      "tipo": "Materia",
+      "reqCursar": [
+        {
+          "id": "GFF0881",
+          "cond": "regular"
+        }
+      ],
+      "reqRendir": [
+        {
+          "id": "GFF0881",
+          "cond": "aprobada"
+        }
+      ],
+      "reqModuloCursar": null,
+      "p1": null,
+      "p2": null,
+      "rec": null,
+      "aplazos": [],
+      "historial": [
+        {
+          "fecha": "2025-06-24",
+          "tipo": "Regularidad",
+          "nota": 9,
+          "resultado": "Aprobado"
+        },
+        {
+          "fecha": "2025-07-13",
+          "tipo": "Examen",
+          "nota": 6,
+          "resultado": "Aprobado"
+        }
+      ],
+      "nota": 6,
+      "final": 6,
+      "notaCursada": 9,
+      "estado": "aprobada"
+    },
+    {
+      "id": "GTC0319",
+      "codigo": "GTC0319",
+      "nombre": "Ingeniería de Datos",
+      "anio": 3,
+      "sem": 2,
+      "tipo": "Materia",
+      "reqCursar": [
+        {
+          "id": "GTC0120",
+          "cond": "regular"
+        },
+        {
+          "id": "GCO0406",
+          "cond": "regular"
+        }
+      ],
+      "reqRendir": [
+        {
+          "id": "GTC0120",
+          "cond": "aprobada"
+        },
+        {
+          "id": "GCO0406",
+          "cond": "aprobada"
+        }
+      ],
+      "reqModuloCursar": null,
+      "p1": null,
+      "p2": null,
+      "rec": null,
+      "aplazos": [],
+      "historial": [
+        {
+          "fecha": "2025-08-04",
+          "tipo": "En curso",
+          "nota": null,
+          "resultado": "En curso"
+        }
+      ],
+      "nota": null,
+      "final": null,
+      "notaCursada": null,
+      "estado": "cursando"
+    },
+    {
+      "id": "GES0320",
+      "codigo": "GES0320",
+      "nombre": "Inteligencia Artificial y Aprendizaje Automático II",
+      "anio": 3,
+      "sem": 2,
+      "tipo": "Materia",
+      "reqCursar": [
+        {
+          "id": "GES0310",
+          "cond": "regular"
+        }
+      ],
+      "reqRendir": [
+        {
+          "id": "GES0310",
+          "cond": "aprobada"
+        }
+      ],
+      "reqModuloCursar": null,
+      "p1": null,
+      "p2": null,
+      "rec": null,
+      "aplazos": [],
+      "historial": [
+        {
+          "fecha": "2025-08-04",
+          "tipo": "En curso",
+          "nota": null,
+          "resultado": "En curso"
+        }
+      ],
+      "nota": null,
+      "final": null,
+      "notaCursada": null,
+      "estado": "cursando"
+    },
+    {
+      "id": "GMA0322",
+      "codigo": "GMA0322",
+      "nombre": "Optimización",
+      "anio": 3,
+      "sem": 2,
+      "tipo": "Materia",
+      "reqCursar": [
+        {
+          "id": "GMA0212",
+          "cond": "regular"
+        },
+        {
+          "id": "GES0314",
+          "cond": "regular"
+        }
+      ],
+      "reqRendir": [
+        {
+          "id": "GMA0212",
+          "cond": "aprobada"
+        },
+        {
+          "id": "GES0314",
+          "cond": "aprobada"
+        }
+      ],
+      "reqModuloCursar": null,
+      "p1": null,
+      "p2": null,
+      "rec": null,
+      "aplazos": [],
+      "historial": [],
+      "nota": null,
+      "final": null,
+      "notaCursada": null,
+      "estado": "pendiente"
+    },
+    {
+      "id": "GTC0324",
+      "codigo": "GTC0324",
+      "nombre": "Inteligencia Empresarial",
+      "anio": 3,
+      "sem": 2,
+      "tipo": "Materia",
+      "reqCursar": [
+        {
+          "id": "GCO0406",
+          "cond": "regular"
+        }
+      ],
+      "reqRendir": [
+        {
+          "id": "GCO0406",
+          "cond": "aprobada"
+        }
+      ],
+      "reqModuloCursar": null,
+      "p1": null,
+      "p2": null,
+      "rec": null,
+      "aplazos": [],
+      "historial": [
+        {
+          "fecha": "2025-08-04",
+          "tipo": "En curso",
+          "nota": null,
+          "resultado": "En curso"
+        }
+      ],
+      "nota": null,
+      "final": null,
+      "notaCursada": null,
+      "estado": "cursando"
+    },
+    {
+      "id": "GAP0324",
+      "codigo": "GAP0324",
+      "nombre": "Laboratorio: Consultoría en Datos II",
+      "anio": 3,
+      "sem": 2,
+      "tipo": "Materia",
+      "reqCursar": [
+        {
+          "id": "GAP0314",
+          "cond": "regular"
+        }
+      ],
+      "reqRendir": [
+        {
+          "id": "GAP0314",
+          "cond": "aprobada"
+        }
+      ],
+      "reqModuloCursar": null,
+      "p1": null,
+      "p2": null,
+      "rec": null,
+      "aplazos": [],
+      "historial": [
+        {
+          "fecha": "2025-08-04",
+          "tipo": "En curso",
+          "nota": null,
+          "resultado": "En curso"
+        }
+      ],
+      "nota": null,
+      "final": null,
+      "notaCursada": null,
+      "estado": "cursando"
+    },
+    {
+      "id": "GFF0886",
+      "codigo": "GFF0886",
+      "nombre": "Seminario III",
+      "anio": 3,
+      "sem": 2,
+      "tipo": "Seminario",
+      "reqCursar": [
+        {
+          "id": "GFF0885",
+          "cond": "regular"
+        }
+      ],
+      "reqRendir": [],
+      "reqModuloCursar": null,
+      "p1": null,
+      "p2": null,
+      "rec": null,
+      "aplazos": [],
+      "historial": [
+        {
+          "fecha": "2025-08-04",
+          "tipo": "En curso",
+          "nota": null,
+          "resultado": "En curso"
+        }
+      ],
+      "nota": null,
+      "final": null,
+      "notaCursada": null,
+      "estado": "cursando"
+    },
+    {
+      "id": "GES0431",
+      "codigo": "GES0431",
+      "nombre": "Inteligencia Artificial y Aprendizaje Profundo I",
+      "anio": 4,
+      "sem": 1,
+      "tipo": "Materia",
+      "reqCursar": [
+        {
+          "id": "GES0320",
+          "cond": "regular"
+        }
+      ],
+      "reqRendir": [
+        {
+          "id": "GES0320",
+          "cond": "aprobada"
+        }
+      ],
+      "reqModuloCursar": 2,
+      "p1": null,
+      "p2": null,
+      "rec": null,
+      "aplazos": [],
+      "historial": [],
+      "nota": null,
+      "final": null,
+      "notaCursada": null,
+      "estado": "pendiente"
+    },
+    {
+      "id": "GMA0432",
+      "codigo": "GMA0432",
+      "nombre": "Teoría de Juegos",
+      "anio": 4,
+      "sem": 1,
+      "tipo": "Materia",
+      "reqCursar": [
+        {
+          "id": "GMA0322",
+          "cond": "regular"
+        }
+      ],
+      "reqRendir": [
+        {
+          "id": "GMA0322",
+          "cond": "aprobada"
+        }
+      ],
+      "reqModuloCursar": 2,
+      "p1": null,
+      "p2": null,
+      "rec": null,
+      "aplazos": [],
+      "historial": [],
+      "nota": null,
+      "final": null,
+      "notaCursada": null,
+      "estado": "pendiente"
+    },
+    {
+      "id": "GTC0433",
+      "codigo": "GTC0433",
+      "nombre": "Bases de Datos Documentales y de Clave-Valor",
+      "anio": 4,
+      "sem": 1,
+      "tipo": "Materia",
+      "reqCursar": [
+        {
+          "id": "GTC0324",
+          "cond": "regular"
+        }
+      ],
+      "reqRendir": [
+        {
+          "id": "GTC0324",
+          "cond": "aprobada"
+        }
+      ],
+      "reqModuloCursar": 2,
+      "p1": null,
+      "p2": null,
+      "rec": null,
+      "aplazos": [],
+      "historial": [],
+      "nota": null,
+      "final": null,
+      "notaCursada": null,
+      "estado": "pendiente"
+    },
+    {
+      "id": "GCO0434",
+      "codigo": "GCO0434",
+      "nombre": "Análisis y Procesamiento de Eventos o Streaming",
+      "anio": 4,
+      "sem": 1,
+      "tipo": "Materia",
+      "reqCursar": [
+        {
+          "id": "GTC0324",
+          "cond": "regular"
+        }
+      ],
+      "reqRendir": [
+        {
+          "id": "GTC0324",
+          "cond": "aprobada"
+        }
+      ],
+      "reqModuloCursar": 2,
+      "p1": null,
+      "p2": null,
+      "rec": null,
+      "aplazos": [],
+      "historial": [],
+      "nota": null,
+      "final": null,
+      "notaCursada": null,
+      "estado": "pendiente"
+    },
+    {
+      "id": "GAP0435",
+      "codigo": "GAP0435",
+      "nombre": "Laboratorio: Consultoría en Datos III",
+      "anio": 4,
+      "sem": 1,
+      "tipo": "Materia",
+      "reqCursar": [
+        {
+          "id": "GAP0324",
+          "cond": "regular"
+        }
+      ],
+      "reqRendir": [
+        {
+          "id": "GAP0324",
+          "cond": "aprobada"
+        }
+      ],
+      "reqModuloCursar": 2,
+      "p1": null,
+      "p2": null,
+      "rec": null,
+      "aplazos": [],
+      "historial": [],
+      "nota": null,
+      "final": null,
+      "notaCursada": null,
+      "estado": "pendiente"
+    },
+    {
+      "id": "GFF0887",
+      "codigo": "GFF0887",
+      "nombre": "Síntesis Teológica",
+      "anio": 4,
+      "sem": 1,
+      "tipo": "Materia",
+      "reqCursar": [
+        {
+          "id": "GFF0885",
+          "cond": "regular"
+        }
+      ],
+      "reqRendir": [],
+      "reqModuloCursar": 2,
+      "p1": null,
+      "p2": null,
+      "rec": null,
+      "aplazos": [],
+      "historial": [],
+      "nota": null,
+      "final": null,
+      "notaCursada": null,
+      "estado": "pendiente"
+    },
+    {
+      "id": "GFF0889",
+      "codigo": "GFF0889",
+      "nombre": "Moral y Compromiso Social",
+      "anio": 4,
+      "sem": 1,
+      "tipo": "Materia",
+      "reqCursar": [
+        {
+          "id": "GFF0883",
+          "cond": "regular"
+        },
+        {
+          "id": "GFF0885",
+          "cond": "regular"
+        }
+      ],
+      "reqRendir": [
+        {
+          "id": "GFF0883",
+          "cond": "aprobada"
+        },
+        {
+          "id": "GFF0885",
+          "cond": "aprobada"
+        }
+      ],
+      "reqModuloCursar": 2,
+      "p1": null,
+      "p2": null,
+      "rec": null,
+      "aplazos": [],
+      "historial": [],
+      "nota": null,
+      "final": null,
+      "notaCursada": null,
+      "estado": "pendiente"
+    },
+    {
+      "id": "GES0436",
+      "codigo": "GES0436",
+      "nombre": "Inteligencia Artificial y Aprendizaje Profundo II",
+      "anio": 4,
+      "sem": 2,
+      "tipo": "Materia",
+      "reqCursar": [
+        {
+          "id": "GES0431",
+          "cond": "regular"
+        }
+      ],
+      "reqRendir": [
+        {
+          "id": "GES0431",
+          "cond": "aprobada"
+        }
+      ],
+      "reqModuloCursar": 2,
+      "p1": null,
+      "p2": null,
+      "rec": null,
+      "aplazos": [],
+      "historial": [],
+      "nota": null,
+      "final": null,
+      "notaCursada": null,
+      "estado": "pendiente"
+    },
+    {
+      "id": "GES0437",
+      "codigo": "GES0437",
+      "nombre": "Procesamiento de Lenguaje Natural",
+      "anio": 4,
+      "sem": 2,
+      "tipo": "Materia",
+      "reqCursar": [
+        {
+          "id": "GES0431",
+          "cond": "regular"
+        }
+      ],
+      "reqRendir": [
+        {
+          "id": "GES0431",
+          "cond": "aprobada"
+        }
+      ],
+      "reqModuloCursar": 2,
+      "p1": null,
+      "p2": null,
+      "rec": null,
+      "aplazos": [],
+      "historial": [],
+      "nota": null,
+      "final": null,
+      "notaCursada": null,
+      "estado": "pendiente"
+    },
+    {
+      "id": "GTC0437",
+      "codigo": "GTC0437",
+      "nombre": "Bases de Datos Orientadas a Grafos",
+      "anio": 4,
+      "sem": 2,
+      "tipo": "Materia",
+      "reqCursar": [
+        {
+          "id": "GTC0433",
+          "cond": "regular"
+        }
+      ],
+      "reqRendir": [
+        {
+          "id": "GTC0433",
+          "cond": "aprobada"
+        }
+      ],
+      "reqModuloCursar": 2,
+      "p1": null,
+      "p2": null,
+      "rec": null,
+      "aplazos": [],
+      "historial": [],
+      "nota": null,
+      "final": null,
+      "notaCursada": null,
+      "estado": "pendiente"
+    },
+    {
+      "id": "GAP0439",
+      "codigo": "GAP0439",
+      "nombre": "Seminario de Tendencias en Ciencias de Datos",
+      "anio": 4,
+      "sem": 2,
+      "tipo": "Materia",
+      "reqCursar": [
+        {
+          "id": "GES0431",
+          "cond": "regular"
+        }
+      ],
+      "reqRendir": [
+        {
+          "id": "GES0431",
+          "cond": "aprobada"
+        }
+      ],
+      "reqModuloCursar": 2,
+      "p1": null,
+      "p2": null,
+      "rec": null,
+      "aplazos": [],
+      "historial": [],
+      "nota": null,
+      "final": null,
+      "notaCursada": null,
+      "estado": "pendiente"
+    },
+    {
+      "id": "GAP0440",
+      "codigo": "GAP0440",
+      "nombre": "Laboratorio: Consultoría en Datos IV",
+      "anio": 4,
+      "sem": 2,
+      "tipo": "Materia",
+      "reqCursar": [
+        {
+          "id": "GAP0435",
+          "cond": "regular"
+        }
+      ],
+      "reqRendir": [
+        {
+          "id": "GAP0435",
+          "cond": "aprobada"
+        }
+      ],
+      "reqModuloCursar": 2,
+      "p1": null,
+      "p2": null,
+      "rec": null,
+      "aplazos": [],
+      "historial": [],
+      "nota": null,
+      "final": null,
+      "notaCursada": null,
+      "estado": "pendiente"
+    },
+    {
+      "id": "GFF0888",
+      "codigo": "GFF0888",
+      "nombre": "Seminario IV",
+      "anio": 4,
+      "sem": 2,
+      "tipo": "Seminario",
+      "reqCursar": [
+        {
+          "id": "GFF0887",
+          "cond": "regular"
+        }
+      ],
+      "reqRendir": [],
+      "reqModuloCursar": 2,
+      "p1": null,
+      "p2": null,
+      "rec": null,
+      "aplazos": [],
+      "historial": [],
+      "nota": null,
+      "final": null,
+      "notaCursada": null,
+      "estado": "pendiente"
+    },
+    {
+      "id": "GFF0890",
+      "codigo": "GFF0890",
+      "nombre": "Seminario V",
+      "anio": 4,
+      "sem": 2,
+      "tipo": "Seminario",
+      "reqCursar": [
+        {
+          "id": "GFF0889",
+          "cond": "regular"
+        }
+      ],
+      "reqRendir": [],
+      "reqModuloCursar": 2,
+      "p1": null,
+      "p2": null,
+      "rec": null,
+      "aplazos": [],
+      "historial": [],
+      "nota": null,
+      "final": null,
+      "notaCursada": null,
+      "estado": "pendiente"
+    },
+    {
+      "id": "GWA6801",
+      "codigo": "GWA6801",
+      "nombre": "Evaluación de Nivel de Idioma Castellano",
+      "anio": 0,
+      "sem": null,
+      "tipo": "Materia",
+      "reqCursar": [],
+      "reqRendir": [],
+      "reqModuloCursar": null,
+      "p1": null,
+      "p2": null,
+      "rec": null,
+      "aplazos": [],
+      "historial": [
+        {
+          "fecha": "2024-04-15",
+          "tipo": "Examen",
+          "nota": 8,
+          "resultado": "Aprobado"
+        }
+      ],
+      "nota": 8,
+      "final": 8,
+      "notaCursada": null,
+      "estado": "aprobada"
+    },
+    {
+      "id": "GWA6802",
+      "codigo": "GWA6802",
+      "nombre": "Evaluación de Nivel de Idioma Inglés I",
+      "anio": 0,
+      "sem": null,
+      "tipo": "Materia",
+      "reqCursar": [],
+      "reqRendir": [],
+      "reqModuloCursar": null,
+      "p1": null,
+      "p2": null,
+      "rec": null,
+      "aplazos": [],
+      "historial": [
+        {
+          "fecha": "2024-05-15",
+          "tipo": "Examen",
+          "nota": 7,
+          "resultado": "Aprobado"
+        }
+      ],
+      "nota": 7,
+      "final": 7,
+      "notaCursada": null,
+      "estado": "aprobada"
+    },
+    {
+      "id": "GWA6803",
+      "codigo": "GWA6803",
+      "nombre": "Evaluación de Nivel de Idioma Inglés II",
+      "anio": 0,
+      "sem": null,
+      "tipo": "Materia",
+      "reqCursar": [],
+      "reqRendir": [],
+      "reqModuloCursar": null,
+      "p1": null,
+      "p2": null,
+      "rec": null,
+      "aplazos": [],
+      "historial": [],
+      "nota": null,
+      "final": null,
+      "notaCursada": null,
+      "estado": "pendiente"
+    }
+  ]
+}
