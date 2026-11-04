@@ -111,14 +111,19 @@ function VistaPrevia({
 /**
  * Importa un respaldo legacy o nuevo sobre el plan de `datos`, que ya tiene que estar activo: lee el
  * archivo, muestra la vista previa, reemplaza `progreso` e `historial` (todo o nada) y restaura los
- * materiales (no es todo o nada: los que fallan se pueden reintentar sin duplicar). Termina en Inicio.
+ * materiales (no es todo o nada: los que fallan se pueden reintentar sin duplicar). Termina en Inicio;
+ * quien ya está en Inicio pasa `alTerminar`, porque ahí cambiar el hash no haría nada.
  */
 export function ImportarRespaldo({
   datos,
   alCancelar,
+  alTerminar = () => {
+    window.location.hash = "inicio";
+  },
 }: {
   datos: DatosAlumno;
   alCancelar: () => void;
+  alTerminar?: () => void;
 }) {
   const repositorio = useRepositorio();
   const clienteQuery = useQueryClient();
@@ -143,7 +148,7 @@ export function ImportarRespaldo({
 
   async function irAInicio() {
     await invalidarDatosDelPlan(clienteQuery, planId);
-    window.location.hash = "inicio";
+    alTerminar();
   }
 
   async function leerArchivo(evento: ChangeEvent<HTMLInputElement>) {

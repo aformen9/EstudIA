@@ -138,7 +138,7 @@ describe("GrillaRapida", () => {
     fireEvent.click(within(alerta).getByRole("button", { name: "Reintentar" }));
 
     await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
-    expect(opcion(M1.nombre, "Aprobada").checked).toBe(true);
+    await waitFor(() => expect(opcion(M1.nombre, "Aprobada").checked).toBe(true));
     expect(repositorio.base.progreso).toEqual([fila(M1.id, { estado: "aprobada" })]);
     await waitFor(() => expect(indicador()).toBe("Guardado en la nube"));
   });
@@ -246,5 +246,140 @@ describe("GrillaRapida", () => {
     fireEvent.click(screen.getByRole("button", { name: "Listo, ir a Inicio" }));
     expect(alTerminar).toHaveBeenCalled();
     expect(repositorio.obtenerProgreso).toHaveBeenCalledWith(ID_PLAN);
+  });
+});
+
+describe("salir de la grilla con filas fallidas", () => {
+  function montarSalida(repositorio: RepositorioFalso) {
+    const alTerminar = vi.fn();
+    const alVolver = vi.fn();
+    renderConRepositorio(
+      <ConPlan>
+        {(datos) => <GrillaRapida datos={datos} alVolver={alVolver} alTerminar={alTerminar} />}
+      </ConPlan>,
+      repositorio,
+    );
+    return { alTerminar, alVolver };
+  }
+
+  function aviso() {
+    return screen.getByText(/no se guard/).closest<HTMLElement>(".grilla-aviso") as HTMLElement;
+  }
+
+  async function fallarGuardadoDe(repositorio: RepositorioFalso, ...nombres: string[]) {
+    await screen.findByRole("radiogroup", { name: M1.nombre });
+    repositorio.guardarProgreso.mockRejectedValue(new Error("se cortó"));
+    for (const nombre of nombres) fireEvent.click(opcion(nombre, "Aprobada"));
+    await waitFor(() => expect(screen.getAllByRole("alert")).toHaveLength(nombres.length));
+  }
+
+  it("sin fallos sale directo, por los dos botones, sin avisar", async () => {
+    const { alTerminar, alVolver } = montarSalida(
+      repositorioFalso({ inscripciones: [INSCRIPCION] }),
+    );
+    await screen.findByRole("radiogroup", { name: M1.nombre });
+
+    fireEvent.click(screen.getByRole("button", { name: "Volver" }));
+    expect(alVolver).toHaveBeenCalledOnce();
+    expect(screen.queryByText(/no se guard/)).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Listo, ir a Inicio" }));
+    expect(alTerminar).toHaveBeenCalledOnce();
+    expect(screen.queryByText(/no se guard/)).toBeNull();
+  });
+
+  it("con un fallo avisa en singular, no sale, y el foco va a Reintentar", async () => {
+    const repositorio = repositorioFalso({ inscripciones: [INSCRIPCION] });
+    const { alTerminar } = montarSalida(repositorio);
+    await fallarGuardadoDe(repositorio, M1.nombre);
+
+    fireEvent.click(screen.getByRole("button", { name: "Listo, ir a Inicio" }));
+
+    expect(await screen.findByText("1 materia no se guardó")).toBeTruthy();
+    expect(alTerminar).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(
+      within(aviso()).getByRole("button", { name: "Reintentar" }),
+    );
+  });
+
+  it("con varios fallos avisa en plural, también al usar Volver", async () => {
+    const repositorio = repositorioFalso({ inscripciones: [INSCRIPCION] });
+    const { alVolver } = montarSalida(repositorio);
+    await fallarGuardadoDe(repositorio, M1.nombre, M2.nombre);
+
+    fireEvent.click(screen.getByRole("button", { name: "Volver" }));
+
+    expect(await screen.findByText("2 materias no se guardaron")).toBeTruthy();
+    expect(alVolver).not.toHaveBeenCalled();
+  });
+
+  it("Salir igual sale por la acción pedida, y la fila queda como estaba en la base", async () => {
+    const repositorio = repositorioFalso({ inscripciones: [INSCRIPCION] });
+    const { alVolver, alTerminar } = montarSalida(repositorio);
+    await fallarGuardadoDe(repositorio, M1.nombre);
+
+    fireEvent.click(screen.getByRole("button", { name: "Volver" }));
+    await screen.findByText("1 materia no se guardó");
+    fireEvent.click(within(aviso()).getByRole("button", { name: "Salir igual" }));
+
+    expect(alVolver).toHaveBeenCalledOnce();
+    expect(alTerminar).not.toHaveBeenCalled();
+    expect(repositorio.base.progreso).toEqual([]);
+  });
+
+  it("Reintentar con éxito guarda todas y termina de salir", async () => {
+    const repositorio = repositorioFalso({ inscripciones: [INSCRIPCION] });
+    const { alTerminar } = montarSalida(repositorio);
+    await fallarGuardadoDe(repositorio, M1.nombre, M2.nombre);
+    fireEvent.click(screen.getByRole("button", { name: "Listo, ir a Inicio" }));
+    await screen.findByText("2 materias no se guardaron");
+
+    repositorio.guardarProgreso.mockReset();
+    repositorio.guardarProgreso.mockImplementation(async (f) => {
+      repositorio.base.progreso = [...repositorio.base.progreso, f];
+    });
+    fireEvent.click(within(aviso()).getByRole("button", { name: "Reintentar" }));
+
+    await waitFor(() => expect(alTerminar).toHaveBeenCalledOnce());
+    expect(repositorio.base.progreso.map((f) => f.materiaId).sort()).toEqual([M1.id, M2.id].sort());
+  });
+
+  it("Reintentar con un fallo que sigue vuelve a avisar con la cuenta nueva", async () => {
+    const repositorio = repositorioFalso({ inscripciones: [INSCRIPCION] });
+    const { alTerminar } = montarSalida(repositorio);
+    await fallarGuardadoDe(repositorio, M1.nombre, M2.nombre);
+    fireEvent.click(screen.getByRole("button", { name: "Listo, ir a Inicio" }));
+    await screen.findByText("2 materias no se guardaron");
+
+    repositorio.guardarProgreso.mockReset();
+    repositorio.guardarProgreso.mockImplementation(async (f) => {
+      if (f.materiaId === M1.id) throw new Error("sigue cortado");
+    });
+    fireEvent.click(within(aviso()).getByRole("button", { name: "Reintentar" }));
+
+    expect(await screen.findByText("1 materia no se guardó")).toBeTruthy();
+    expect(alTerminar).not.toHaveBeenCalled();
+  });
+
+  it("si hay un guardado en camino, espera a ver cómo termina antes de salir", async () => {
+    const repositorio = repositorioFalso({ inscripciones: [INSCRIPCION] });
+    const { alTerminar } = montarSalida(repositorio);
+    await screen.findByRole("radiogroup", { name: M1.nombre });
+    let fallar = () => {};
+    repositorio.guardarProgreso.mockImplementationOnce(
+      () => new Promise((_, rechazar) => (fallar = () => rechazar(new Error("se cortó")))),
+    );
+
+    fireEvent.click(opcion(M1.nombre, "Aprobada"));
+    await waitFor(() => expect(repositorio.guardarProgreso).toHaveBeenCalledOnce());
+    fireEvent.click(screen.getByRole("button", { name: "Listo, ir a Inicio" }));
+
+    expect(alTerminar).not.toHaveBeenCalled();
+    expect(screen.getByText("Terminando de guardar…")).toBeTruthy();
+
+    await act(async () => fallar());
+
+    expect(await screen.findByText("1 materia no se guardó")).toBeTruthy();
+    expect(alTerminar).not.toHaveBeenCalled();
   });
 });
