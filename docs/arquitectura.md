@@ -93,7 +93,7 @@ Funciones auxiliares `security definer`, `stable`, con `search_path` fijo:
 | importación | — | RPC `reemplazar_datos_del_plan(plan_id, datos)` (security invoker, todo o nada): crea o reutiliza materias propias y reemplaza `progreso` e `historial` del alumno en ese plan |
 | materiales | **solo propias** (admin: todas) | propias; admin puede ocultar/borrar. `oculto` solo lo cambian un admin o el trigger de denuncias: el autor no puede modificarlo |
 | material compartido | vía RPC `material_compartido(materia_id)` (security definer): devuelve materiales `compartido`, no `oculto`, de esa materia, **solo si `cursa_o_curso(materia_id)`**; el autor se devuelve como `null` si `anonimo` | — |
-| documentos | si el usuario tiene un material propio que lo referencia, o si lo referencia un material compartido visible para él | vía RPC `registrar_documento(sha256, mime, bytes, paginas, texto)` que hace upsert por `sha256` y devuelve el `id`. Nunca pisa un `texto` existente: solo lo completa si era null |
+| documentos | la tabla, solo si el usuario tiene un material propio que lo referencia. El de un material compartido visible para él se expone solo por RPC y **nunca con su `sha256`**: ninguna RPC ni consulta devuelve el hash de documentos ajenos (ver §12) | vía RPC `registrar_documento(sha256, mime, bytes, paginas, texto)` que hace upsert por `sha256` y devuelve el `id`. Nunca pisa un `texto` existente: solo lo completa si era null |
 | denuncias | propias (admin: todas) | insertar propias, sobre material que puede ver |
 
 - `anon` (sin sesión): sin acceso a nada.
@@ -114,7 +114,7 @@ Funciones auxiliares `security definer`, `stable`, con `search_path` fijo:
 - Sugerencias al editar (de la referencia): nota final ≥ aprobación → proponer `aprobada`; en curso con parciales aprobados → proponer `final`.
 - La nota de aprobación (4) y la escala (1–10) salen del plan, no se hardcodean.
 - Verificación: `fixtures/caso-prueba-esperado.json` (calculado con la lógica original). "Promedio en el tiempo" no está en el fixture: lleva tests propios con la lógica original.
-- **Importar y restaurar respaldos**: se aceptan el formato legacy y el respaldo nuevo. Sobre datos existentes se muestra un resumen y, con confirmación, se **reemplazan** `progreso` e `historial` de ese plan (mezclar duplicaría el historial, que no tiene clave natural). El historial importado lleva `fuente = 'siu'` si el respaldo dice venir de SIU; si no, `'manual'`.
+- **Importar y restaurar respaldos**: se aceptan el formato legacy y el respaldo nuevo. Sobre datos existentes se muestra un resumen y, con confirmación, se **reemplazan** `progreso` e `historial` de ese plan (mezclar duplicaría el historial, que no tiene clave natural). El historial importado lleva `fuente = 'siu'` si el respaldo dice venir de SIU; si no, `'manual'`. El respaldo nuevo guarda las siglas de universidad y carrera, y se rechaza si no corresponden al plan. Un respaldo legacy sin ningún código en común con el plan se bloquea. Restaurar materiales agrega los que no existan (mismo título y url, o mismo `sha256`) sin borrar nada.
 
 ## 7. Material de estudio: almacenamiento
 
@@ -173,5 +173,9 @@ PDF del plan / analítico → salida estructurada con el esquema de catálogo/pr
 - Dónde corre el MCP remoto: Supabase Edge Functions vs Vercel vs VPS de Oracle (fase 3).
 - Embeddings/pgvector para búsqueda semántica (si full-text no alcanza).
 - Firma de binarios (costo).
+- **Bloqueante de la fase 1: lectura de documentos por `sha256`.** Quien conozca el hash de un documento ajeno puede registrarlo con `registrar_documento`, referenciarlo con un material propio y leer su `texto`. En la fase 0 no hay riesgo real porque `texto` está vacío y el hash de documentos ajenos no se expone. Hay que resolverlo antes de guardar texto extraído. Opciones (preguntarle a Agu antes de elegir):
+  - **A. Aceptar el riesgo:** tener el hash casi equivale a tener el archivo, y el hash nunca se expone. No cambia nada, pero un hash filtrado por fuera de la app da acceso al texto.
+  - **B. Atar el texto a quien lo aportó:** se deduplica la fila, pero el alumno lee `texto` solo si él mismo lo aportó o si lo referencia un material compartido visible. Mantiene el ahorro si comparten; el texto de cada alumno se guarda aparte, salvo que se coteje.
+  - **C. Deduplicar solo lo compartido:** los documentos privados son por alumno y se unifican al compartirlos. Es lo más simple de razonar, pero ahorra menos espacio y ajusta la decisión de deduplicar por hash.
 - Moderadores por carrera (más adelante; por ahora solo admin = Agu).
 - Ingeniería Química u otras carreras (más adelante; por ahora solo LCD).
