@@ -102,3 +102,9 @@ Una línea por decisión de Agu. Agregar al final, con fecha. Si una decisión n
 - La lógica que quedó en `web` pasa a `packages/core`, con sus tests.
 - El nombre completo de la carrera se ve en escritorio, con tooltip o en dos líneas.
 - El peso del JS se revisa al cerrar `web`.
+
+## 2026-11-04 (panel de materia, tanda 4 de `web`)
+
+- Correlativas en ciclo entre materias propias: no se guardan, y se explica qué materias forman el ciclo.
+- Al editar correlativas, las ya marcadas conservan su condición; las nuevas usan la predeterminada (cursar: regular; rendir: aprobada).
+- Notas en el panel: selector de enteros, como la referencia. Una nota guardada con decimales aparece como opción extra y se conserva. Desde el panel no se cargan decimales nuevos.
