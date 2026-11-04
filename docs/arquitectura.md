@@ -20,7 +20,9 @@ Fuente de verdad del diseño. Si algo no está acá o es ambiguo: **parar y preg
 | Estado servidor | TanStack Query | cache, reintentos, sincronización |
 | Estilos | CSS propio portado de la referencia (`styles.css`), con variables | mantener la estética de la hermana |
 | Backend | Supabase: Postgres + RLS, Auth (Google), Edge Functions, Realtime | todo en uno, plan gratis alcanza (ver §8) |
-| Tests | Vitest (core y web), `supabase test db` / pgTAP (RLS) | |
+| Validación | zod | respaldos importados y, más adelante, herramientas de IA |
+| Navegación | hash propio, sin `react-router` | igual que la referencia |
+| Tests | Vitest (core y web), Testing Library + jsdom (web), `supabase test db` / pgTAP (RLS). Revisión visual en Chrome, sin Playwright | |
 | CI/CD | GitHub Actions + Vercel | |
 | Escritorio (fase 4) | Tauri 2 | binarios chicos, auto-update, sidecar para IA local/MCP local |
 | Android (fase 4) | **decisión abierta**: Tauri 2 mobile vs Capacitor | preguntar en fase 4 |
@@ -56,8 +58,8 @@ Tres capas. Todas las tablas en `public`, con RLS activado. IDs `uuid` (`gen_ran
 
 - **universidades**: `id`, `nombre`, `sigla`, `sede`, `estado` (`publicado` | `pendiente`), `creado_por` (uuid → auth.users), `created_at`.
 - **carreras**: `id`, `universidad_id`, `nombre`, `sigla`, `estado`, `creado_por`, `created_at`.
-- **planes**: `id`, `carrera_id`, `version` (ej. `"7023"`), `estado`, `creado_por`, `nota_min` (1), `nota_max` (10), `nota_aprobacion` (4), `cuatrimestres_por_anio` (2), `cierre_cuatrimestres` (jsonb, ej. `[{"cuatrimestre":1,"mes":7},{"cuatrimestre":2,"mes":12}]`), `created_at`. Único: (`carrera_id`, `version`).
-- **materias**: `id`, `plan_id`, `codigo`, `nombre`, `anio` (0 = extras/idiomas), `cuatrimestre` (null si anual/extra), `tipo` (`Materia` | `Seminario` | …), `area`, `requiere_anio_completo_para_cursar` (int null; ej. 2 = "todo 2° año aprobado"), `owner_id` (null = del catálogo; uuid = materia propia de un alumno, ej. optativa), `orden`, `created_at`. Único: (`plan_id`, `codigo`) cuando `owner_id` es null.
+- **planes**: `id`, `carrera_id`, `version` (ej. `"7023"`), `estado`, `creado_por`, `nota_min` (1), `nota_max` (10), `nota_aprobacion` (4), `cuatrimestres_por_anio` (2), `cierre_cuatrimestres` (jsonb, ej. `[{"cuatrimestre":1,"mes":7},{"cuatrimestre":2,"mes":12}]`; el seed de LCD 7023 usa este valor porque el catálogo no lo trae), `created_at`. Único: (`carrera_id`, `version`).
+- **materias**: `id`, `plan_id`, `codigo` (null solo en materias propias: las del catálogo siempre tienen código), `nombre`, `anio` (0 = extras/idiomas), `cuatrimestre` (null si anual/extra), `tipo` (`Materia` | `Seminario` | …), `area`, `requiere_anio_completo_para_cursar` (int null; ej. 2 = "todo 2° año aprobado"), `owner_id` (null = del catálogo; uuid = materia propia de un alumno, ej. optativa), `orden`, `created_at`. Único: (`plan_id`, `codigo`) cuando `owner_id` es null.
 - **correlativas**: `materia_id`, `requiere_id`, `para` (`cursar` | `rendir`), `condicion` (`regular` | `aprobada`). PK (`materia_id`, `requiere_id`, `para`).
 
 Estado `pendiente` = cargado por un alumno (vía IA o manual), visible solo para quien lo creó y para admins hasta que un admin lo publique.
@@ -65,14 +67,14 @@ Estado `pendiente` = cargado por un alumno (vía IA o manual), visible solo para
 ### 4.2 Alumno (privado)
 
 - **perfiles**: `id` (= auth.users.id), `nombre`, `avatar_url`, `es_admin` (bool, default false), `created_at`. Se crea por trigger al registrarse. El alumno **no puede** modificar `es_admin` (grants por columna).
-- **inscripciones**: `id`, `user_id`, `plan_id`, `activa` (bool), `created_at`. Único (`user_id`, `plan_id`). Un alumno puede tener más de una carrera; una sola activa a la vez en la UI.
+- **inscripciones**: `id`, `user_id`, `plan_id`, `activa` (bool), `created_at`. Único (`user_id`, `plan_id`). Un alumno puede tener más de una carrera, con **como mucho una inscripción activa** (único parcial por `user_id`). Se activa con la RPC `activar_plan`.
 - **progreso**: `user_id`, `materia_id`, `estado` (`pendiente` | `cursando` | `final` | `aprobada`), `p1`, `p2`, `rec`, `nota_cursada`, `nota_final_examen`, `nota` (nota final de la materia), `aplazos` (`numeric[]`), `updated_at`. PK (`user_id`, `materia_id`). Si no hay fila, la materia está `pendiente`.
 - **historial**: `id`, `user_id`, `materia_id`, `fecha` (date), `tipo` (`Regularidad` | `Examen` | `Promocion` | `En curso`), `nota`, `resultado` (`Aprobado` | `Reprobado` | `Ausente` | `Promocionado` | `En curso`), `fuente` (`siu` | `manual` | `ia`).
 
 ### 4.3 Material
 
 - **documentos** (contenido, deduplicado): `id`, `sha256` (único), `mime`, `bytes`, `paginas`, `texto` (text, null hasta extraer), `texto_tsv` (tsvector generado, configuración `spanish`), `extraido_con` (`pdfjs` | `ocr` | `ia` | null), `created_at`. Índice GIN sobre `texto_tsv`. **El binario original no se guarda en Supabase** (ver §7).
-- **materiales** (lo que ve cada alumno): `id`, `user_id`, `materia_id`, `tipo` (`archivo` | `link` | `nota`), `titulo`, `documento_id` (solo archivo), `url` (solo link), `texto` (solo nota), `drive_file_id` (fase 1), `visibilidad` (`privado` | `compartido`), `anonimo` (bool), `periodo` (text, ej. `"2025-2C"`), `oculto` (bool, por denuncias o admin), `created_at`.
+- **materiales** (lo que ve cada alumno): `id`, `user_id`, `materia_id` (null = "sin materia"; CHECK: sin materia no puede ser `compartido`. Al borrar la materia, el material queda sin materia y pasa a `privado`), `tipo` (`archivo` | `link` | `nota`), `titulo`, `documento_id` (solo archivo), `url` (solo link), `texto` (solo nota), `drive_file_id` (fase 1), `visibilidad` (`privado` | `compartido`), `anonimo` (bool), `periodo` (text, ej. `"2025-2C"`), `oculto` (bool, por denuncias o admin), `created_at`.
 - **denuncias**: `id`, `material_id`, `user_id`, `motivo`, `created_at`. Único (`material_id`, `user_id`). Trigger: con **3 denuncias** distintas → `materiales.oculto = true`.
 
 ## 5. Reglas de acceso (RLS)
@@ -86,10 +88,12 @@ Funciones auxiliares `security definer`, `stable`, con `search_path` fijo:
 | universidades / carreras / planes | `estado = 'publicado'` o `creado_por = auth.uid()` o admin | insertar: cualquier usuario con sesión, forzando `estado = 'pendiente'` y `creado_por = auth.uid()` (admin puede publicar). Modificar/borrar: admin, o el creador mientras esté `pendiente` |
 | materias / correlativas | si el plan es visible y (`owner_id` es null o `owner_id = auth.uid()`) | materias propias: el dueño. Catálogo: admin o creador de un plan `pendiente` |
 | perfiles | el propio (admin: todos) | el propio, solo `nombre` y `avatar_url` |
-| inscripciones / progreso / historial | solo propias | solo propias |
-| materiales | **solo propias** (admin: todas) | propias; admin puede ocultar/borrar |
+| inscripciones / historial | solo propias | solo propias. Activar un plan: RPC `activar_plan(plan_id)`, que inscribe si hace falta y deja ese plan como único activo |
+| progreso | solo propio | solo propio, y solo sobre materias de un plan donde el alumno esté inscripto o materias propias (`owner_id = auth.uid()`) |
+| importación | — | RPC `reemplazar_datos_del_plan(plan_id, datos)` (security invoker, todo o nada): crea o reutiliza materias propias y reemplaza `progreso` e `historial` del alumno en ese plan |
+| materiales | **solo propias** (admin: todas) | propias; admin puede ocultar/borrar. `oculto` solo lo cambian un admin o el trigger de denuncias: el autor no puede modificarlo |
 | material compartido | vía RPC `material_compartido(materia_id)` (security definer): devuelve materiales `compartido`, no `oculto`, de esa materia, **solo si `cursa_o_curso(materia_id)`**; el autor se devuelve como `null` si `anonimo` | — |
-| documentos | si el usuario tiene un material propio que lo referencia, o si lo referencia un material compartido visible para él | vía RPC `registrar_documento(sha256, mime, bytes, paginas, texto)` que hace upsert por `sha256` y devuelve el `id` |
+| documentos | si el usuario tiene un material propio que lo referencia, o si lo referencia un material compartido visible para él | vía RPC `registrar_documento(sha256, mime, bytes, paginas, texto)` que hace upsert por `sha256` y devuelve el `id`. Nunca pisa un `texto` existente: solo lo completa si era null |
 | denuncias | propias (admin: todas) | insertar propias, sobre material que puede ver |
 
 - `anon` (sin sesión): sin acceso a nada.
@@ -102,14 +106,15 @@ Funciones auxiliares `security definer`, `stable`, con `search_path` fijo:
 - **Estados**: `pendiente`, `cursando` (en curso), `final` (cursada/regularidad aprobada, falta final), `aprobada` (final aprobado o promocionada).
 - **Promedio sin aplazos**: media de `nota` de las materias `aprobada` con nota.
 - **Promedio con aplazos**: suma además todas las notas de `aplazos` (finales reprobados). Ausentes no cuentan; una cursada desaprobada no es aplazo.
-- **Progreso**: % aprobado = aprobadas / total del plan (redondeado); % cursado = (aprobadas + final) / total.
+- **Progreso**: % aprobado = aprobadas / total del plan (redondeado); % cursado = (aprobadas + final) / total. Las materias propias cuentan en el total, como en la referencia.
 - **Correlativas**: condición `regular` se cumple con estado `final` o `aprobada`; `aprobada` solo con `aprobada`. "Para cursar" usa las correlativas `cursar` + `requiere_anio_completo_para_cursar` (todas las materias de ese año en `aprobada`). "Para rendir" usa las `rendir`. Correlativas a materias inexistentes se ignoran.
 - **Podés cursar**: materias `pendiente` con todas sus condiciones para cursar cumplidas.
 - **Promedios por cuatrimestre y por área**: misma regla aplicada al subconjunto.
 - **Promedio en el tiempo**: acumulado de eventos de `historial` (examen/promoción aprobados con nota; con aplazos suma exámenes reprobados con nota), ordenados por fecha.
 - Sugerencias al editar (de la referencia): nota final ≥ aprobación → proponer `aprobada`; en curso con parciales aprobados → proponer `final`.
 - La nota de aprobación (4) y la escala (1–10) salen del plan, no se hardcodean.
-- Verificación: `fixtures/caso-prueba-esperado.json` (calculado con la lógica original).
+- Verificación: `fixtures/caso-prueba-esperado.json` (calculado con la lógica original). "Promedio en el tiempo" no está en el fixture: lleva tests propios con la lógica original.
+- **Importar y restaurar respaldos**: se aceptan el formato legacy y el respaldo nuevo. Sobre datos existentes se muestra un resumen y, con confirmación, se **reemplazan** `progreso` e `historial` de ese plan (mezclar duplicaría el historial, que no tiene clave natural). El historial importado lleva `fuente = 'siu'` si el respaldo dice venir de SIU; si no, `'manual'`.
 
 ## 7. Material de estudio: almacenamiento
 
@@ -155,7 +160,7 @@ PDF del plan / analítico → salida estructurada con el esquema de catálogo/pr
 
 ## 11. Distribución (fase 4)
 
-- PWA (ya existe en la referencia; mantener manifest e íconos nuevos).
+- PWA (ya existe en la referencia; mantener manifest e íconos nuevos). Sin plugins de PWA, service worker ni cola de escrituras offline: "Sin conexión" solo avisa.
 - Tauri: `.dmg` (macOS; sin firma → aviso de Gatekeeper; firma = Apple Developer USD 99/año → **preguntar**), `.exe`/`.msi` (Windows, aviso SmartScreen), AppImage (Linux).
 - Android: APK por fuera de la tienda.
 - iOS: solo PWA.
@@ -168,6 +173,5 @@ PDF del plan / analítico → salida estructurada con el esquema de catálogo/pr
 - Dónde corre el MCP remoto: Supabase Edge Functions vs Vercel vs VPS de Oracle (fase 3).
 - Embeddings/pgvector para búsqueda semántica (si full-text no alcanza).
 - Firma de binarios (costo).
-- Logo nuevo neutro (no flor): presentar 2–3 opciones antes de elegir (fase 0).
 - Moderadores por carrera (más adelante; por ahora solo admin = Agu).
 - Ingeniería Química u otras carreras (más adelante; por ahora solo LCD).
