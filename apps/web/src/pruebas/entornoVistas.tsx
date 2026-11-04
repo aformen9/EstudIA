@@ -1,11 +1,13 @@
-import type {
-  EventoHistorial,
-  Inscripcion,
-  Material,
-  NuevoMaterial,
-  PlanCompleto,
-  ProgresoMateria,
-  Repositorio,
+import {
+  importarArchivo,
+  parsearArchivo,
+  type EventoHistorial,
+  type Inscripcion,
+  type Material,
+  type NuevoMaterial,
+  type PlanCompleto,
+  type ProgresoMateria,
+  type Repositorio,
 } from "@estudia/core";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -29,6 +31,15 @@ export function leerFixtureLegacy(): string {
     resolve(import.meta.dirname, "../../../../fixtures/caso-prueba-legacy.json"),
     "utf8",
   );
+}
+
+/** Lo que queda en la base después de importar el caso de prueba legacy con `core`. */
+export function datosDelCasoDePrueba() {
+  const parseado = parsearArchivo(leerFixtureLegacy());
+  if (!parseado.ok) throw new Error(parseado.error);
+  const leido = importarArchivo(parseado.json, PLAN);
+  if (!leido.ok) throw new Error(leido.error);
+  return { progreso: leido.datos.progreso, historial: leido.datos.historial };
 }
 
 export function fila(materiaId: string, cambios: Partial<ProgresoMateria> = {}): ProgresoMateria {
@@ -175,7 +186,7 @@ export function renderConRepositorio(ui: ReactElement, repositorio: Repositorio)
       <ContextoSesion.Provider value={valor}>{ui}</ContextoSesion.Provider>
     </QueryClientProvider>,
   );
-  return { ...resultado, guardado, clienteQuery };
+  return { ...resultado, guardado, clienteQuery, signOut };
 }
 
 /** Avanza por universidad, carrera y plan, confirmando cada opción. */

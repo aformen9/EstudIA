@@ -1,18 +1,29 @@
 import { conteoPorEstado, promedio, type DatosAlumno, type Material } from "@estudia/core";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
 import { IndicadorGuardado } from "../guardado/IndicadorGuardado";
 import { resolverVista } from "../navegacion/guardaOnboarding";
 import { VISTAS, type Vista } from "../navegacion/rutas";
 import { reemplazarVista, useVista } from "../navegacion/useVista";
 import { Onboarding } from "../onboarding/Onboarding";
+import { ProveedorAbrirMateria } from "../plan/abrirMateria";
 import { consultas, ErrorDeCarga, useDatosAlumno, useInscripcionActiva } from "../plan/planActivo";
 import { etiquetaPlan, formatoNota } from "../plan/presentacion";
 import { useConexion, useRepositorio, useSesion } from "../sesion/sesion";
 import { Icono, type NombreIcono } from "./Iconos";
-import { Inicio } from "./Inicio";
 import { useTema } from "./tema";
 import { VistaEnConstruccion } from "./VistaEnConstruccion";
+import { Inicio } from "../vistas/Inicio";
+import { Aprobadas, Cursando, Finales, Pendientes } from "../vistas/ListasCarrera";
+import { FILTROS_MATERIAS_INICIALES, Materias } from "../vistas/Materias";
+import { Promedio } from "../vistas/Promedio";
 
 const CLAVE_MENU_ACHICADO = "estudia.mini";
 
@@ -68,7 +79,8 @@ function contadores(
   };
 }
 
-function MenuAjustes({ email, conAjustes }: { email: string; conAjustes: boolean }) {
+/** Durante el onboarding no hay ajustes a los que ir: el botón directamente cierra la sesión. */
+function MenuAjustes({ email, enOnboarding }: { email: string; enOnboarding: boolean }) {
   const { cliente } = useConexion();
   const [abierto, setAbierto] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -102,6 +114,24 @@ function MenuAjustes({ email, conAjustes }: { email: string; conAjustes: boolean
     if (fallo) setError(`No pude cerrar la sesión: ${fallo.message}`);
   }
 
+  const mensajeDeError = error && (
+    <div className="msg err" role="alert">
+      {error}
+    </div>
+  );
+
+  if (enOnboarding) {
+    return (
+      <div className="menu" ref={contenedor}>
+        <button className="side-btn" type="button" title="Cerrar sesión" onClick={cerrarSesion}>
+          <Icono nombre="logout" />
+          <span>Cerrar sesión</span>
+        </button>
+        {mensajeDeError}
+      </div>
+    );
+  }
+
   return (
     <div className="menu" ref={contenedor}>
       <button
@@ -118,19 +148,17 @@ function MenuAjustes({ email, conAjustes }: { email: string; conAjustes: boolean
       </button>
       {abierto && (
         <div className="menu-pop">
-          {conAjustes && (
-            <button
-              type="button"
-              onClick={() => {
-                setAbierto(false);
-                window.location.hash = "ajustes";
-              }}
-            >
-              <Icono nombre="user" />
-              Ajustes
-              <small>Nombre, carrera y respaldo</small>
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => {
+              setAbierto(false);
+              window.location.hash = "ajustes";
+            }}
+          >
+            <Icono nombre="user" />
+            Ajustes
+            <small>Nombre, carrera y respaldo</small>
+          </button>
           <button type="button" onClick={cerrarSesion}>
             <Icono nombre="logout" />
             Cerrar sesión
@@ -138,19 +166,57 @@ function MenuAjustes({ email, conAjustes }: { email: string; conAjustes: boolean
           </button>
         </div>
       )}
-      {error && (
-        <div className="msg err" role="alert">
-          {error}
-        </div>
-      )}
+      {mensajeDeError}
     </div>
   );
 }
 
-function ContenidoVista({ vista, alActivarPlan }: { vista: Vista; alActivarPlan: () => void }) {
-  if (vista === "onboarding") return <Onboarding alActivarPlan={alActivarPlan} />;
-  if (vista === "inicio") return <Inicio />;
-  return <VistaEnConstruccion vista={vista} />;
+/** Lo que el alumno eligió en las vistas: como en la referencia, sigue ahí si se va y vuelve. */
+const FILTROS_INICIALES = { materias: FILTROS_MATERIAS_INICIALES, conAplazos: false };
+
+function ContenidoVista({
+  vista,
+  filtros,
+  setFiltros,
+  alActivarPlan,
+}: {
+  vista: Vista;
+  filtros: typeof FILTROS_INICIALES;
+  setFiltros: Dispatch<SetStateAction<typeof FILTROS_INICIALES>>;
+  alActivarPlan: () => void;
+}) {
+  switch (vista) {
+    case "onboarding":
+      return <Onboarding alActivarPlan={alActivarPlan} />;
+    case "inicio":
+      return <Inicio />;
+    case "materias":
+      return (
+        <Materias
+          filtros={filtros.materias}
+          alCambiar={(cambios) =>
+            setFiltros((f) => ({ ...f, materias: { ...f.materias, ...cambios } }))
+          }
+        />
+      );
+    case "aprobadas":
+      return <Aprobadas />;
+    case "cursando":
+      return <Cursando />;
+    case "finales":
+      return <Finales />;
+    case "pendientes":
+      return <Pendientes />;
+    case "promedio":
+      return (
+        <Promedio
+          conAplazos={filtros.conAplazos}
+          alCambiar={(conAplazos) => setFiltros((f) => ({ ...f, conAplazos }))}
+        />
+      );
+    default:
+      return <VistaEnConstruccion vista={vista} />;
+  }
 }
 
 /** Cascarón de la app: menú lateral (desplegable en el celular), barra superior y vista actual. */
@@ -161,8 +227,10 @@ export function Shell() {
   const [enCurso, setEnCurso] = useState(false);
   if (enCurso && pedida !== "onboarding") setEnCurso(false);
   const vista = resolverVista(pedida, inscripcion.estado, enCurso);
-  // Sin plan activo no hay adónde ir: el menú recién aparece al tenerlo.
-  const bloqueado = inscripcion.estado !== "activa";
+  const sinPlan = inscripcion.estado !== "activa";
+  // Hasta terminar el onboarding, incluido el paso de cargar las materias, el menú queda oculto.
+  const bloqueado = sinPlan || vista === "onboarding";
+  const [filtros, setFiltros] = useState(FILTROS_INICIALES);
 
   const plan = useDatosAlumno();
   const datos = plan.estado === "listo" ? plan.datos : null;
@@ -172,8 +240,8 @@ export function Shell() {
   const [abierto, setAbierto] = useState(false);
   const [achicado, setAchicado] = useState(leerMenuAchicado);
 
-  const perfil = useQuery({ queryKey: ["perfil"], queryFn: () => repositorio.obtenerPerfil() });
-  const materiales = useQuery({ ...consultas.materiales(repositorio), enabled: !bloqueado });
+  const perfil = useQuery(consultas.perfil(repositorio));
+  const materiales = useQuery({ ...consultas.materiales(repositorio), enabled: !sinPlan });
   const cuentas = contadores(datos, materiales.data);
   const nombre = perfil.data?.nombre?.trim() || "EstudIA";
   const email = sesion.estado === "activa" ? (sesion.sesion.user.email ?? "") : "";
@@ -247,119 +315,130 @@ export function Shell() {
   const clases = ["shell", abierto && "open", achicado && "collapsed"].filter(Boolean).join(" ");
 
   return (
-    <div className={clases}>
-      <aside className="side" id="menu-lateral">
-        <div className="side-top">
-          <button
-            className="brand"
-            type="button"
-            ref={marca}
-            title="Inicio"
-            onClick={() => {
-              setAbierto(false);
-              if (!bloqueado) window.location.hash = "inicio";
-            }}
-          >
-            <span className="avatar" aria-hidden="true">
-              {nombre.charAt(0).toUpperCase()}
-            </span>
-            <span className="brand-txt">
-              <b>{nombre}</b>
-              {datos && <small>{etiquetaPlan(datos)}</small>}
-            </span>
-          </button>
-          <button
-            className="icon-btn collapse"
-            type="button"
-            aria-label={achicado ? "Agrandar el menú" : "Achicar el menú"}
-            onClick={alternarAchicado}
-          >
-            <Icono nombre="chev-left" />
-          </button>
-        </div>
+    <ProveedorAbrirMateria>
+      <div className={clases}>
+        <aside className="side" id="menu-lateral">
+          <div className="side-top">
+            <button
+              className="brand"
+              type="button"
+              ref={marca}
+              title="Inicio"
+              onClick={() => {
+                setAbierto(false);
+                if (!bloqueado) window.location.hash = "inicio";
+              }}
+            >
+              <span className="avatar" aria-hidden="true">
+                {nombre.charAt(0).toUpperCase()}
+              </span>
+              <span className="brand-txt">
+                <b>{nombre}</b>
+                {datos && <small>{etiquetaPlan(datos)}</small>}
+              </span>
+            </button>
+            <button
+              className="icon-btn collapse"
+              type="button"
+              aria-label={achicado ? "Agrandar el menú" : "Achicar el menú"}
+              onClick={alternarAchicado}
+            >
+              <Icono nombre="chev-left" />
+            </button>
+          </div>
 
-        {!bloqueado && (
-          <nav className="nav" ref={nav} aria-label="Secciones">
-            <span className="nav-ind" ref={indicador} aria-hidden="true"></span>
-            {SECCIONES.map(({ titulo, enlaces }) => (
-              <div key={titulo ?? "principal"} style={{ display: "contents" }}>
-                {titulo && (
-                  <div className="nav-label">
-                    <span>{titulo}</span>
-                  </div>
-                )}
-                {enlaces.map((e) => (
-                  <a
-                    key={e.vista}
-                    href={`#${e.vista}`}
-                    data-v={e.vista}
-                    title={VISTAS[e.vista]}
-                    className={[e.clase, vista === e.vista && "on"].filter(Boolean).join(" ")}
-                    aria-current={vista === e.vista ? "page" : undefined}
-                    onClick={() => setAbierto(false)}
-                  >
-                    <Icono nombre={e.icono} />
-                    <span>{VISTAS[e.vista]}</span>
-                    {cuentas[e.vista] !== undefined && <em>{cuentas[e.vista]}</em>}
-                  </a>
-                ))}
-              </div>
-            ))}
-          </nav>
-        )}
-
-        <div className="side-bottom">
-          <IndicadorGuardado />
-          <button
-            className="side-btn"
-            type="button"
-            title={tema === "dark" ? "Modo claro" : "Modo oscuro"}
-            onClick={alternar}
-          >
-            <Icono nombre={tema === "dark" ? "sun" : "moon"} />
-            <span>{tema === "dark" ? "Modo claro" : "Modo oscuro"}</span>
-          </button>
-          <MenuAjustes email={email} conAjustes={!bloqueado} />
-        </div>
-      </aside>
-
-      <div
-        className="scrim"
-        onClick={() => {
-          setAbierto(false);
-          botonAbrir.current?.focus();
-        }}
-      ></div>
-
-      <div className="main-wrap">
-        <header className="topbar">
-          <button
-            className="icon-btn"
-            type="button"
-            ref={botonAbrir}
-            aria-label="Abrir el menú"
-            aria-controls="menu-lateral"
-            aria-expanded={abierto}
-            onClick={() => setAbierto(true)}
-          >
-            <Icono nombre="menu" />
-          </button>
-          <span className="topbar-title">{vista ? VISTAS[vista] : "EstudIA"}</span>
-          {/* El menú lateral está oculto en el celular: sin esto, no se vería si guardó o no. */}
-          <IndicadorGuardado />
-        </header>
-        <main className="main" ref={main} tabIndex={-1}>
-          {vista ? (
-            <ContenidoVista key={vista} vista={vista} alActivarPlan={() => setEnCurso(true)} />
-          ) : inscripcion.estado === "error" ? (
-            <ErrorDeCarga mensaje={inscripcion.error.message} reintentar={inscripcion.reintentar} />
-          ) : (
-            <p className="sub" role="status">
-              Cargando tu plan…
-            </p>
+          {!bloqueado && (
+            <nav className="nav" ref={nav} aria-label="Secciones">
+              <span className="nav-ind" ref={indicador} aria-hidden="true"></span>
+              {SECCIONES.map(({ titulo, enlaces }) => (
+                <div key={titulo ?? "principal"} style={{ display: "contents" }}>
+                  {titulo && (
+                    <div className="nav-label">
+                      <span>{titulo}</span>
+                    </div>
+                  )}
+                  {enlaces.map((e) => (
+                    <a
+                      key={e.vista}
+                      href={`#${e.vista}`}
+                      data-v={e.vista}
+                      title={VISTAS[e.vista]}
+                      className={[e.clase, vista === e.vista && "on"].filter(Boolean).join(" ")}
+                      aria-current={vista === e.vista ? "page" : undefined}
+                      onClick={() => setAbierto(false)}
+                    >
+                      <Icono nombre={e.icono} />
+                      <span>{VISTAS[e.vista]}</span>
+                      {cuentas[e.vista] !== undefined && <em>{cuentas[e.vista]}</em>}
+                    </a>
+                  ))}
+                </div>
+              ))}
+            </nav>
           )}
-        </main>
+
+          <div className="side-bottom">
+            <IndicadorGuardado />
+            <button
+              className="side-btn"
+              type="button"
+              title={tema === "dark" ? "Modo claro" : "Modo oscuro"}
+              onClick={alternar}
+            >
+              <Icono nombre={tema === "dark" ? "sun" : "moon"} />
+              <span>{tema === "dark" ? "Modo claro" : "Modo oscuro"}</span>
+            </button>
+            <MenuAjustes email={email} enOnboarding={bloqueado} />
+          </div>
+        </aside>
+
+        <div
+          className="scrim"
+          onClick={() => {
+            setAbierto(false);
+            botonAbrir.current?.focus();
+          }}
+        ></div>
+
+        <div className="main-wrap">
+          <header className="topbar">
+            <button
+              className="icon-btn"
+              type="button"
+              ref={botonAbrir}
+              aria-label="Abrir el menú"
+              aria-controls="menu-lateral"
+              aria-expanded={abierto}
+              onClick={() => setAbierto(true)}
+            >
+              <Icono nombre="menu" />
+            </button>
+            <span className="topbar-title">{vista ? VISTAS[vista] : "EstudIA"}</span>
+            {/* El menú lateral está oculto en el celular: sin esto, no se vería si guardó o no. */}
+            <IndicadorGuardado />
+          </header>
+          <main className="main" ref={main} tabIndex={-1}>
+            {vista ? (
+              <ContenidoVista
+                key={vista}
+                vista={vista}
+                filtros={filtros}
+                setFiltros={setFiltros}
+                alActivarPlan={() => setEnCurso(true)}
+              />
+            ) : inscripcion.estado === "error" ? (
+              <ErrorDeCarga
+                mensaje={inscripcion.error.message}
+                reintentar={inscripcion.reintentar}
+              />
+            ) : (
+              <p className="sub" role="status">
+                Cargando tu plan…
+              </p>
+            )}
+          </main>
+        </div>
       </div>
-    </div>
+    </ProveedorAbrirMateria>
   );
 }

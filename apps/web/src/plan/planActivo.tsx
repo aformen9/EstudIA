@@ -3,6 +3,7 @@ import type {
   EventoHistorial,
   Inscripcion,
   Material,
+  Perfil,
   PlanCompleto,
   ProgresoMateria,
   Repositorio,
@@ -14,6 +15,7 @@ import { useRepositorio } from "../sesion/sesion";
 export const clavesPlan = {
   inscripciones: ["inscripciones"] as const,
   materiales: ["materiales"] as const,
+  perfil: ["perfil"] as const,
   plan: (planId: string) => ["plan", planId] as const,
   progreso: (planId: string) => ["progreso", planId] as const,
   historial: (planId: string) => ["historial", planId] as const,
@@ -29,6 +31,11 @@ export const consultas = {
     queryOptions<Material[]>({
       queryKey: clavesPlan.materiales,
       queryFn: () => repositorio.listarMateriales(),
+    }),
+  perfil: (repositorio: Repositorio) =>
+    queryOptions<Perfil>({
+      queryKey: clavesPlan.perfil,
+      queryFn: () => repositorio.obtenerPerfil(),
     }),
   plan: (repositorio: Repositorio, planId: string) =>
     queryOptions<PlanCompleto>({
