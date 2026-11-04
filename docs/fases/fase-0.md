@@ -24,7 +24,7 @@ Si falta alguno, se puede avanzar con Supabase local (`supabase start`) y dejar 
 ### 0.2 `packages/core`
 - Tipos del dominio (catálogo, progreso, historial, material) — **primero, porque son el contrato entre agentes**.
 - Cálculo (§6 de arquitectura): estados, promedios (con/sin aplazos, por cuatrimestre, por área, en el tiempo), progreso, correlativas para cursar/rendir (incluida la regla de año completo), "podés cursar", sugerencias de estado.
-- Importador legacy: convierte un respaldo `.json` de la app vieja (formato de `fixtures/caso-prueba-legacy.json`) en `progreso` + `historial` contra un plan del catálogo, haciendo match por `codigo`. Materias sin match → materias propias. Reporta qué no pudo mapear.
+- Importador legacy: convierte un respaldo `.json` de la app vieja (formato de `fixtures/caso-prueba-legacy.json`) en `progreso` + `historial` contra un plan del catálogo, haciendo match por `codigo`. Materias sin match → materias propias, salvo que ningún código coincida con el plan: ahí se bloquea con un mensaje claro. Reporta qué no pudo mapear.
 - Escala de notas y nota de aprobación tomadas del plan.
 
 ### 0.3 Supabase
@@ -46,7 +46,7 @@ Si falta alguno, se puede avanzar con Supabase local (`supabase start`) y dejar 
 - PWA: manifest con nombre EstudIA e íconos nuevos.
 
 ### 0.5 Calidad y entrega
-- GitHub Actions: `lint`, `typecheck`, `test` (core + web) en cada push/PR; tests de RLS con `supabase start` en CI si es viable (si no, documentar y preguntar).
+- GitHub Actions: `lint`, `typecheck`, `test` (core + web) y gitleaks en cada push/PR; tests de RLS con `supabase start` en CI si es viable (si no, documentar y preguntar).
 - Deploy en Vercel.
 - `README.md` del repo: cómo correr local, variables, cómo hacerse admin.
 
@@ -65,9 +65,12 @@ IA de cualquier tipo · Google Drive · extracción de texto/OCR · compartir ma
    - un usuario no puede ponerse `es_admin = true`;
    - un plan `pendiente` solo lo ven su creador y admins;
    - `material_compartido` devuelve el material compartido de una materia solo si el usuario la cursa o cursó, y devuelve autor `null` si es anónimo;
-   - con 3 denuncias el material queda oculto.
+   - con 3 denuncias el material queda oculto;
+   - no se puede borrar un plan con inscripciones;
+   - no se puede borrar una materia del catálogo con progreso o historial, y una materia propia sí;
+   - `historial` exige lo mismo que `progreso`: materia de un plan inscripto o materia propia.
 5. Flujo manual en el navegador (con capturas): entrar con Google → elegir UCA / LCD / 7023 → importar el caso de prueba legacy → Inicio muestra 26 de 50 y promedio 7,73 → cambiar una nota y recargar persiste → modo oscuro → vista celular (390 px) sin scroll horizontal.
-6. Ninguna clave/secret en el repo (`git grep` de `sb_secret`, `service_role` y claves de Google da vacío).
+6. Ninguna clave real en el repo: gitleaks corre en el CI sobre todo el historial y no encuentra nada.
 7. Logo aprobado por Agu.
 
 Al terminar: resumen corto, lista de criterios con ✅/❌ y lo que quedó pendiente o dudoso. Esperar aprobación antes de la fase 1.

@@ -50,3 +50,15 @@ Una línea por decisión de Agu. Agregar al final, con fecha. Si una decisión n
 - Restaurar materiales agrega los que no existan (mismo título y url, o mismo `sha256`) sin borrar nada. Si complica, en la fase 0 se pueden omitir.
 - Hash de documentos: en la fase 0, ninguna RPC ni consulta devuelve el `sha256` de documentos ajenos. La solución de fondo queda como pendiente bloqueante de la fase 1 (`arquitectura.md` §12): preguntarle a Agu antes de elegir.
 - Push al remoto recién cuando esté el CI.
+
+## 2026-11-03 (cierre de `db` en la fase 0)
+
+- `material_compartido` no devuelve el `id` del documento: con ese `id` se podría crear un material propio y leer la fila completa, hash incluido.
+- Criterio 6 de la fase 0: pasa a ser "ninguna clave real en el repo", porque `service_role` también es un nombre de rol de Postgres y no un secreto. Se agrega **gitleaks** al CI (dependencia aprobada).
+- No se puede borrar un plan con inscripciones (`ON DELETE RESTRICT`, con test). Sin estado "archivado" por ahora.
+- Los criterios que `db` aplicó por su cuenta quedan todos y pasan a la arquitectura: escrituras solo sobre planes o materias visibles, correlativas solo dentro del mismo plan y sin que una del catálogo dependa de una propia, reimportar pisa los datos de la materia propia reutilizada, y `documentos` sin excepción de lectura para admin.
+- RLS `historial`: exige lo mismo que `progreso` (materia de un plan inscripto o materia propia), con test. Reemplaza el criterio de `db`, que no pedía inscripción.
+- No se puede borrar una materia del catálogo que tenga progreso o historial (trigger, con test), porque se borrarían en cascada los datos de sus alumnos. Las materias propias se siguen borrando normal.
+- Restaurar materiales también omite notas con el mismo título y texto, y conserva `periodo` y `createdAt`.
+- Durante el desarrollo de `web` se usa Supabase local con un login de prueba que solo existe en `import.meta.env.DEV`, con un test que confirma que no llega al build de producción. Supabase remoto y Google los crea Agu más adelante.
+- El CI y el primer push se adelantan: van antes de `web` y no al final de la fase, con gitleaks sobre todo el historial antes de pushear.
