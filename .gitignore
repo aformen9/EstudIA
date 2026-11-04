@@ -16,6 +16,7 @@ referencia/
 
 # Configuración local de herramientas
 .codex/
+AGENTS.md
 
 # Sistema y logs
 .DS_Store
