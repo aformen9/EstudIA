@@ -26,17 +26,19 @@ beforeEach(() => {
 });
 
 describe("redirección obligatoria", () => {
-  it("sin inscripción activa manda al onboarding, sin menú ni Ajustes, y permite cerrar sesión", async () => {
+  it("sin inscripción activa manda al onboarding, sin menú ni Ajustes, y el botón cierra la sesión", async () => {
     window.location.hash = "materias";
-    renderConRepositorio(<Shell />, repositorioFalso());
+    const { signOut } = renderConRepositorio(<Shell />, repositorioFalso());
 
     expect(await screen.findByRole("heading", { name: TITULO })).toBeTruthy();
     expect(window.location.hash).toBe("#onboarding");
     expect(screen.queryByRole("navigation")).toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: "Respaldo y ajustes" }));
+    expect(screen.queryByRole("button", { name: "Respaldo y ajustes" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Modo oscuro" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /^Ajustes/ })).toBeNull();
-    expect(screen.getByRole("button", { name: /Cerrar sesión/ })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Cerrar sesión" }));
+    await waitFor(() => expect(signOut).toHaveBeenCalledExactlyOnceWith({ scope: "local" }));
   });
 
   it.each(["materias", "ajustes", "inicio", "constructor"])(
@@ -153,10 +155,15 @@ describe("pasos del onboarding", () => {
     expect(window.location.hash).toBe("#onboarding");
     expect(screen.getByRole("button", { name: /Grilla rápida/ })).toBeTruthy();
     expect(screen.getByRole("button", { name: /Importar respaldo/ })).toBeTruthy();
-    // Ya no está atrapado: el menú aparece y se puede ir a otra vista.
+    // El menú sigue oculto mientras dure el onboarding, y el botón sigue diciendo "Cerrar sesión".
+    expect(screen.queryByRole("navigation")).toBeNull();
+    expect(screen.getByRole("button", { name: "Cerrar sesión" })).toBeTruthy();
+    // No está atrapado: con el plan activo, cualquier otra vista funciona y vuelve el menú normal.
     await irAHash("materias");
     expect(await screen.findByRole("heading", { name: "Materias" })).toBeTruthy();
     await hashEs("#materias");
+    expect(screen.getByRole("navigation")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Respaldo y ajustes" })).toBeTruthy();
   });
 
   it("Volver conserva lo elegido, y cambiar de universidad olvida la carrera", async () => {
@@ -216,7 +223,9 @@ describe("datos del cascarón", () => {
     const repositorio = repositorioFalso({ inscripciones: [INSCRIPCION] });
     const { container } = renderConRepositorio(<Shell />, repositorio);
 
-    await screen.findByText("Ciencias de Datos · Plan 7023");
+    await within(container.querySelector(".brand") as HTMLElement).findByText(
+      "Ciencias de Datos · Plan 7023",
+    );
     const nav = within(container.querySelector("nav") as HTMLElement);
     expect(nav.getByRole("link", { name: /^Materias\s*50$/ })).toBeTruthy();
     expect(nav.getByRole("link", { name: /^Pendientes\s*50$/ })).toBeTruthy();

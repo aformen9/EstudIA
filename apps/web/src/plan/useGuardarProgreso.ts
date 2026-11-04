@@ -7,6 +7,12 @@ import { clavesPlan } from "./planActivo";
 
 export type CambiosProgreso = Partial<Omit<ProgresoMateria, "materiaId">>;
 
+export interface EstadoGuardadoFila {
+  guardando: boolean;
+  /** El último guardado de la materia falló y sigue sin resolver. */
+  fallo: boolean;
+}
+
 function progresoVacio(materiaId: string): ProgresoMateria {
   return {
     materiaId,
@@ -25,12 +31,18 @@ function progresoVacio(materiaId: string): ProgresoMateria {
  * Guarda una materia conservando los demás campos de su fila. El cambio se ve al instante y, si falla,
  * vuelve a lo último confirmado por la base: lo que queda en pantalla nunca parece guardado sin estarlo.
  * Los guardados de una misma materia van en fila (`scope`), así uno viejo no pisa a uno nuevo.
+ * `alCambiarEstado` avisa en el momento en que se pide guardar, sin esperar al próximo render.
  */
-export function useGuardarProgreso(planId: string, materiaId: string) {
+export function useGuardarProgreso(
+  planId: string,
+  materiaId: string,
+  alCambiarEstado?: (estado: EstadoGuardadoFila) => void,
+) {
   const repositorio = useRepositorio();
   const clienteQuery = useQueryClient();
   const clave = clavesPlan.progreso(planId);
   const enCamino = useRef(0);
+  const pedidos = useRef(0);
   const confirmada = useRef<ProgresoMateria | null>(null);
   const ultimosCambios = useRef<CambiosProgreso>({});
 
@@ -63,8 +75,10 @@ export function useGuardarProgreso(planId: string, materiaId: string) {
     onError: () => {
       if (enCamino.current === 1) ponerFila(confirmada.current);
     },
-    onSettled: () => {
+    onSettled: (_resultado, error) => {
       enCamino.current -= 1;
+      pedidos.current -= 1;
+      if (pedidos.current === 0) alCambiarEstado?.({ guardando: false, fallo: error !== null });
     },
   });
 
@@ -72,6 +86,8 @@ export function useGuardarProgreso(planId: string, materiaId: string) {
 
   function guardar(cambios: CambiosProgreso) {
     ultimosCambios.current = cambios;
+    pedidos.current += 1;
+    alCambiarEstado?.({ guardando: true, fallo: false });
     mutacion.mutate({ ...(filaActual() ?? progresoVacio(materiaId)), ...cambios, materiaId });
   }
 
