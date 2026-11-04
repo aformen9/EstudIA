@@ -71,3 +71,13 @@ Una línea por decisión de Agu. Agregar al final, con fecha. Si una decisión n
 - Ningún usuario puede obtener el `sha256` de documentos ajenos por ninguna vía. Se mantienen los tests de la fase 0.
 - Al subir un archivo que ya existe: si está compartido en esa misma materia y el alumno puede verlo, se muestra "Este archivo ya está en el material de la materia, ¿lo querés ver?" y se lo lleva ahí, sin guardar nada nuevo. Si solo existe como privado de otro usuario, se reutiliza en silencio y para el alumno aparece como subido por él.
 - Fase 1b: casi duplicados por similitud de texto (`pg_trgm`) contra el material compartido de la materia. Si se parece mucho, se pregunta "¿Es el mismo?" con las opciones Ver / Subir igual. El umbral se define y se prueba con PDFs reales en esa fase.
+
+## 2026-11-04 (dudas de la tanda 1 de `web`)
+
+- Onboarding automático y obligatorio para todo alumno sin inscripción activa.
+- Ajustes es la vista `#ajustes`; el popover queda solo como atajo.
+- Contraste: se ajusta la paleta para llegar a AA, con capturas antes y después del botón primario en claro y oscuro.
+- Cerrar sesión cierra solo este dispositivo.
+- Las fuentes se alojan en el repo en la tanda 4 de `web`, para que el navegador del alumno no se conecte a Google por ellas.
+- Texto falso en documentos: queda en `arquitectura.md` §12 como bloqueante de la fase 1.
+- La IA y el MCP tratan todo texto de documentos y material como datos no confiables, nunca como instrucciones (defensa contra prompt injection), con tests cuando lleguen esas fases.

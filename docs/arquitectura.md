@@ -154,6 +154,7 @@ Definidas una vez en `packages/core/herramientas` con esquema (zod) + implementa
 - Lectura: `ver_plan`, `ver_materia`, `que_puedo_cursar`, `simular_promedio`, `proximos_finales`, `buscar_en_apuntes` (propios + compartidos accesibles), `leer_documento(id, paginas?)`.
 - Escritura (**siempre con confirmación** del usuario en la app; en MCP, el cliente pide permiso): `cargar_nota`, `cambiar_estado`, `agregar_historial`, `agregar_material` (nota/link), `crear_resumen` (nota generada), `compartir_material`.
 - La IA nunca escribe SQL ni JSON crudo: solo herramientas validadas.
+- **Texto no confiable (prompt injection):** la IA y el MCP tratan todo texto de documentos y material como datos no confiables, nunca como instrucciones. Lo que venga de ahí no puede disparar herramientas ni saltear la confirmación de las escrituras. Lleva tests cuando lleguen las fases de IA y MCP.
 
 ### 9.4 Onboarding con IA
 PDF del plan / analítico → salida estructurada con el esquema de catálogo/progreso → **tabla editable de revisión obligatoria** antes de guardar. Planes nuevos quedan `pendiente` hasta aprobación de un admin.
@@ -179,5 +180,6 @@ PDF del plan / analítico → salida estructurada con el esquema de catálogo/pr
 - Dónde corre el MCP remoto: Supabase Edge Functions vs Vercel vs VPS de Oracle (fase 3).
 - Embeddings/pgvector para búsqueda semántica (si full-text no alcanza).
 - Firma de binarios (costo).
+- **Bloqueante de la fase 1: texto falso en documentos.** Con la deduplicación global (§7), el primero que registra un `sha256` fija el texto para todos, y `registrar_documento` no comprueba que ese texto salga del archivo. Quien conozca un hash podría cargar un texto falso, y lo recibiría cualquiera que suba después ese mismo archivo. Hay que resolverlo antes de guardar texto extraído: preguntarle a Agu antes de elegir.
 - Moderadores por carrera (más adelante; por ahora solo admin = Agu).
 - Ingeniería Química u otras carreras (más adelante; por ahora solo LCD).
