@@ -9,7 +9,7 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     environment: "node",
-    include: ["src/**/*.integracion.ts"],
+    include: ["src/**/*.integracion.{ts,tsx}"],
     testTimeout: 30_000,
   },
 });
