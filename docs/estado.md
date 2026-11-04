@@ -5,7 +5,7 @@
 ## Dónde quedó
 
 - **Fase 0, sin cerrar.** `db`, `core`, CI y las tandas 1 a 3 de `web` están hechas. **La tanda 4 de `web` no empezó:** se lanzó y se frenó antes de que tocara un archivo, porque Agu estaba por llegar al límite de uso. Se relanza con el pedido de abajo.
-- **`main` tiene commits locales sin pushear.** El último commit con CI en verde en GitHub es `b2143ce`; lo posterior (`core` y documentación) no pasó por el CI. Agu pidió commitear, no pushear: confirmá con `git status -sb` y pusheá junto con la tanda 4, o antes si Agu lo pide.
+- **CI en verde hasta `3b60524`,** con los 3 jobs: calidad, RLS y claves. Esa corrida tardó unos 21 minutos. Lo que venga después de ese commit todavía no pasó por el CI: confirmá con `git status -sb`.
 - **Última verificación, solo local:** lint y typecheck pasan; 171 tests de `core` y 249 de `web`. Los tests de integración (12) y pgTAP (443) pasaron por última vez en la tanda 3: después no cambió la base ni `web`.
 - **Supabase remoto:** proyecto y login con Google creados por Agu, **sin vincular y sin migraciones**. No vincular ni migrar hasta el paso 3 de "Próximos pasos".
 - **Supabase local:** puede haber quedado corriendo (`supabase status`). Si no, `supabase start`; requiere Docker.
