@@ -1,0 +1,19 @@
+# Dependencias y builds
+node_modules/
+dist/
+coverage/
+
+# Variables de entorno (solo se versiona el ejemplo)
+.env*
+!.env.example
+
+# Supabase local
+.supabase/
+supabase/.temp/
+
+# Código de la app de referencia: solo local, nunca se sube
+referencia/
+
+# Sistema y logs
+.DS_Store
+*.log
