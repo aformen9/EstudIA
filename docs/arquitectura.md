@@ -90,9 +90,9 @@ Funciones auxiliares `security definer`, `stable`, con `search_path` fijo:
 | perfiles | el propio (admin: todos) | el propio, solo `nombre` y `avatar_url` |
 | inscripciones / historial | solo propias | solo propias. Activar un plan: RPC `activar_plan(plan_id)`, que inscribe si hace falta y deja ese plan como único activo |
 | progreso | solo propio | solo propio, y solo sobre materias de un plan donde el alumno esté inscripto o materias propias (`owner_id = auth.uid()`) |
-| importación | — | RPC `reemplazar_datos_del_plan(plan_id, datos)` (security invoker, todo o nada): crea o reutiliza materias propias y reemplaza `progreso` e `historial` del alumno en ese plan |
+| importación | — | RPC `reemplazar_datos_del_plan(plan_id, datos)` (security invoker, todo o nada): crea o reutiliza materias propias, reemplaza `progreso` e `historial` del alumno en ese plan y devuelve `{ clave: uuid }` de las materias propias |
 | materiales | **solo propias** (admin: todas) | propias; admin puede ocultar/borrar. `oculto` solo lo cambian un admin o el trigger de denuncias: el autor no puede modificarlo |
-| material compartido | vía RPC `material_compartido(materia_id)` (security definer): devuelve materiales `compartido`, no `oculto`, de esa materia, **solo si `cursa_o_curso(materia_id)`**; el autor se devuelve como `null` si `anonimo` | — |
+| material compartido | vía RPC `material_compartido(materia_id)` (security definer): devuelve materiales `compartido`, no `oculto`, de esa materia, **solo si `cursa_o_curso(materia_id)`**; el autor se devuelve como `null` si `anonimo`. Del documento solo devuelve `mime`, `bytes` y `paginas`: ni `sha256` ni `id`, porque con el `id` se podría crear un material propio y leer la fila completa. Abrir un documento compartido (fase 1b) requiere una RPC que lea por `material_id` | — |
 | documentos | la tabla, solo si el usuario tiene un material propio que lo referencia. El de un material compartido visible para él se expone solo por RPC y **nunca con su `sha256`**: ninguna RPC ni consulta devuelve el hash de documentos ajenos (ver §12) | vía RPC `registrar_documento(sha256, mime, bytes, paginas, texto)` que hace upsert por `sha256` y devuelve el `id`. Nunca pisa un `texto` existente: solo lo completa si era null |
 | denuncias | propias (admin: todas) | insertar propias, sobre material que puede ver |
 
