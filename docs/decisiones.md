@@ -38,3 +38,9 @@ Una línea por decisión de Agu. Agregar al final, con fecha. Si una decisión n
 - Seed: `cierre_cuatrimestres` con el ejemplo de la arquitectura (julio y diciembre), porque el catálogo no lo trae.
 - Sin service worker ni cola de escrituras offline: "Sin conexión" solo avisa, como en la referencia.
 - "Promedio en el tiempo" no está en el fixture esperado: lleva tests propios con la lógica original, sin tocar los fixtures.
+- RPC `activar_plan` (inscribe si hace falta y deja ese plan como único activo) y RPC `reemplazar_datos_del_plan` (reemplazo todo o nada al importar).
+- `materias.codigo` admite null solo en materias propias. Como mucho una inscripción activa por alumno.
+- `docs/arquitectura.md` se actualiza al cerrar cada paso, para que siga siendo la fuente de verdad.
+- Logo: **la E hecha de nodos conectados** (remite a las correlativas y a la constelación del fondo).
+- Commits con el mail `noreply` de GitHub, configurado solo en este repo, para no publicar el mail personal.
+- Crédito del README: "Basado en Mi Plan de Estudio, de Lucía Formenti".
