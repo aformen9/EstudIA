@@ -43,6 +43,13 @@ export interface AlertaAnioCompleto {
   pendientes: Materia[];
 }
 
+export interface SituacionCorrelativas {
+  para: ParaCorrelativa;
+  ok: boolean;
+  /** Requisitos sin cumplir. */
+  n: number;
+}
+
 /** `regular` se cumple con la cursada aprobada; `aprobada`, solo con la materia aprobada. */
 export function cumpleCondicion(estado: EstadoMateria, condicion: CondicionCorrelativa): boolean {
   return condicion === "regular"
@@ -92,6 +99,31 @@ export function podesCursar(datos: DatosAlumno): Materia[] {
   return datos.materias.filter(
     (m) => estadoDeMateria(m.id) === "pendiente" && estadoCorrelativas(datos, m, "cursar").ok,
   );
+}
+
+/** Materias `pendiente` a las que todavía les falta algo para cursar. */
+export function materiasBloqueadas(datos: DatosAlumno): Materia[] {
+  const estadoDeMateria = lectorDeEstados(datos);
+  return datos.materias.filter(
+    (m) => estadoDeMateria(m.id) === "pendiente" && !estadoCorrelativas(datos, m, "cursar").ok,
+  );
+}
+
+/**
+ * Lo que la fila de una materia avisa sobre sus correlativas, como `rowHTML` de la referencia. Una
+ * pendiente mira las de cursar; una en curso o con final pendiente, las de rendir. Null si no hay
+ * nada que avisar: aprobada, sin requisitos o en curso con todo cumplido para rendir.
+ */
+export function situacionCorrelativas(
+  datos: DatosAlumno,
+  materia: Materia,
+): SituacionCorrelativas | null {
+  const estado = lectorDeEstados(datos)(materia.id);
+  if (estado === "aprobada") return null;
+  const para: ParaCorrelativa = estado === "pendiente" ? "cursar" : "rendir";
+  const { vacio, ok, n } = estadoCorrelativas(datos, materia, para);
+  if (vacio || (estado === "cursando" && ok)) return null;
+  return { para, ok, n };
 }
 
 /**

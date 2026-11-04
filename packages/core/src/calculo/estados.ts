@@ -16,6 +16,21 @@ export function progresoDe(datos: DatosAlumno, materiaId: string): ProgresoMater
   return datos.progreso.find((p) => p.materiaId === materiaId) ?? null;
 }
 
+/** La fila de una materia sin datos: equivale a no tener fila. */
+export function progresoInicial(materiaId: string): ProgresoMateria {
+  return {
+    materiaId,
+    estado: "pendiente",
+    p1: null,
+    p2: null,
+    rec: null,
+    notaCursada: null,
+    notaFinalExamen: null,
+    nota: null,
+    aplazos: [],
+  };
+}
+
 /** Función de consulta de estado: las materias sin fila de progreso están `pendiente`. */
 export function lectorDeEstados(datos: DatosAlumno): (materiaId: string) => EstadoMateria {
   const estados = new Map(datos.progreso.map((p) => [p.materiaId, p.estado]));

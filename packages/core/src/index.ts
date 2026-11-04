@@ -4,6 +4,8 @@ export * from "./calculo/estados";
 export * from "./calculo/promedios";
 export * from "./calculo/correlativas";
 export * from "./calculo/sugerencias";
+export * from "./calculo/plan";
+export * from "./calculo/materiasPropias";
 export * from "./importacion/tipos";
 export * from "./importacion/legacy";
 export * from "./importacion/respaldo";
