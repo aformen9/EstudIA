@@ -93,7 +93,7 @@ Funciones auxiliares `security definer`, `stable`, con `search_path` fijo:
 | importación | — | RPC `reemplazar_datos_del_plan(plan_id, datos)` (security invoker, todo o nada): crea o reutiliza materias propias, reemplaza `progreso` e `historial` del alumno en ese plan y devuelve `{ clave: uuid }` de las materias propias. Reutiliza la materia propia del alumno en ese plan con el mismo código o, sin código, otra sin código y con el mismo nombre: el archivo pisa sus datos y sus correlativas. Las materias propias que no vienen en el archivo se conservan |
 | materiales | **solo propias** (admin: todas) | propias, y solo en una materia visible o sin materia; admin puede ocultar/borrar. `oculto` solo lo cambian un admin o el trigger de denuncias: el autor no puede modificarlo |
 | material compartido | vía RPC `material_compartido(materia_id)` (security definer): devuelve materiales `compartido`, no `oculto`, de esa materia, **solo si `cursa_o_curso(materia_id)`**; el autor se devuelve como `null` si `anonimo`. Del documento solo devuelve `mime`, `bytes` y `paginas`: ni `sha256` ni `id`, porque con el `id` se podría crear un material propio y leer la fila completa. Abrir un documento compartido (fase 1b) requiere una RPC que lea por `material_id` | — |
-| documentos | la tabla, solo si el usuario tiene un material propio que lo referencia, sin excepción para admin (moderar un archivo necesitará otra vía). El de un material compartido visible para él se expone solo por RPC y **nunca con su `sha256`**: ninguna RPC ni consulta devuelve el hash de documentos ajenos (ver §12) | vía RPC `registrar_documento(sha256, mime, bytes, paginas, texto)` que hace upsert por `sha256` y devuelve el `id`. Nunca pisa un `texto` existente: solo lo completa si era null |
+| documentos | la tabla, solo si el usuario tiene un material propio que lo referencia, sin excepción para admin (moderar un archivo necesitará otra vía). El de un material compartido visible para él se expone solo por RPC y **nunca con su `sha256`**: ninguna RPC ni consulta devuelve el hash de documentos ajenos (ver §7) | vía RPC `registrar_documento(sha256, mime, bytes, paginas, texto)` que hace upsert por `sha256` y devuelve el `id`. Nunca pisa un `texto` existente: solo lo completa si era null |
 | denuncias | propias (admin: todas) | insertar propias, sobre material que puede ver |
 
 - `anon` (sin sesión): sin acceso a nada.
@@ -123,7 +123,13 @@ Objetivo: que la IA (y Claude vía MCP) pueda **ver y accionar sobre todo** sin 
 - **Texto en la nube**: al subir un archivo, el **dispositivo** extrae el texto (PDF.js; OCR con Tesseract.js si es escaneado; opcional IA con visión para fórmulas → Markdown + LaTeX) y lo registra en `documentos.texto`. ~2–5 % del tamaño original; Postgres lo comprime (TOAST).
 - **Original en el Google Drive del alumno**: carpeta "EstudIA" con scope `drive.file` (no sensible, verificación simple). Costo cero para el proyecto. (Fase 1.)
 - **Copia local en el dispositivo**: IndexedDB/OPFS, clave = `sha256`. Para offline e IA local. (Desde fase 0.)
-- **Deduplicación**: por `sha256`. Mismo archivo subido por N alumnos = 1 fila en `documentos`.
+- **Deduplicación global**: por `sha256`, para documentos privados y compartidos. Mismo archivo subido por N alumnos = 1 fila en `documentos`.
+  - **El hash no se expone:** ningún usuario puede obtener el `sha256` de documentos ajenos por ninguna vía, y hay tests que lo comprueban.
+  - **Consecuencia aceptada:** quien ya tenga el hash de un documento (por tener el archivo o porque se filtró por fuera de la app) puede registrarlo y leer su `texto`.
+  - **Al subir un archivo cuyo `sha256` ya existe:**
+    - Si está compartido en esa misma materia y el alumno puede verlo: se muestra "Este archivo ya está en el material de la materia, ¿lo querés ver?" y se lo lleva ahí, sin guardar nada nuevo (fase 1b).
+    - Si solo existe como privado de otro usuario: se reutiliza en silencio. Para el alumno aparece como subido por él, sin aviso.
+  - **Casi duplicados (fase 1b):** similitud de texto con `pg_trgm` contra el material compartido de la materia. Si se parece mucho, se pregunta "¿Es el mismo?" con las opciones Ver / Subir igual. El umbral se define y se prueba con PDFs reales en esa fase.
 - Búsqueda: full-text de Postgres en español (`texto_tsv`). Embeddings/pgvector: **no por ahora** (decisión abierta, ver §12).
 - Límite de tamaño por archivo en el cliente: 50 MB.
 
@@ -173,9 +179,5 @@ PDF del plan / analítico → salida estructurada con el esquema de catálogo/pr
 - Dónde corre el MCP remoto: Supabase Edge Functions vs Vercel vs VPS de Oracle (fase 3).
 - Embeddings/pgvector para búsqueda semántica (si full-text no alcanza).
 - Firma de binarios (costo).
-- **Bloqueante de la fase 1: lectura de documentos por `sha256`.** Quien conozca el hash de un documento ajeno puede registrarlo con `registrar_documento`, referenciarlo con un material propio y leer su `texto`. En la fase 0 no hay riesgo real porque `texto` está vacío y el hash de documentos ajenos no se expone. Hay que resolverlo antes de guardar texto extraído. Opciones (preguntarle a Agu antes de elegir):
-  - **A. Aceptar el riesgo:** tener el hash casi equivale a tener el archivo, y el hash nunca se expone. No cambia nada, pero un hash filtrado por fuera de la app da acceso al texto.
-  - **B. Atar el texto a quien lo aportó:** se deduplica la fila, pero el alumno lee `texto` solo si él mismo lo aportó o si lo referencia un material compartido visible. Mantiene el ahorro si comparten; el texto de cada alumno se guarda aparte, salvo que se coteje.
-  - **C. Deduplicar solo lo compartido:** los documentos privados son por alumno y se unifican al compartirlos. Es lo más simple de razonar, pero ahorra menos espacio y ajusta la decisión de deduplicar por hash.
 - Moderadores por carrera (más adelante; por ahora solo admin = Agu).
 - Ingeniería Química u otras carreras (más adelante; por ahora solo LCD).

@@ -48,7 +48,7 @@ Una línea por decisión de Agu. Agregar al final, con fecha. Si una decisión n
 - El respaldo nuevo guarda las siglas de universidad y carrera, para no aceptar uno de otra carrera con la misma versión de plan.
 - Un respaldo legacy sin ningún código en común con el plan se bloquea con un mensaje claro, en vez de crear todo como materias propias.
 - Restaurar materiales agrega los que no existan (mismo título y url, o mismo `sha256`) sin borrar nada. Si complica, en la fase 0 se pueden omitir.
-- Hash de documentos: en la fase 0, ninguna RPC ni consulta devuelve el `sha256` de documentos ajenos. La solución de fondo queda como pendiente bloqueante de la fase 1 (`arquitectura.md` §12): preguntarle a Agu antes de elegir.
+- Hash de documentos: en la fase 0, ninguna RPC ni consulta devuelve el `sha256` de documentos ajenos. ~~La solución de fondo queda como pendiente bloqueante de la fase 1 (`arquitectura.md` §12): preguntarle a Agu antes de elegir.~~ Resuelto el 2026-11-04, ver abajo.
 - Push al remoto recién cuando esté el CI.
 
 ## 2026-11-03 (cierre de `db` en la fase 0)
@@ -64,3 +64,10 @@ Una línea por decisión de Agu. Agregar al final, con fecha. Si una decisión n
 - El CI y el primer push se adelantan: van antes de `web` y no al final de la fase, con gitleaks sobre todo el historial antes de pushear.
 - El proyecto remoto de Supabase se crea con "Automatically expose new tables" desactivado. `supabase/config.toml` usa lo mismo (`auto_expose_new_tables = false`) y `08_grants.test.sql` fija la lista exacta de GRANT: todo objeto nuevo necesita el suyo, y `anon` no recibe nada.
 - Proyecto remoto de Supabase creado por Agu en la región Américas, con Google configurado. Sus datos van en `apps/web/.env.local` y el stack local en `.env.development.local`, para que `pnpm dev` siga contra local. No se vincula ni se migra hasta cerrar `web`: ahí Agu corre `supabase link` y, después de subir las migraciones, se repite contra el remoto la prueba de GRANT y de `anon` por API real.
+
+## 2026-11-04 (hash de documentos)
+
+- Deduplicación **global** por `sha256`, para privados y compartidos. Resuelve el pendiente bloqueante de la fase 1 y acepta que quien ya tenga el hash de un documento pueda leer su texto.
+- Ningún usuario puede obtener el `sha256` de documentos ajenos por ninguna vía. Se mantienen los tests de la fase 0.
+- Al subir un archivo que ya existe: si está compartido en esa misma materia y el alumno puede verlo, se muestra "Este archivo ya está en el material de la materia, ¿lo querés ver?" y se lo lleva ahí, sin guardar nada nuevo. Si solo existe como privado de otro usuario, se reutiliza en silencio y para el alumno aparece como subido por él.
+- Fase 1b: casi duplicados por similitud de texto (`pg_trgm`) contra el material compartido de la materia. Si se parece mucho, se pregunta "¿Es el mismo?" con las opciones Ver / Subir igual. El umbral se define y se prueba con PDFs reales en esa fase.
