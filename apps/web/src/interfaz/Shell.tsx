@@ -103,7 +103,8 @@ function MenuAjustes({ email }: { email: string }) {
   async function cerrarSesion() {
     setAbierto(false);
     setError(null);
-    const { error: fallo } = await cliente.auth.signOut();
+    // Solo este dispositivo (decisión de Agu): las otras sesiones del alumno siguen abiertas.
+    const { error: fallo } = await cliente.auth.signOut({ scope: "local" });
     if (fallo) setError(`No pude cerrar la sesión: ${fallo.message}`);
   }
 
