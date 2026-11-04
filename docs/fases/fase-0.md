@@ -7,8 +7,8 @@ Leer antes: `docs/arquitectura.md` §2–§6, `docs/agentes.md`, `referencia/mi-
 ## Prerrequisitos (los hace Agu; guiarlo paso a paso si los pide)
 
 - [ ] Repo `estudia` en GitHub con este paquete adentro.
-- [ ] Proyecto de Supabase nuevo (región São Paulo). URL + publishable key en `apps/web/.env.local` (no se commitea; dejar `.env.example`).
-- [ ] Cliente OAuth de Google (Google Cloud Console → Credenciales → ID de cliente OAuth "Aplicación web"), con la URL de callback de Supabase; cargado en Supabase → Authentication → Providers → Google.
+- [x] Proyecto de Supabase nuevo (región Américas, "Automatically expose new tables" desactivado). URL + publishable key en `apps/web/.env.local` (no se commitea; dejar `.env.example`).
+- [x] Cliente OAuth de Google (Google Cloud Console → Credenciales → ID de cliente OAuth "Aplicación web"), con la URL de callback de Supabase; cargado en Supabase → Authentication → Providers → Google.
 - [ ] Docker instalado (para `supabase start` local).
 - [ ] Proyecto en Vercel conectado al repo (puede quedar para el final de la fase).
 
