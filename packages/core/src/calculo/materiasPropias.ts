@@ -1,4 +1,5 @@
 import type {
+  BorradorCorrelativa,
   BorradorMateriaPropia,
   CondicionCorrelativa,
   Materia,
@@ -29,6 +30,70 @@ export function borradorDeMateria(
       .filter((c) => c.materiaId === materia.id)
       .map(({ requiereId, para, condicion }) => ({ requiereId, para, condicion })),
   };
+}
+
+/** Busca el camino más corto de un nodo hasta sí mismo. */
+function caminoHastaSiMismo(inicio: string, sucesores: Map<string, Set<string>>): string[] | null {
+  const anteriores = new Map<string, string>();
+  const cola = [inicio];
+  for (const nodo of cola) {
+    for (const siguiente of sucesores.get(nodo) ?? []) {
+      if (siguiente === inicio) {
+        const camino = [nodo];
+        while (camino[0] !== inicio) camino.unshift(anteriores.get(camino[0] as string) as string);
+        return camino;
+      }
+      if (!anteriores.has(siguiente)) {
+        anteriores.set(siguiente, nodo);
+        cola.push(siguiente);
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Materias del ciclo que bloquearía a `materiaId` con estas correlativas, empezando por ella, o null
+ * si se puede guardar. Las de `correlativas` reemplazan a las que hoy tiene la materia. Solo cuenta
+ * un ciclo que pase por esa materia, y `materiaId` null (materia nueva) nunca forma uno, porque nadie
+ * la requiere todavía. Como en `estadoCorrelativas`, se ignoran las correlativas a materias que no
+ * están en el plan.
+ *
+ * Cada materia tiene dos etapas: `regular` depende de sus correlativas para cursar y `aprobada`, de
+ * su etapa `regular` y de sus correlativas para rendir. Así, A pide B regular para cursar y B pide A
+ * aprobada para rendir no es un bloqueo. La regla de año completo no se tiene en cuenta.
+ */
+export function cicloDeCorrelativas(
+  datos: Pick<PlanCompleto, "materias" | "correlativas">,
+  materiaId: string | null,
+  correlativas: BorradorCorrelativa[],
+): string[] | null {
+  if (materiaId === null) return null;
+
+  const existentes = new Set([materiaId, ...datos.materias.map((m) => m.id)]);
+  const sucesores = new Map<string, Set<string>>();
+  const unir = (desde: string, hasta: string) => {
+    const destinos = sucesores.get(desde) ?? new Set<string>();
+    destinos.add(hasta);
+    sucesores.set(desde, destinos);
+  };
+  const nodo = (id: string, etapa: CondicionCorrelativa) => `${etapa}:${id}`;
+
+  for (const id of existentes) unir(nodo(id, "aprobada"), nodo(id, "regular"));
+  const todas = [
+    ...datos.correlativas.filter((c) => c.materiaId !== materiaId),
+    ...correlativas.map((c) => ({ ...c, materiaId })),
+  ];
+  for (const { materiaId: desde, requiereId, para, condicion } of todas) {
+    if (!existentes.has(requiereId)) continue;
+    unir(nodo(desde, para === "cursar" ? "regular" : "aprobada"), nodo(requiereId, condicion));
+  }
+
+  const camino =
+    caminoHastaSiMismo(nodo(materiaId, "regular"), sucesores) ??
+    caminoHastaSiMismo(nodo(materiaId, "aprobada"), sucesores);
+  if (!camino) return null;
+  return [...new Set(camino.map((n) => n.slice(n.indexOf(":") + 1)))];
 }
 
 /**
