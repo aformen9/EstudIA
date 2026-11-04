@@ -1,14 +1,16 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 import type { Conexion } from "./conexion/conexion";
 import { Fondo } from "./interfaz/Fondo";
 import { Shell } from "./interfaz/Shell";
+import { crearClienteQuery } from "./plan/clienteQuery";
 import { Login } from "./sesion/Login";
 import { ProveedorSesion, useSesion } from "./sesion/sesion";
 
 function Pantalla() {
   const sesion = useSesion();
-  if (sesion.estado === "activa") return <Shell />;
+  // Con `key`, otra cuenta no hereda el estado de la vista de la anterior.
+  if (sesion.estado === "activa") return <Shell key={sesion.sesion.user.id} />;
   if (sesion.estado === "anonima") return <Login />;
   return (
     <div className="login-wrap">
@@ -20,7 +22,7 @@ function Pantalla() {
 }
 
 export function App({ conexion }: { conexion: Conexion | null }) {
-  const [clienteQuery] = useState(() => new QueryClient());
+  const [clienteQuery] = useState(() => crearClienteQuery());
 
   return (
     <>

@@ -10,9 +10,28 @@ const URL_LOCAL = "http://127.0.0.1:54321";
 type Avisar = (evento: AuthChangeEvent, sesion: Session | null) => void;
 
 /** Cliente cuya sesión maneja el test: `avisar` hace lo que Supabase al cambiar la sesión. */
+const ID_PLAN = "00000000-0000-4000-8000-000000000002";
+
+const FILAS: Record<string, unknown> = {
+  perfiles: { id: ID_ALUMNO, nombre: "Ana Pérez", avatar_url: null, es_admin: false },
+  inscripciones: [{ id: "i", plan_id: ID_PLAN, activa: true }],
+  planes: {
+    id: ID_PLAN,
+    carrera_id: "c",
+    version: "7023",
+    estado: "publicado",
+    nota_min: 1,
+    nota_max: 10,
+    nota_aprobacion: 4,
+    cuatrimestres_por_anio: 2,
+    cierre_cuatrimestres: [],
+    carreras: { sigla: "LCD", universidades: { sigla: "UCA" } },
+  },
+};
+
 function conexionFalsa(sesionInicial: Session | null) {
-  const { cliente, pedidos } = clienteConFetchFalso(() => ({
-    cuerpo: { id: ID_ALUMNO, nombre: "Ana Pérez", avatar_url: null, es_admin: false },
+  const { cliente, pedidos } = clienteConFetchFalso(({ url }) => ({
+    cuerpo: FILAS[url.pathname.split("/").at(-1) ?? ""] ?? [],
   }));
   let avisar: Avisar = () => {};
   vi.spyOn(cliente.auth, "onAuthStateChange").mockImplementation((callback) => {
@@ -83,15 +102,22 @@ describe("App", () => {
     expect(document.title).toBe("Inicio · EstudIA");
   });
 
-  it.each(Object.entries(VISTAS) as [Vista, string][])(
-    "la ruta #%s muestra su vista",
-    async (vista, titulo) => {
-      window.location.hash = vista;
-      const { conexion } = conexionFalsa(sesionFalsa());
-      render(<App conexion={conexion} />);
-      expect(await screen.findByRole("heading", { name: titulo })).toBeTruthy();
-    },
-  );
+  it.each(
+    (Object.entries(VISTAS) as [Vista, string][]).filter(([vista]) => vista !== "onboarding"),
+  )("la ruta #%s muestra su vista", async (vista, titulo) => {
+    window.location.hash = vista;
+    const { conexion } = conexionFalsa(sesionFalsa());
+    render(<App conexion={conexion} />);
+    expect(await screen.findByRole("heading", { name: titulo })).toBeTruthy();
+  });
+
+  it("con inscripción activa, #onboarding cae en Inicio", async () => {
+    window.location.hash = "onboarding";
+    const { conexion } = conexionFalsa(sesionFalsa());
+    render(<App conexion={conexion} />);
+    expect(await screen.findByRole("heading", { name: "Inicio" })).toBeTruthy();
+    await waitFor(() => expect(window.location.hash).toBe("#inicio"));
+  });
 
   it("navega al cambiar el hash, marca el enlace activo y pasa el foco al contenido", async () => {
     const { conexion } = conexionFalsa(sesionFalsa());
@@ -104,7 +130,7 @@ describe("App", () => {
     });
 
     expect(screen.getByRole("heading", { name: "Promedio" })).toBeTruthy();
-    const enlace = screen.getByRole("link", { name: "Promedio" });
+    const enlace = screen.getByRole("link", { name: /^Promedio/ });
     expect(enlace.getAttribute("aria-current")).toBe("page");
     expect(screen.getByRole("link", { name: "Inicio" }).getAttribute("aria-current")).toBeNull();
     expect(document.activeElement).toBe(screen.getByRole("main"));
