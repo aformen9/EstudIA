@@ -144,4 +144,6 @@ Una línea por decisión de Agu. Agregar al final, con fecha. Si una decisión n
   - B13: el login por mail se apaga en el remoto (lo hace Agu en el panel; en local se mantiene para el login de prueba), `texto_tsv` se resuelve contra el tope de 1 MB, por ejemplo con un prefijo, y los códigos de materia se normalizan con `trim`.
 - CI: se comprueba que el seed coincida con `fixtures/lcd-7023-catalogo.json`.
 - Fechas de material: se frena el futuro y se aceptan fechas pasadas, así restaurar conserva las originales. Se agrega `materiales.compartido_en`, que fija siempre el servidor: se llena al pasar a compartido y se borra al volver a privado. `material_compartido` ordena por esa columna.
+- Al restaurar, la identidad de un material incluye la materia: un material en A y en B vuelve en las dos, sin duplicar si se restaura otra vez. Un material movido después del respaldo reaparece en la materia vieja.
+- Crear una materia propia con sus correlativas es atómico, con la RPC `crear_materia_propia`: el reintento con el mismo id es seguro.
 - Bloqueantes de la fase 1: M2, B2, B5 y B6. Para la fase 1b: M3 (el autor no puede volver a compartir un contenido oculto y el admin puede suspenderle compartir) y B9 (el contador de denuncias se reinicia al restaurar). B4 queda como riesgo aceptado.
