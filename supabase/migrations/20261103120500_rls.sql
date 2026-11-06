@@ -10,6 +10,8 @@ alter table public.inscripciones enable row level security;
 alter table public.progreso enable row level security;
 alter table public.historial enable row level security;
 alter table public.documentos enable row level security;
+alter table public.limites_documentos enable row level security;
+alter table public.uso_documentos enable row level security;
 alter table public.materiales enable row level security;
 alter table public.denuncias enable row level security;
 

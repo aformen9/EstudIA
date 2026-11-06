@@ -29,6 +29,8 @@ grant update (nombre, avatar_url) on public.perfiles to authenticated;
 
 grant select on public.documentos to authenticated;
 
+-- limites_documentos y uso_documentos no llevan grant: solo las usa registrar_documento.
+
 grant select, insert on public.denuncias to authenticated;
 
 /* ---------- Funciones: las que usan las políticas y las RPC ---------- */
@@ -48,5 +50,6 @@ grant execute on function
   public.registrar_documento(text, text, bigint, integer, text),
   public.material_compartido(uuid),
   public.activar_plan(uuid),
+  public.crear_materia_propia(uuid, uuid, jsonb, jsonb),
   public.reemplazar_datos_del_plan(uuid, jsonb)
 to authenticated;

@@ -1,7 +1,7 @@
 -- Políticas de universidades, carreras, planes, materias y correlativas.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(100);
+select plan(123);
 
 create function pg_temp.como(uid uuid) returns void language plpgsql as $$
 begin
@@ -145,7 +145,7 @@ select throws_ok($$insert into public.materias (plan_id, codigo, nombre, anio) v
 select is(pg_temp.filas($$update public.materias set nombre = 'Editada' where id = '40000000-0000-4000-8000-0000000000a1'$$), 1, 'materias update: el dueño edita su materia');
 select is(pg_temp.filas($$update public.materias set nombre = 'Editada' where id = '40000000-0000-4000-8000-000000000001'$$), 1, 'materias update: creador edita las de su plan pendiente');
 select is(pg_temp.filas($$update public.materias set nombre = 'Hack' where codigo = 'GMA0136' and owner_id is null$$), 0, 'materias update: alumno no edita el catálogo publicado');
-select throws_ok($$update public.materias set owner_id = null, codigo = 'HACK' where id = '40000000-0000-4000-8000-0000000000a1'$$, '42501', null, 'materias update: el dueño no mete su materia al catálogo');
+select throws_ok($$update public.materias set owner_id = null, codigo = 'HACK' where id = '40000000-0000-4000-8000-0000000000a1'$$, '42501', 'una materia no puede cambiar de dueño ni de plan', 'materias update: el dueño no mete su materia al catálogo');
 select is(pg_temp.filas($$delete from public.materias where codigo = 'GMA0136' and owner_id is null$$), 0, 'materias delete: alumno no borra el catálogo publicado');
 select is(pg_temp.filas($$delete from public.materias where id = '40000000-0000-4000-8000-0000000000a3'$$), 1, 'materias delete: el dueño borra su materia');
 select is(pg_temp.filas($$delete from public.materias where id = '40000000-0000-4000-8000-000000000003'$$), 1, 'materias delete: creador borra las de su plan pendiente');
@@ -187,6 +187,44 @@ select is(pg_temp.filas($$delete from public.correlativas where materia_id = '40
 -- beto con su propia materia no puede apuntar a la materia propia de ana.
 select lives_ok($$insert into public.materias (id, plan_id, nombre, anio, owner_id) select '40000000-0000-4000-8000-0000000000b1', p.id, 'Propia de beto', 1, '00000000-0000-4000-8000-00000000000b' from public.planes p where p.version = '7023'$$, 'beto crea su materia propia');
 select throws_ok($$insert into public.correlativas (materia_id, requiere_id, para, condicion) values ('40000000-0000-4000-8000-0000000000b1', '40000000-0000-4000-8000-0000000000a1', 'cursar', 'regular')$$, '42501', null, 'correlativas insert: no a la materia propia de otro');
+
+/* ---------- Una materia del catálogo no depende de una propia ---------- */
+
+-- ana edita el catálogo de su plan pendiente y ve su materia propia ahí: solo la frena esa cláusula.
+select pg_temp.como('00000000-0000-4000-8000-00000000000a');
+select lives_ok($$insert into public.materias (id, plan_id, nombre, anio, owner_id) values ('40000000-0000-4000-8000-0000000000a4', '30000000-0000-4000-8000-000000000001', 'Propia en plan pendiente', 1, '00000000-0000-4000-8000-00000000000a')$$, 'dependencia: ana crea su materia propia en su plan pendiente');
+select throws_ok($$insert into public.correlativas (materia_id, requiere_id, para, condicion) values ('40000000-0000-4000-8000-000000000001', '40000000-0000-4000-8000-0000000000a4', 'cursar', 'regular')$$, '42501', null, 'dependencia: una materia del catálogo no depende de una propia');
+select lives_ok($$insert into public.correlativas (materia_id, requiere_id, para, condicion) values ('40000000-0000-4000-8000-0000000000a4', '40000000-0000-4000-8000-000000000001', 'cursar', 'regular')$$, 'dependencia: al revés sí');
+select throws_ok($$update public.correlativas set requiere_id = '40000000-0000-4000-8000-0000000000a4' where materia_id = '40000000-0000-4000-8000-000000000002'$$, '42501', null, 'dependencia: tampoco cambiando requiere_id');
+select is((select requiere_id from public.correlativas where materia_id = '40000000-0000-4000-8000-000000000002'), '40000000-0000-4000-8000-000000000001'::uuid, 'dependencia: la correlativa sigue como estaba');
+
+-- El admin edita todo el catálogo: tampoco puede colgarlo de una materia propia suya.
+select pg_temp.como('00000000-0000-4000-8000-0000000000ad');
+select lives_ok($$insert into public.materias (id, plan_id, nombre, anio, owner_id) select '40000000-0000-4000-8000-0000000000ad', p.id, 'Propia del admin', 1, '00000000-0000-4000-8000-0000000000ad' from public.planes p where p.version = '7023'$$, 'dependencia: admin crea su materia propia');
+select throws_ok($$insert into public.correlativas (materia_id, requiere_id, para, condicion) select m.id, '40000000-0000-4000-8000-0000000000ad', 'cursar', 'regular' from public.materias m where m.codigo = 'GMA0136' and m.owner_id is null$$, '42501', null, 'dependencia: admin no cuelga el catálogo de su materia propia');
+select lives_ok($$insert into public.correlativas (materia_id, requiere_id, para, condicion) select m.id, r.id, 'cursar', 'regular' from public.materias m, public.materias r where m.codigo = 'GMA0136' and r.codigo = 'GES0132' and m.owner_id is null and r.owner_id is null and m.plan_id = r.plan_id$$, 'dependencia: entre materias del catálogo sí');
+
+/* ---------- correlativas: cambiar requiere_id ---------- */
+
+select pg_temp.como('00000000-0000-4000-8000-00000000000a');
+select throws_ok($$update public.correlativas set requiere_id = '40000000-0000-4000-8000-0000000000b1' where materia_id = '40000000-0000-4000-8000-0000000000a2'$$, '42501', null, 'correlativas update: requiere_id no pasa a la propia de otro');
+select throws_ok($$update public.correlativas set requiere_id = '40000000-0000-4000-8000-000000000001' where materia_id = '40000000-0000-4000-8000-0000000000a2'$$, '42501', null, 'correlativas update: requiere_id no pasa a otro plan');
+select is((select requiere_id from public.correlativas where materia_id = '40000000-0000-4000-8000-0000000000a2'), '40000000-0000-4000-8000-0000000000a1'::uuid, 'correlativas update: lo rechazado no cambió');
+select is(pg_temp.filas($$update public.correlativas c set requiere_id = m.id from public.materias m where c.materia_id = '40000000-0000-4000-8000-0000000000a2' and m.codigo = 'GMA0136' and m.owner_id is null$$), 1, 'correlativas update: requiere_id pasa a otra materia visible del plan');
+
+/* ---------- Código normalizado ---------- */
+
+select lives_ok($$insert into public.materias (id, plan_id, codigo, nombre, anio, owner_id) values ('40000000-0000-4000-8000-0000000000a5', '30000000-0000-4000-8000-000000000001', '  C1  ', 'Con espacios', 1, auth.uid())$$, 'código: insert con espacios');
+select is((select codigo from public.materias where id = '40000000-0000-4000-8000-0000000000a5'), 'C1', 'código: insert lo recorta');
+select is(pg_temp.filas($$update public.materias set codigo = ' C2 ' where id = '40000000-0000-4000-8000-0000000000a5'$$), 1, 'código: update con espacios');
+select is((select codigo from public.materias where id = '40000000-0000-4000-8000-0000000000a5'), 'C2', 'código: update lo recorta');
+select is(pg_temp.filas($$update public.materias set codigo = '   ' where id = '40000000-0000-4000-8000-0000000000a5'$$), 1, 'código: update en blanco en una propia');
+select is((select codigo from public.materias where id = '40000000-0000-4000-8000-0000000000a5'), null, 'código: en blanco pasa a null');
+select lives_ok($$insert into public.materias (id, plan_id, codigo, nombre, anio, owner_id) values ('40000000-0000-4000-8000-0000000000a6', '30000000-0000-4000-8000-000000000001', '', 'Vacío', 1, auth.uid())$$, 'código: insert vacío en una propia');
+select is((select codigo from public.materias where id = '40000000-0000-4000-8000-0000000000a6'), null, 'código: vacío pasa a null');
+select throws_ok($$insert into public.materias (plan_id, codigo, nombre, anio) values ('30000000-0000-4000-8000-000000000001', '   ', 'En blanco', 1)$$, '23514', null, 'código: el catálogo no lo admite en blanco al insertar');
+select throws_ok($$update public.materias set codigo = '' where id = '40000000-0000-4000-8000-000000000001'$$, '23514', null, 'código: ni vacío al editar');
+select throws_ok($$insert into public.materias (plan_id, codigo, nombre, anio) values ('30000000-0000-4000-8000-000000000001', ' PEND1 ', 'Repetida con espacios', 1)$$, '23505', null, 'código: los espacios no esquivan el único del catálogo');
 
 -- Una vez publicado, el creador deja de poder editar y lo ven todos.
 select pg_temp.como('00000000-0000-4000-8000-0000000000ad');

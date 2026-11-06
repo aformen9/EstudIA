@@ -42,12 +42,14 @@ create trigger progreso_updated_at
   before insert or update on public.progreso
   for each row execute function public.poner_updated_at();
 
-/* ---------- Material sin materia ---------- */
+/* ---------- Material compartido que cambia de materia ---------- */
 
--- Al borrar una materia, el FK pone materia_id en null. El CHECK rechazaría un material compartido
--- sin materia, así que este trigger lo pasa a privado antes de que se evalúe. Solo corre cuando
--- materia_id queda null: compartir un material que ya no tenía materia sigue rechazado por el CHECK.
-create function public.material_sin_materia_a_privado()
+-- Compartir es una decisión por materia: un material compartido que se mueve pasa a privado, aunque
+-- el mismo UPDATE pida otra cosa. También cubre el borrado de la materia: el FK pone materia_id en
+-- null y el CHECK rechazaría un compartido sin materia. No toca `oculto`, así que lo oculto sigue
+-- oculto. Solo mira materiales que ya estaban compartidos: compartir uno sin materia sigue rechazado
+-- por el CHECK.
+create function public.material_cambio_de_materia_a_privado()
 returns trigger
 language plpgsql
 set search_path = ''
@@ -58,11 +60,119 @@ begin
 end;
 $$;
 
-create trigger materiales_sin_materia_a_privado
+create trigger materiales_cambio_de_materia_a_privado
   before update on public.materiales
   for each row
-  when (old.materia_id is not null and new.materia_id is null)
-  execute function public.material_sin_materia_a_privado();
+  when (old.visibilidad = 'compartido' and old.materia_id is distinct from new.materia_id)
+  execute function public.material_cambio_de_materia_a_privado();
+
+/* ---------- Cuándo se compartió un material ---------- */
+
+-- `created_at` la puede elegir el cliente, porque restaurar conserva las fechas: no sirve para ordenar
+-- el material compartido. Esta fecha la fija siempre el servidor y pisa lo que venga del cliente.
+-- El trigger se llama "fijar" para correr después de materiales_cambio_de_materia_a_privado: los
+-- triggers corren por orden alfabético, y este tiene que ver la visibilidad ya corregida.
+create function public.material_fijar_compartido_en()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  if new.visibilidad <> 'compartido' then
+    new.compartido_en := null;
+  elsif tg_op = 'UPDATE' and old.visibilidad = 'compartido' then
+    new.compartido_en := old.compartido_en;
+  else
+    new.compartido_en := now();
+  end if;
+  return new;
+end;
+$$;
+
+create trigger materiales_fijar_compartido_en
+  before insert or update on public.materiales
+  for each row execute function public.material_fijar_compartido_en();
+
+/* ---------- Un material no cambia de autor ---------- */
+
+-- Vale para todos los roles, admin y service_role incluidos.
+create function public.material_proteger_autor()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  raise exception 'un material no puede cambiar de autor' using errcode = '42501';
+end;
+$$;
+
+create trigger materiales_autor_fijo
+  before update on public.materiales
+  for each row
+  when (old.user_id is distinct from new.user_id)
+  execute function public.material_proteger_autor();
+
+/* ---------- Material con fecha futura ---------- */
+
+-- La restauración conserva las fechas pasadas; una futura lo dejaría primero en la lista para siempre.
+-- En un UPDATE solo corrige una fecha que cambió: una transacción que empezó antes de que se creara
+-- la fila tiene un now() anterior, y no por eso hay que mover la fecha.
+create function public.material_sin_fecha_futura()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  if new.created_at > now() and (tg_op = 'INSERT' or new.created_at is distinct from old.created_at) then
+    new.created_at := now();
+  end if;
+  return new;
+end;
+$$;
+
+create trigger materiales_sin_fecha_futura
+  before insert or update on public.materiales
+  for each row execute function public.material_sin_fecha_futura();
+
+/* ---------- Materia sin cambio de dueño ni de plan ---------- */
+
+-- El trigger de borrado de abajo solo protege a las materias del catálogo: si alguien pudiera ponerse
+-- de dueño, después podría borrar una con datos de alumnos. Cambiar de plan dejaría el progreso de sus
+-- alumnos colgando de otra carrera. Vale para todos los roles, admin y service_role incluidos.
+create function public.materia_proteger_dueno_y_plan()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  raise exception 'una materia no puede cambiar de dueño ni de plan' using errcode = '42501';
+end;
+$$;
+
+create trigger materias_proteger_dueno_y_plan
+  before update on public.materias
+  for each row
+  when (old.owner_id is distinct from new.owner_id or old.plan_id is distinct from new.plan_id)
+  execute function public.materia_proteger_dueno_y_plan();
+
+/* ---------- Código de una materia ---------- */
+
+-- Sin espacios en las puntas, y vacío es null. El catálogo exige código: ahí el CHECK rechaza el vacío.
+-- reemplazar_datos_del_plan compara con esta misma regla.
+create function public.materia_normalizar_codigo()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  new.codigo := nullif(btrim(new.codigo), '');
+  return new;
+end;
+$$;
+
+create trigger materias_normalizar_codigo
+  before insert or update on public.materias
+  for each row execute function public.materia_normalizar_codigo();
 
 /* ---------- Materias del catálogo con datos de alumnos ---------- */
 

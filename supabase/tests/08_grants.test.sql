@@ -1,9 +1,14 @@
 -- GRANT explícitos: el proyecto remoto se crea con "Automatically expose new tables" desactivado, así
--- que sin ellos la app no lee nada. Las listas son exactas: un objeto nuevo sin su GRANT, o con de más,
--- hace fallar estos tests.
+-- que sin ellos la app no lee nada. Las listas son exactas. Fallan estos tests si, en public:
+-- - authenticated gana o pierde un privilegio sobre una tabla o vista, entera;
+-- - authenticated o PUBLIC tienen un GRANT por columna fuera de la lista;
+-- - una función queda ejecutable por authenticated, o sin ejecutar, y no está en su lista;
+-- - authenticated tiene algún privilegio sobre una secuencia;
+-- - anon tiene cualquier privilegio; o service_role pierde alguno.
+-- No miran las políticas de RLS: de eso se ocupan los demás tests.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(13);
+select plan(28);
 
 create function pg_temp.privilegios(rol text) returns setof text language sql as $$
   select c.relname || ': ' || string_agg(p, ',' order by p collate "C")
@@ -30,7 +35,8 @@ declare
   leidas int := 0;
 begin
   for t in select c.relname from pg_class c join pg_namespace n on n.oid = c.relnamespace
-           where n.nspname = 'public' and c.relkind = 'r' loop
+           where n.nspname = 'public' and c.relkind = 'r'
+             and c.relname not in ('limites_documentos', 'uso_documentos') loop
     execute format('select count(*) from public.%I', t);
     leidas := leidas + 1;
   end loop;
@@ -78,6 +84,61 @@ select is(
   '{}'::text[],
   'authenticated no inserta perfiles: los crea el trigger');
 
+/* ---------- limites_documentos y uso_documentos: sin acceso desde la API ---------- */
+
+select is(
+  (select count(*)::int
+   from unnest(array['authenticated', 'anon']) r
+   cross join unnest(array['public.limites_documentos', 'public.uso_documentos']) t
+   where has_table_privilege(r, t, 'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER')
+      or has_any_column_privilege(r, t, 'SELECT,INSERT,UPDATE,REFERENCES')),
+  0, 'authenticated y anon no tienen ningún privilegio sobre las tablas de límites');
+
+select ok((select relrowsecurity from pg_class where oid = 'public.limites_documentos'::regclass), 'limites_documentos tiene RLS activa');
+select ok((select relrowsecurity from pg_class where oid = 'public.uso_documentos'::regclass), 'uso_documentos tiene RLS activa');
+
+set local role authenticated;
+select throws_ok('select * from public.limites_documentos', '42501', null, 'authenticated no lee limites_documentos');
+select throws_ok('update public.limites_documentos set max_bytes_texto = 999999999', '42501', null, 'authenticated no cambia limites_documentos');
+select throws_ok('select * from public.uso_documentos', '42501', null, 'authenticated no lee uso_documentos');
+select throws_ok('delete from public.uso_documentos', '42501', null, 'authenticated no borra uso_documentos para recuperar cuota');
+select throws_ok($$insert into public.uso_documentos (user_id, documento_id, bytes) values (gen_random_uuid(), gen_random_uuid(), 1)$$, '42501', null, 'authenticated no escribe uso_documentos');
+reset role;
+
+set local role anon;
+select throws_ok('select * from public.limites_documentos', '42501', null, 'anon no lee limites_documentos');
+select throws_ok('update public.limites_documentos set max_bytes_texto = 999999999', '42501', null, 'anon no cambia limites_documentos');
+select throws_ok('select * from public.uso_documentos', '42501', null, 'anon no lee uso_documentos');
+select throws_ok('delete from public.uso_documentos', '42501', null, 'anon no borra uso_documentos');
+reset role;
+
+/* ---------- GRANT por columna: has_table_privilege no los ve ---------- */
+
+select is(
+  (select coalesce(array_agg(x order by x collate "C"), '{}')
+   from (
+     select c.relname || '.' || a.attname || ': ' || acl.privilege_type as x
+     from pg_class c
+     join pg_namespace n on n.oid = c.relnamespace
+     join pg_attribute a on a.attrelid = c.oid
+     cross join lateral aclexplode(a.attacl) acl
+     where n.nspname = 'public' and a.attnum > 0 and not a.attisdropped
+       and acl.grantee in ('authenticated'::regrole::oid, 0)
+   ) columnas),
+  array['perfiles.avatar_url: UPDATE', 'perfiles.nombre: UPDATE'],
+  'los únicos GRANT por columna son estos');
+
+/* ---------- authenticated: secuencias ---------- */
+
+select is(
+  (select coalesce(array_agg(c.relname::text order by c.relname::text collate "C"), '{}')
+   from pg_class c join pg_namespace n on n.oid = c.relnamespace
+   where n.nspname = 'public'
+     -- El CASE fija el orden: esta función falla si le llega un objeto que no es una secuencia.
+     and case when c.relkind = 'S' then has_sequence_privilege('authenticated', c.oid, 'USAGE,SELECT,UPDATE') else false end),
+  '{}'::text[],
+  'authenticated no usa ninguna secuencia');
+
 /* ---------- authenticated: funciones ---------- */
 
 select is(
@@ -85,6 +146,7 @@ select is(
   array[
     'activar_plan',
     'correlativa_permitida',
+    'crear_materia_propia',
     'cursa_o_curso',
     'documento_propio',
     'es_admin',
@@ -99,6 +161,31 @@ select is(
     'registrar_documento'
   ],
   'authenticated ejecuta exactamente estas funciones');
+
+-- Toda función que authenticated no ejecuta tiene que estar acá a propósito. Son funciones de trigger,
+-- que Postgres dispara sin pedir EXECUTE, y la de la columna generada de documentos.
+select is(
+  (select array_agg(p.proname::text order by p.proname::text collate "C")
+   from pg_proc p
+   join pg_namespace n on n.oid = p.pronamespace
+   where n.nspname = 'public'
+     and not exists (select 1 from pg_depend d where d.objid = p.oid and d.deptype = 'e')
+     and not has_function_privilege('authenticated', p.oid, 'EXECUTE')),
+  array[
+    'crear_perfil',
+    'documento_texto_tsv',
+    'materia_normalizar_codigo',
+    'materia_proteger_datos_de_alumnos',
+    'materia_proteger_dueno_y_plan',
+    'material_cambio_de_materia_a_privado',
+    'material_fijar_compartido_en',
+    'material_proteger_autor',
+    'material_proteger_oculto',
+    'material_sin_fecha_futura',
+    'ocultar_material_denunciado',
+    'poner_updated_at'
+  ],
+  'authenticated no ejecuta exactamente estas funciones');
 
 /* ---------- anon: nada ---------- */
 
@@ -133,7 +220,7 @@ select is(
 /* ---------- Comprobación real: entrar como authenticated y leer ---------- */
 
 set local role authenticated;
-select is(pg_temp.leer_todas_las_tablas(), 12, 'authenticated consulta las 12 tablas sin error de permisos');
+select is(pg_temp.leer_todas_las_tablas(), 12, 'authenticated consulta las 12 tablas con grant sin error de permisos');
 reset role;
 
 select * from finish();

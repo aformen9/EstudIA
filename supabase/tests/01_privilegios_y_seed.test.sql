@@ -1,7 +1,7 @@
 -- anon sin acceso, funciones cerradas, RLS activada y catálogo sembrado.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(50);
+select plan(53);
 
 create function pg_temp.como_anon() returns void language plpgsql as $$
 begin
@@ -25,7 +25,7 @@ end $$;
 
 select tables_are('public', array[
   'universidades', 'carreras', 'planes', 'materias', 'correlativas', 'perfiles',
-  'inscripciones', 'progreso', 'historial', 'documentos', 'materiales', 'denuncias'
+  'inscripciones', 'progreso', 'historial', 'documentos', 'limites_documentos', 'uso_documentos', 'materiales', 'denuncias'
 ], 'están todas las tablas de §4');
 
 select is(
@@ -53,6 +53,8 @@ select throws_ok('select * from public.inscripciones', '42501', null, 'anon no l
 select throws_ok('select * from public.progreso', '42501', null, 'anon no lee progreso');
 select throws_ok('select * from public.historial', '42501', null, 'anon no lee historial');
 select throws_ok('select * from public.documentos', '42501', null, 'anon no lee documentos');
+select throws_ok('select * from public.limites_documentos', '42501', null, 'anon no lee limites_documentos');
+select throws_ok('select * from public.uso_documentos', '42501', null, 'anon no lee uso_documentos');
 select throws_ok('select * from public.materiales', '42501', null, 'anon no lee materiales');
 select throws_ok('select * from public.denuncias', '42501', null, 'anon no lee denuncias');
 select throws_ok($$insert into public.universidades (nombre) values ('X')$$, '42501', null, 'anon no escribe');
@@ -64,6 +66,7 @@ select throws_ok('select public.material_compartido(gen_random_uuid())', '42501'
 select throws_ok($$select public.registrar_documento(repeat('a', 64))$$, '42501', null, 'anon no ejecuta registrar_documento');
 select throws_ok('select public.activar_plan(gen_random_uuid())', '42501', null, 'anon no ejecuta activar_plan');
 select throws_ok($$select public.reemplazar_datos_del_plan(gen_random_uuid(), '{}')$$, '42501', null, 'anon no ejecuta reemplazar_datos_del_plan');
+select throws_ok($$select public.crear_materia_propia(gen_random_uuid(), gen_random_uuid(), '{}')$$, '42501', null, 'anon no ejecuta crear_materia_propia');
 select pg_temp.como_postgres();
 
 select is(

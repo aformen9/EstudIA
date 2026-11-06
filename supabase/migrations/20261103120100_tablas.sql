@@ -15,7 +15,8 @@ create table public.universidades (
 
 create table public.carreras (
   id uuid primary key default gen_random_uuid(),
-  universidad_id uuid not null references public.universidades (id) on delete cascade,
+  -- Sin cascadas entre universidad, carrera y plan: un padre con hijos no se borra, ni siquiera pendiente.
+  universidad_id uuid not null references public.universidades (id) on delete restrict,
   nombre text not null,
   sigla text,
   estado text not null default 'pendiente' check (estado in ('publicado', 'pendiente')),
@@ -27,7 +28,7 @@ create index carreras_universidad_id_idx on public.carreras (universidad_id);
 
 create table public.planes (
   id uuid primary key default gen_random_uuid(),
-  carrera_id uuid not null references public.carreras (id) on delete cascade,
+  carrera_id uuid not null references public.carreras (id) on delete restrict,
   version text not null,
   estado text not null default 'pendiente' check (estado in ('publicado', 'pendiente')),
   creado_por uuid default auth.uid() references auth.users (id) on delete set null,
@@ -128,6 +129,28 @@ create index historial_materia_id_idx on public.historial (materia_id);
 
 /* ---------- 4.3 Material ---------- */
 
+-- Un tsvector no pasa de 1 MB y un texto de 2 MB con muchas palabras distintas no entra. El texto se
+-- guarda entero; lo que se indexa es el prefijo más largo que entra: se prueba con todo y, si no
+-- entra, con la mitad. Un documento real casi siempre entra entero.
+create function public.documento_texto_tsv(texto text)
+returns tsvector
+language plpgsql
+immutable
+set search_path = ''
+as $$
+declare
+  v_largo integer := char_length(texto);
+begin
+  loop
+    begin
+      return to_tsvector('pg_catalog.spanish'::regconfig, left(texto, v_largo));
+    exception when program_limit_exceeded then
+      v_largo := v_largo / 2;
+    end;
+  end loop;
+end;
+$$;
+
 create table public.documentos (
   id uuid primary key default gen_random_uuid(),
   sha256 text not null unique check (sha256 ~ '^[0-9a-f]{64}$'),
@@ -135,12 +158,32 @@ create table public.documentos (
   bytes bigint check (bytes >= 0),
   paginas integer check (paginas >= 0),
   texto text,
-  texto_tsv tsvector generated always as (to_tsvector('spanish'::regconfig, coalesce(texto, ''))) stored,
+  texto_tsv tsvector generated always as (public.documento_texto_tsv(coalesce(texto, ''))) stored,
   extraido_con text check (extraido_con in ('pdfjs', 'ocr', 'ia')),
   created_at timestamptz not null default now()
 );
 
 create index documentos_texto_tsv_idx on public.documentos using gin (texto_tsv);
+
+-- Una sola fila, sin acceso desde la API. Se cambia con un UPDATE, sin tocar código.
+create table public.limites_documentos (
+  id boolean primary key default true check (id),
+  max_bytes_texto bigint not null check (max_bytes_texto > 0),
+  cuota_bytes_por_usuario bigint not null check (cuota_bytes_por_usuario > 0)
+);
+
+insert into public.limites_documentos (max_bytes_texto, cuota_bytes_por_usuario)
+values (2097152, 52428800);
+
+-- Lo que registrar_documento le cobró a cada usuario por cada documento. Sin acceso desde la API.
+create table public.uso_documentos (
+  user_id uuid not null references auth.users (id) on delete cascade,
+  documento_id uuid not null references public.documentos (id) on delete cascade,
+  bytes bigint not null check (bytes > 0),
+  primary key (user_id, documento_id)
+);
+
+create index uso_documentos_documento_id_idx on public.uso_documentos (documento_id);
 
 create table public.materiales (
   id uuid primary key default gen_random_uuid(),
@@ -157,8 +200,12 @@ create table public.materiales (
   periodo text,
   oculto boolean not null default false,
   created_at timestamptz not null default now(),
+  -- La fija siempre el trigger material_fijar_compartido_en, nunca el cliente.
+  compartido_en timestamptz,
   -- Sin materia no hay comunidad con quien compartir.
   constraint materiales_compartido_con_materia check (visibilidad = 'privado' or materia_id is not null),
+  -- Un `javascript:` guardado se ejecutaría al abrir el link.
+  constraint materiales_url_http check (url ~* '^https?://'),
   -- Cada tipo lleva su contenido y solo ese.
   constraint materiales_contenido_segun_tipo check (
     case tipo
