@@ -76,7 +76,7 @@ Estado `pendiente` = cargado por un alumno (vía IA o manual), visible solo para
 - **documentos** (contenido, deduplicado): `id`, `sha256` (único), `mime`, `bytes`, `paginas`, `texto` (text, null hasta extraer), `texto_tsv` (tsvector generado, configuración `spanish`), `extraido_con` (`pdfjs` | `ocr` | `ia` | null), `created_at`. Índice GIN sobre `texto_tsv`. **El binario original no se guarda en Supabase** (ver §7).
 - **limites_documentos** (una sola fila, sin acceso desde la API): tope de texto por documento (unos 2 MB) y cuota por usuario (unos 50 MB). Se cambian sin tocar código.
 - **uso_documentos** (sin acceso desde la API): `user_id`, `documento_id`, bytes contados. Lo escribe `registrar_documento` para aplicar la cuota.
-- **materiales** (lo que ve cada alumno): `id` (lo puede generar el cliente: un reintento con el mismo id no duplica), `user_id`, `materia_id` (null = "sin materia"; CHECK: sin materia no puede ser `compartido`. Al borrar la materia, el material queda sin materia y pasa a `privado`. Al moverlo a otra materia, también pasa a `privado`), `tipo` (`archivo` | `link` | `nota`), `titulo`, `documento_id` (solo archivo; varios materiales pueden apuntar al mismo documento), `url` (solo link, y solo `http` o `https`), `texto` (solo nota), `drive_file_id` (fase 1), `visibilidad` (`privado` | `compartido`), `anonimo` (bool), `periodo` (text, ej. `"2025-2C"`), `oculto` (bool, por denuncias o admin), `created_at`.
+- **materiales** (lo que ve cada alumno): `id` (lo puede generar el cliente: un reintento con el mismo id no duplica), `user_id`, `materia_id` (null = "sin materia"; CHECK: sin materia no puede ser `compartido`. Al borrar la materia, el material queda sin materia y pasa a `privado`. Al moverlo a otra materia, también pasa a `privado`), `tipo` (`archivo` | `link` | `nota`), `titulo`, `documento_id` (solo archivo; varios materiales pueden apuntar al mismo documento), `url` (solo link, y solo `http` o `https`), `texto` (solo nota), `drive_file_id` (fase 1), `visibilidad` (`privado` | `compartido`), `anonimo` (bool), `periodo` (text, ej. `"2025-2C"`), `oculto` (bool, por denuncias o admin), `created_at` (el cliente puede mandar una fecha pasada, para restaurar respaldos; una futura se lleva a ahora), `compartido_en` (la fija siempre el servidor al pasar a `compartido` y se borra al volver a `privado`; `material_compartido` ordena por esta columna). `user_id` no se puede cambiar.
 - **denuncias**: `id`, `material_id`, `user_id`, `motivo`, `created_at`. Único (`material_id`, `user_id`). Trigger: con **3 denuncias** distintas → `materiales.oculto = true`.
 
 ## 5. Reglas de acceso (RLS)
@@ -127,7 +127,7 @@ Objetivo: que la IA (y Claude vía MCP) pueda **ver y accionar sobre todo** sin 
 - **Copia local en el dispositivo**: IndexedDB/OPFS, clave = `sha256`. Para offline e IA local. (Desde fase 0.)
 - **Deduplicación global**: por `sha256`, para documentos privados y compartidos. Mismo archivo subido por N alumnos = 1 fila en `documentos`.
   - **El hash no se expone:** ningún usuario puede obtener el `sha256` de documentos ajenos por ninguna vía, y hay tests que lo comprueban.
-  - **Consecuencia aceptada:** quien ya tenga el hash de un documento (por tener el archivo o porque se filtró por fuera de la app) puede registrarlo y leer su `texto`.
+  - **Consecuencia aceptada:** quien ya tenga el hash de un documento (por tener el archivo o porque se filtró por fuera de la app) puede registrarlo y leer su `texto`, y deducir si alguien ya lo subió.
   - **Al subir un archivo cuyo `sha256` ya existe:**
     - Si está compartido en esa misma materia y el alumno puede verlo: se muestra "Este archivo ya está en el material de la materia, ¿lo querés ver?" y se lo lleva ahí, sin guardar nada nuevo (fase 1b).
     - Si solo existe como privado de otro usuario: se reutiliza en silencio. Para el alumno aparece como subido por él, sin aviso.
@@ -187,12 +187,14 @@ PDF del plan / analítico → salida estructurada con el esquema de catálogo/pr
 - Firma de binarios (costo).
 - **Bloqueante de la fase 1: texto falso en documentos.** Con la deduplicación global (§7), el primero que registra un `sha256` fija el texto para todos, y `registrar_documento` no comprueba que ese texto salga del archivo. Quien conozca un hash podría cargar un texto falso, y lo recibiría cualquiera que suba después ese mismo archivo. Hay que resolverlo antes de guardar texto extraído: preguntarle a Agu antes de elegir.
 - Selector de notas según la escala del plan: cuando haya carreras con decimales, debería salir de la escala, agregando al plan un "paso" de nota (1, 0,5, 0,01). Por ahora: enteros más el valor existente, si la nota guardada tiene decimales.
-- **Hallazgos de la revisión del 2026-11-05, sin arreglar:**
-  - Un admin puede leer el hash y el texto de un documento privado ajeno, creando un material propio con su `documento_id` (contradice §5 y §7). Pesa cuando haya moderadores.
-  - El autor puede volver a publicar un material oculto, copiándolo o borrando el original y sus denuncias. Resolver antes de la fase 1b.
-  - Sumar al bloqueante de texto falso: quien tiene un hash puede deducir si alguien ya subió ese archivo, y el primero que registra también fija `mime`, `bytes` y `paginas`.
-  - Los documentos quedan para siempre, aunque se borre el material o la cuenta.
-  - Menores: acaparar una versión de plan, borrar un padre pendiente con hijos publicados, un admin que atribuye su material a otro, una denuncia que vuelve a ocultar lo restaurado, huecos en `08_grants` y en tests de §5, e importaciones simultáneas.
-  - Antes de `supabase link`: revisar que el remoto no acepte registro por mail sin confirmación.
+- **Bloqueantes de la fase 1 (revisión del 2026-11-05):**
+  - M2: un admin puede leer el hash y el texto de un documento privado ajeno, creando un material propio con su `documento_id`. Contradice §5 y §7.
+  - B2: se puede acaparar una versión de plan, y el error revela planes pendientes.
+  - B5: el primero que registra un hash también fija `mime`, `bytes` y `paginas`.
+  - B6: los documentos quedan para siempre, aunque se borre el material o la cuenta.
+- **Para la fase 1b (revisión del 2026-11-05), con la recomendación de Agu:**
+  - M3: el autor puede volver a publicar un material oculto, copiándolo o borrando el original y sus denuncias. Recomendación: el autor no puede volver a compartir un contenido oculto y el admin puede suspenderle compartir.
+  - B9: una sola denuncia vuelve a ocultar lo que un admin restauró. Recomendación: el contador de denuncias se reinicia al restaurar.
+- **Login por mail:** queda activo en el stack local, para el login de prueba. En el remoto lo apaga Agu en el panel antes de `supabase link`.
 - Moderadores por carrera (más adelante; por ahora solo admin = Agu).
 - Ingeniería Química u otras carreras (más adelante; por ahora solo LCD).
