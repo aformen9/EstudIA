@@ -16,6 +16,8 @@ import type {
 
 /** `periodo` y `createdAt` solo hacen falta al restaurar: si no vienen, null y la fecha actual. */
 interface NuevoMaterialBase {
+  /** Uuid generado por quien llama. Ver "Idempotencia" en `Repositorio`. */
+  id: string;
   materiaId: string | null;
   titulo: string;
   periodo?: string | null;
@@ -42,6 +44,13 @@ export interface NuevoDocumento {
  * Acceso a datos del alumno con sesión. `core` no depende de Supabase: la web implementa esta
  * interfaz y más adelante la usan el MCP y las herramientas de IA. Todo método rechaza con un
  * `Error` si la operación falla.
+ *
+ * Idempotencia: `crearMateriaPropia` y `agregarMaterial` reciben un `id` generado por quien llama,
+ * para que un reintento después de un timeout no duplique. Repetir la llamada con el mismo `id`
+ * devuelve la fila existente, tal como está: no crea otra ni pisa la existente, aunque los demás
+ * datos de la llamada sean distintos. Para que un reintento sirva, quien llama usa el mismo `id` en
+ * todos los intentos de una misma creación y uno nuevo para cada creación distinta. Si el `id` ya es
+ * de otro usuario, o de una fila que el usuario no puede ver, la llamada rechaza.
  */
 export interface Repositorio {
   /* Catálogo: solo devuelve lo que la RLS deja ver. */
@@ -65,18 +74,32 @@ export interface Repositorio {
   obtenerHistorial(planId: string): Promise<EventoHistorial[]>;
 
   /* Materias propias */
-  crearMateriaPropia(planId: string, borrador: BorradorMateriaPropia): Promise<Materia>;
+  /**
+   * Idempotente por `id`. La materia y sus correlativas se crean juntas: un reintento devuelve la
+   * fila sin tocar correlativas, así que no puede quedar visible una materia sin las suyas.
+   */
+  crearMateriaPropia(planId: string, borrador: BorradorMateriaPropia, id: string): Promise<Materia>;
   actualizarMateriaPropia(materiaId: string, borrador: BorradorMateriaPropia): Promise<Materia>;
   borrarMateriaPropia(materiaId: string): Promise<void>;
 
   /* Material */
+  /** Solo los del usuario, de todos sus planes, aunque sea admin y la RLS le deje ver más. */
   listarMateriales(): Promise<Material[]>;
   /**
    * Registra por `sha256` sin pisar un texto existente. La RPC devuelve solo el id y la fila no se
    * puede leer hasta tener un material propio: el `Documento` se arma con los datos de entrada.
    */
   registrarDocumento(documento: NuevoDocumento): Promise<Documento>;
+  /**
+   * Idempotente por `material.id`. El material nuevo es privado. "Agregar también a…" es otra llamada
+   * con otro `id` (ver `nuevoMaterialDesde`): crea otra referencia al mismo documento.
+   */
   agregarMaterial(material: NuevoMaterial): Promise<Material>;
+  /**
+   * Pasa un material a otra materia, o a "sin materia" con null, y devuelve la fila actualizada.
+   * Un material compartido queda privado. Rechaza si no existe o no es del usuario.
+   */
+  moverMaterial(materialId: string, materiaId: string | null): Promise<Material>;
   borrarMaterial(materialId: string): Promise<void>;
 
   /**

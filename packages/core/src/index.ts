@@ -12,3 +12,4 @@ export * from "./importacion/respaldo";
 export * from "./importacion/archivo";
 export * from "./importacion/previsualizar";
 export * from "./importacion/materiales";
+export * from "./materiales/referencias";

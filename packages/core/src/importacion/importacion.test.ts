@@ -10,11 +10,14 @@ import {
   importarArchivo,
   importarLegacy,
   leerRespaldo,
+  materiasPropiasConservadas,
   parsearArchivo,
   progresoCarrera,
   promedio,
   type DatosAlumno,
+  type DatosImportados,
   type Material,
+  type MateriaPropiaImportada,
   type PlanCompleto,
   type TipoAviso,
 } from "../index";
@@ -742,6 +745,44 @@ describe("leerRespaldo: datos que no se confían", () => {
     expect(avisosDe(resultado, "material-descartado")).toHaveLength(2);
   });
 
+  it("acepta un link solo si empieza con http:// o https://, sin distinguir mayúsculas", () => {
+    const aceptados = [
+      "http://x.org",
+      "https://x.org",
+      "HTTP://x.org",
+      "HTTPS://x.org",
+      "hTtPs://x.org",
+      "https://",
+    ];
+    const rechazados = [
+      "",
+      "x.org",
+      "//x.org",
+      "ftp://x.org",
+      "javascript:alert(1)",
+      "http:/x.org",
+      "https:x.org",
+      "httpss://x.org",
+      " https://x.org",
+      "\nhttps://x.org",
+      "javascript:alert(1)//\nhttps://x.org",
+      "ht\u017Ftp://x.org",
+      "http\u017F://x.org",
+    ];
+    const comun = { materia: null, periodo: null, createdAt: "2025", tipo: "link" };
+    const resultado = leerOk(
+      respaldoJson({
+        materiales: [...aceptados, ...rechazados].map((url) => ({
+          ...comun,
+          titulo: `Link ${url}`,
+          url,
+        })),
+      }),
+    );
+    expect(resultado.materiales.map((m) => m.titulo)).toEqual(aceptados.map((u) => `Link ${u}`));
+    expect(avisosDe(resultado, "material-descartado")).toHaveLength(rechazados.length);
+  });
+
   it("deja sin materia un material cuya materia no está en el plan", () => {
     const comun = { titulo: "M", periodo: null, createdAt: "2025" };
     const resultado = leerOk(
@@ -817,5 +858,322 @@ describe("una sola entrada para la UI", () => {
       ok: false,
       error: "El archivo no es un JSON válido.",
     });
+  });
+});
+
+describe("M4: la vista previa cuenta igual que reemplazar_datos_del_plan", () => {
+  const catalogo = [materia("uuid-a", { codigo: "AAA" }), materia("uuid-b", { codigo: "BBB" })];
+  const propia = (id: string, codigo: string | null, nombre: string, orden: number) =>
+    materia(id, { codigo, nombre, orden, ownerId: "alumno" });
+  const planCon = (...propias: PlanCompleto["materias"]): PlanCompleto => ({
+    ...planChico,
+    materias: [...catalogo, ...propias],
+  });
+  const importada = (
+    clave: string,
+    codigo: string | null,
+    nombre = "Optativa",
+    correlativas: MateriaPropiaImportada["correlativas"] = [],
+  ): MateriaPropiaImportada => ({
+    clave,
+    codigo,
+    nombre,
+    anio: 1,
+    cuatrimestre: 1,
+    tipo: "Materia",
+    area: null,
+    requiereAnioCompletoParaCursar: null,
+    correlativas,
+  });
+  const datosCon = (...materiasPropias: MateriaPropiaImportada[]): DatosImportados => ({
+    materiasPropias,
+    progreso: [],
+    historial: [],
+  });
+  const conservadas = (plan: PlanCompleto, datos: DatosImportados) =>
+    materiasPropiasConservadas(plan, datos).map((m) => m.id);
+  const total = (plan: PlanCompleto, datos: DatosImportados) =>
+    progresoCarrera(datosAlumnoDesdeImportacion(plan, datos)).total;
+
+  describe("dos con igual código", () => {
+    const datos = datosCon(importada("k1", "PRO", "Uno"), importada("k2", "PRO", "Dos"));
+
+    it("sin ninguna en la base, crean dos materias", () => {
+      const quedaria = datosAlumnoDesdeImportacion(planCon(), datos);
+      expect(quedaria.materias.map((m) => m.id)).toEqual(["uuid-a", "uuid-b", "k1", "k2"]);
+    });
+
+    it("con una en la base, la primera la reutiliza y la segunda crea otra", () => {
+      const plan = planCon(propia("p1", "PRO", "Vieja", 5));
+      expect(conservadas(plan, datos)).toEqual([]);
+      expect(total(plan, datos)).toBe(4);
+    });
+
+    it("con dos en la base, reutilizan una cada una", () => {
+      const plan = planCon(propia("p1", "PRO", "A", 5), propia("p2", "PRO", "B", 6));
+      expect(conservadas(plan, datos)).toEqual([]);
+      expect(total(plan, datos)).toBe(4);
+    });
+
+    it("con dos en la base y una en el archivo, se conserva la otra", () => {
+      const plan = planCon(propia("p1", "PRO", "A", 5), propia("p2", "PRO", "B", 6));
+      const una = datosCon(importada("k1", "PRO"));
+      expect(conservadas(plan, una)).toEqual(["p2"]);
+      expect(total(plan, una)).toBe(4);
+    });
+
+    it("el resumen del archivo cuenta lo mismo", () => {
+      const plan = planCon(propia("p1", "AAA2", "A", 5));
+      const json = legacy([
+        ANCLA,
+        { id: "x", codigo: "AAA2", nombre: "Uno" },
+        { id: "y", codigo: "AAA2", nombre: "Dos" },
+      ]);
+      const { resumen, datos: leidos } = importarOk(json, { ...plan, materias: plan.materias });
+      expect(leidos.materiasPropias.map((m) => m.clave)).toEqual(["x", "y"]);
+      expect(resumen.materiasPropias).toBe(2);
+      expect(resumen.totalMaterias).toBe(4);
+    });
+  });
+
+  describe("dos sin código y con igual nombre", () => {
+    const datos = datosCon(importada("k1", null), importada("k2", null));
+
+    it("con una en la base, la primera la reutiliza y la segunda crea otra", () => {
+      const plan = planCon(propia("p1", null, "Optativa", 5));
+      expect(conservadas(plan, datos)).toEqual([]);
+      expect(total(plan, datos)).toBe(4);
+    });
+
+    it("con tres en la base, se conserva la que sobra", () => {
+      const plan = planCon(
+        propia("p1", null, "Optativa", 5),
+        propia("p2", null, "Optativa", 6),
+        propia("p3", null, "Optativa", 7),
+      );
+      expect(conservadas(plan, datos)).toEqual(["p3"]);
+      expect(total(plan, datos)).toBe(5);
+    });
+
+    it("no empareja con otro nombre ni con una materia con código", () => {
+      const plan = planCon(propia("p1", null, "Otra", 5), propia("p2", "PRO", "Optativa", 6));
+      expect(conservadas(plan, datos)).toEqual(["p1", "p2"]);
+      expect(total(plan, datos)).toBe(6);
+    });
+
+    it("una materia con código no reutiliza a otra sin código de igual nombre", () => {
+      const plan = planCon(propia("p1", null, "Optativa", 5));
+      expect(conservadas(plan, datosCon(importada("k1", "PRO")))).toEqual(["p1"]);
+    });
+
+    it("las del archivo se reparten en su orden, sin mezclar grupos", () => {
+      const plan = planCon(propia("p1", null, "Optativa", 5), propia("p2", "PRO", "X", 6));
+      const mezclados = datosCon(
+        importada("k1", "PRO"),
+        importada("k2", null),
+        importada("k3", "PRO"),
+      );
+      expect(conservadas(plan, mezclados)).toEqual([]);
+      expect(total(plan, mezclados)).toBe(5);
+    });
+  });
+
+  describe("una correlativa de la otra", () => {
+    const datos = datosCon(
+      importada("k1", "PRO", "Base"),
+      importada("k2", "PRO", "Sigue", [{ requiere: "k1", para: "cursar", condicion: "aprobada" }]),
+    );
+
+    it("no se vuelve una correlativa de una materia a sí misma", () => {
+      for (const plan of [planCon(), planCon(propia("p1", "PRO", "Vieja", 5))]) {
+        const quedaria = datosAlumnoDesdeImportacion(plan, datos);
+        expect(quedaria.correlativas).toEqual([
+          { materiaId: "k2", requiereId: "k1", para: "cursar", condicion: "aprobada" },
+        ]);
+        const sigue = quedaria.materias.find((m) => m.id === "k2")!;
+        expect(estadoCorrelativas(quedaria, sigue, "cursar").faltan[0]?.materia.id).toBe("k1");
+      }
+    });
+
+    it("sobrevive a un respaldo y a un legacy, cada una con su clave", () => {
+      const origen: DatosAlumno = {
+        ...planChico,
+        materias: [...catalogo, propia("p1", "PRO", "Base", 5), propia("p2", "PRO", "Sigue", 6)],
+        correlativas: [
+          { materiaId: "p2", requiereId: "p1", para: "cursar", condicion: "aprobada" },
+        ],
+        progreso: [],
+        historial: [],
+      };
+      const { respaldo } = crearRespaldo(origen, [], "2026-11-05T00:00:00.000Z");
+      const leido = leerRespaldo(JSON.parse(JSON.stringify(respaldo)), planCon());
+      if (!leido.ok) throw new Error(leido.error);
+      expect(leido.reporte.avisos).toEqual([]);
+      expect(leido.datos.materiasPropias.find((m) => m.clave === "p2")?.correlativas).toEqual([
+        { requiere: "p1", para: "cursar", condicion: "aprobada" },
+      ]);
+
+      const viejo = importarOk(
+        legacy([
+          ANCLA,
+          { id: "x", codigo: "PRO", nombre: "Base" },
+          { id: "y", codigo: "PRO", nombre: "Sigue", reqCursar: ["x"] },
+        ]),
+        planCon(),
+      );
+      expect(viejo.datos.materiasPropias[1]?.correlativas).toEqual([
+        { requiere: "x", para: "cursar", condicion: "aprobada" },
+      ]);
+    });
+
+    it("una conservada que requiere a una reutilizada la sigue requiriendo", () => {
+      const plan: PlanCompleto = {
+        ...planCon(propia("p1", "PRO", "Reutilizada", 5), propia("p2", "OTR", "Conservada", 6)),
+        correlativas: [
+          { materiaId: "p2", requiereId: "p1", para: "cursar", condicion: "aprobada" },
+          { materiaId: "p1", requiereId: "uuid-a", para: "cursar", condicion: "aprobada" },
+        ],
+      };
+      const quedaria = datosAlumnoDesdeImportacion(plan, datosCon(importada("k1", "PRO")));
+      expect(quedaria.correlativas).toEqual([
+        { materiaId: "p2", requiereId: "k1", para: "cursar", condicion: "aprobada" },
+      ]);
+      const conservada = quedaria.materias.find((m) => m.id === "p2")!;
+      expect(estadoCorrelativas(quedaria, conservada, "cursar").ok).toBe(false);
+    });
+  });
+
+  describe("código con espacios", () => {
+    it("saca los espacios del archivo antes de comparar", () => {
+      const plan = planCon(propia("p1", "PRO", "A", 5));
+      expect(conservadas(plan, datosCon(importada("k1", "  PRO ")))).toEqual([]);
+    });
+
+    it("dos que difieren solo en espacios cuentan como iguales", () => {
+      const plan = planCon(propia("p1", "PRO", "A", 5));
+      const datos = datosCon(importada("k1", " PRO"), importada("k2", "PRO "));
+      expect(conservadas(plan, datos)).toEqual([]);
+      expect(total(plan, datos)).toBe(4);
+    });
+
+    it("un código de puros espacios cuenta como sin código y empareja por nombre", () => {
+      const plan = planCon(propia("p1", null, "Optativa", 5), propia("p2", "   ", "Optativa", 6));
+      expect(conservadas(plan, datosCon(importada("k1", "   ")))).toEqual(["p2"]);
+    });
+
+    it("como btrim, no saca tabs ni saltos de línea", () => {
+      const plan = planCon(propia("p1", "PRO", "A", 5));
+      expect(conservadas(plan, datosCon(importada("k1", "\tPRO")))).toEqual(["p1"]);
+      expect(conservadas(plan, datosCon(importada("k1", "PRO\n")))).toEqual(["p1"]);
+      expect(conservadas(plan, datosCon(importada("k1", "\t ")))).toEqual(["p1"]);
+    });
+
+    it("no normaliza el código que ya está en la base, como la RPC", () => {
+      const plan = planCon(propia("p1", " PRO ", "A", 5));
+      expect(conservadas(plan, datosCon(importada("k1", "PRO")))).toEqual(["p1"]);
+    });
+
+    it("la vista previa muestra el código como quedaría guardado", () => {
+      const quedaria = datosAlumnoDesdeImportacion(
+        planCon(),
+        datosCon(importada("k1", " PRO "), importada("k2", "   ")),
+      );
+      expect(quedaria.materias.slice(-2).map((m) => m.codigo)).toEqual(["PRO", null]);
+    });
+  });
+
+  it("entre varias iguales reutiliza la de menor orden, sin importar el orden de la lista", () => {
+    const plan = planCon(propia("p2", "PRO", "B", 6), propia("p1", "PRO", "A", 5));
+    expect(conservadas(plan, datosCon(importada("k1", "PRO")))).toEqual(["p2"]);
+  });
+
+  it("una reutilizada mantiene su orden y una nueva va al final de todo", () => {
+    const plan = planCon(propia("p1", "PRO", "A", 5), propia("p2", "OTR", "B", 9));
+    const quedaria = datosAlumnoDesdeImportacion(
+      plan,
+      datosCon(importada("k1", "PRO"), importada("k2", "NUE")),
+    );
+    const orden = (id: string) => quedaria.materias.find((m) => m.id === id)?.orden;
+    expect(orden("k1")).toBe(5);
+    expect(orden("k2")).toBe(10);
+  });
+});
+
+describe("M4: dos materias propias duplicadas en el respaldo", () => {
+  const origen = (codigo: string | null): DatosAlumno => ({
+    ...planOrigen,
+    materias: [
+      ...planOrigen.materias,
+      materia("dup-1", { codigo, nombre: "Optativa", ownerId: "alumno", area: "Uno" }),
+      materia("dup-2", { codigo, nombre: "Optativa", ownerId: "alumno", area: "Dos" }),
+    ],
+    correlativas: [
+      ...planOrigen.correlativas,
+      { materiaId: "dup-2", requiereId: "dup-1", para: "rendir", condicion: "aprobada" },
+    ],
+    progreso: [
+      fila(ID_A, { estado: "aprobada", nota: 8 }),
+      fila("dup-1", { estado: "aprobada", nota: 7 }),
+      fila("dup-2", { estado: "cursando", p1: 6 }),
+    ],
+    historial: [
+      evento("dup-1", "2024-01-01", "Promocion", "Promocionado", 7),
+      evento("dup-2", "2024-02-01", "En curso", "En curso", null),
+    ],
+  });
+  const materiales: Material[] = [
+    { ...baseMaterial, id: "n1", tipo: "nota", materiaId: "dup-1", titulo: "Uno", texto: "a" },
+    { ...baseMaterial, id: "n2", tipo: "nota", materiaId: "dup-2", titulo: "Dos", texto: "b" },
+  ];
+
+  for (const [caso, codigo] of [
+    ["igual código", "OPT"],
+    ["sin código", null],
+  ] as const) {
+    it(`${caso}: salen con claves distintas y sin perder datos`, () => {
+      const { respaldo, materialesOmitidos } = crearRespaldo(origen(codigo), materiales, "2026");
+      expect(materialesOmitidos).toEqual([]);
+      expect(respaldo.materiasPropias.map((m) => m.clave)).toEqual(["dup-1", "dup-2"]);
+
+      const resultado = leerOk(JSON.parse(JSON.stringify(respaldo)));
+      expect(resultado.reporte.avisos).toEqual([]);
+      expect(resultado.datos.materiasPropias.map((m) => [m.clave, m.area])).toEqual([
+        ["dup-1", "Uno"],
+        ["dup-2", "Dos"],
+      ]);
+      expect(resultado.datos.materiasPropias[1]?.correlativas).toEqual([
+        { requiere: "dup-1", para: "rendir", condicion: "aprobada" },
+      ]);
+      const notaDe = (id: string) => resultado.datos.progreso.find((p) => p.materiaId === id);
+      expect(notaDe("dup-1")).toMatchObject({ estado: "aprobada", nota: 7 });
+      expect(notaDe("dup-2")).toMatchObject({ estado: "cursando", p1: 6 });
+      expect(resultado.datos.historial.map((e) => e.materiaId)).toEqual(["dup-1", "dup-2"]);
+      expect(resultado.materiales.map((m) => m.materiaId)).toEqual(["dup-1", "dup-2"]);
+      expect(resultado.resumen.materiasPropias).toBe(2);
+    });
+  }
+
+  it("legacy: dos con igual código e id distinto entran las dos, con sus datos", () => {
+    const resultado = importarOk(
+      legacy([
+        ANCLA,
+        { id: "x", codigo: "OPT", nombre: "Uno", estado: "aprobada", nota: 7 },
+        { id: "y", codigo: "OPT", nombre: "Dos", estado: "cursando" },
+      ]),
+    );
+    expect(avisosDe(resultado, "materia-descartada")).toEqual([]);
+    expect(resultado.datos.materiasPropias.map((m) => m.clave)).toEqual(["x", "y"]);
+    expect(resultado.datos.progreso.map((p) => [p.materiaId, p.estado])).toEqual([
+      ["x", "aprobada"],
+      ["y", "cursando"],
+    ]);
+  });
+
+  it("legacy: dos sin código y con igual nombre entran las dos", () => {
+    const resultado = importarOk(
+      legacy([ANCLA, { id: "x", nombre: "Uno" }, { id: "y", nombre: "Uno" }]),
+    );
+    expect(avisosDe(resultado, "materia-descartada")).toEqual([]);
+    expect(resultado.datos.materiasPropias.map((m) => m.clave)).toEqual(["x", "y"]);
   });
 });

@@ -61,6 +61,11 @@ export interface ImportacionExitosa {
 export type ResultadoImportacion = ImportacionExitosa | ErrorImportacion;
 
 interface MaterialImportadoBase {
+  /**
+   * Solo en un material devuelto en `fallidos`: el id con el que ya se intentó guardar, para que el
+   * reintento use el mismo. Un respaldo nunca lo trae: el id se genera al restaurar.
+   */
+  id?: string;
   /** Uuid del catálogo, `clave` de una materia propia o null ("sin materia"). */
   materiaId: string | null;
   titulo: string;
