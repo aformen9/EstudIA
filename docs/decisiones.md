@@ -118,3 +118,19 @@ Una línea por decisión de Agu. Agregar al final, con fecha. Si una decisión n
 - `.codex/` y `AGENTS.md` no se suben al repo: quedan en `.gitignore`.
 - Avatar: en todos los lugares se usa la foto de la cuenta de Google (`user_metadata.avatar_url` o `picture`), con `referrerpolicy="no-referrer"`. Sin foto o si falla la carga, se muestra la inicial.
 - Brillo que sigue al cursor en la grilla del onboarding: se conserva pero fluido, a 60 fps, medido antes y después. Si en listas largas no se puede, se desactiva solo ahí.
+
+## 2026-11-05 (revisión de `db` y `core`, y cierre de la tanda 4)
+
+- Antes de `supabase link` se arreglan cuatro hallazgos del revisor: A1, M1, M4 y B7. Los demás quedan anotados en `arquitectura.md` §12.
+- A1: `registrar_documento` tiene límites en el servidor, configurables: unos 2 MB de texto por documento y una cuota de unos 50 MB por usuario, con test y un mensaje claro al alumno si los supera.
+- M1: una materia no puede cambiar de dueño ni de plan, para que nadie eluda el trigger de borrado.
+- M4: una materia propia del respaldo nunca se reutiliza dos veces al restaurar, así dos materias con igual código o nombre no se fusionan ni rompen la importación.
+- B7: la base rechaza links que no sean `http` o `https`, y no acepta fechas futuras en un material.
+- Materias y materiales se crean con un id de idempotencia generado en el cliente: un reintento después de un timeout no duplica.
+- Dudas de `web`: un ciclo importado no impide guardar notas, solo cambiar correlativas. La casilla de cerrar sesión se oculta si no hay archivos. Si `avatar_url` no sirve, se prueba con `picture`. El resto queda como lo dejó `web`: cambiar de plan no borra datos, fuentes variables, año y cuatrimestre editables en materias propias, y el manejo de filas fallidas.
+- Fuentes: se recortan al subset `latin`. El peso del JS se baja en esta tanda.
+- Un material puede estar en varias materias: "Mover a otra materia" y "Agregar también a…" (otra referencia al mismo documento, sin duplicar archivo ni copia local).
+- Al mover un material compartido, pasa a privado en la materia nueva. La copia local se borra solo si ninguna otra referencia del usuario la usa.
+- Borrar un material es inmediato en pantalla, con "Deshacer" en un aviso de unos 8 s; el borrado real ocurre al vencer. Reemplaza al doble toque.
+- En el panel de materia, los materiales se separan visualmente del formulario.
+- El informe de SIU Guaraní queda en `docs/investigacion/siu-guarani.md`. Sus decisiones siguen abiertas para la fase 1.

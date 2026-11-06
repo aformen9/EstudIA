@@ -74,7 +74,9 @@ Estado `pendiente` = cargado por un alumno (vía IA o manual), visible solo para
 ### 4.3 Material
 
 - **documentos** (contenido, deduplicado): `id`, `sha256` (único), `mime`, `bytes`, `paginas`, `texto` (text, null hasta extraer), `texto_tsv` (tsvector generado, configuración `spanish`), `extraido_con` (`pdfjs` | `ocr` | `ia` | null), `created_at`. Índice GIN sobre `texto_tsv`. **El binario original no se guarda en Supabase** (ver §7).
-- **materiales** (lo que ve cada alumno): `id`, `user_id`, `materia_id` (null = "sin materia"; CHECK: sin materia no puede ser `compartido`. Al borrar la materia, el material queda sin materia y pasa a `privado`), `tipo` (`archivo` | `link` | `nota`), `titulo`, `documento_id` (solo archivo), `url` (solo link), `texto` (solo nota), `drive_file_id` (fase 1), `visibilidad` (`privado` | `compartido`), `anonimo` (bool), `periodo` (text, ej. `"2025-2C"`), `oculto` (bool, por denuncias o admin), `created_at`.
+- **limites_documentos** (una sola fila, sin acceso desde la API): tope de texto por documento (unos 2 MB) y cuota por usuario (unos 50 MB). Se cambian sin tocar código.
+- **uso_documentos** (sin acceso desde la API): `user_id`, `documento_id`, bytes contados. Lo escribe `registrar_documento` para aplicar la cuota.
+- **materiales** (lo que ve cada alumno): `id` (lo puede generar el cliente: un reintento con el mismo id no duplica), `user_id`, `materia_id` (null = "sin materia"; CHECK: sin materia no puede ser `compartido`. Al borrar la materia, el material queda sin materia y pasa a `privado`. Al moverlo a otra materia, también pasa a `privado`), `tipo` (`archivo` | `link` | `nota`), `titulo`, `documento_id` (solo archivo; varios materiales pueden apuntar al mismo documento), `url` (solo link, y solo `http` o `https`), `texto` (solo nota), `drive_file_id` (fase 1), `visibilidad` (`privado` | `compartido`), `anonimo` (bool), `periodo` (text, ej. `"2025-2C"`), `oculto` (bool, por denuncias o admin), `created_at`.
 - **denuncias**: `id`, `material_id`, `user_id`, `motivo`, `created_at`. Único (`material_id`, `user_id`). Trigger: con **3 denuncias** distintas → `materiales.oculto = true`.
 
 ## 5. Reglas de acceso (RLS)
@@ -132,6 +134,9 @@ Objetivo: que la IA (y Claude vía MCP) pueda **ver y accionar sobre todo** sin 
   - **Casi duplicados (fase 1b):** similitud de texto con `pg_trgm` contra el material compartido de la materia. Si se parece mucho, se pregunta "¿Es el mismo?" con las opciones Ver / Subir igual. El umbral se define y se prueba con PDFs reales en esa fase.
 - Búsqueda: full-text de Postgres en español (`texto_tsv`). Embeddings/pgvector: **no por ahora** (decisión abierta, ver §12).
 - Límite de tamaño por archivo en el cliente: 50 MB.
+- **Límites en el servidor:** `registrar_documento` rechaza un texto de más de unos 2 MB y frena al usuario que supera unos 50 MB de cuota, con un error que la app le explica al alumno. Los valores están en `limites_documentos`. El error se decide antes de mirar si el documento ya existe, para no revelarlo.
+- **Un material en varias materias:** "Agregar también a…" crea otra referencia al mismo documento, sin duplicar archivo ni copia local. "Mover a otra materia" cambia la referencia y un material compartido pasa a privado. La copia local se borra solo si ninguna otra referencia del usuario la usa, de cualquier plan.
+- **Borrar un material:** desaparece en pantalla al instante, con "Deshacer" durante unos 8 s. El borrado real ocurre al vencer ese plazo.
 
 ## 8. Presupuesto (plan gratis de Supabase)
 
@@ -182,5 +187,12 @@ PDF del plan / analítico → salida estructurada con el esquema de catálogo/pr
 - Firma de binarios (costo).
 - **Bloqueante de la fase 1: texto falso en documentos.** Con la deduplicación global (§7), el primero que registra un `sha256` fija el texto para todos, y `registrar_documento` no comprueba que ese texto salga del archivo. Quien conozca un hash podría cargar un texto falso, y lo recibiría cualquiera que suba después ese mismo archivo. Hay que resolverlo antes de guardar texto extraído: preguntarle a Agu antes de elegir.
 - Selector de notas según la escala del plan: cuando haya carreras con decimales, debería salir de la escala, agregando al plan un "paso" de nota (1, 0,5, 0,01). Por ahora: enteros más el valor existente, si la nota guardada tiene decimales.
+- **Hallazgos de la revisión del 2026-11-05, sin arreglar:**
+  - Un admin puede leer el hash y el texto de un documento privado ajeno, creando un material propio con su `documento_id` (contradice §5 y §7). Pesa cuando haya moderadores.
+  - El autor puede volver a publicar un material oculto, copiándolo o borrando el original y sus denuncias. Resolver antes de la fase 1b.
+  - Sumar al bloqueante de texto falso: quien tiene un hash puede deducir si alguien ya subió ese archivo, y el primero que registra también fija `mime`, `bytes` y `paginas`.
+  - Los documentos quedan para siempre, aunque se borre el material o la cuenta.
+  - Menores: acaparar una versión de plan, borrar un padre pendiente con hijos publicados, un admin que atribuye su material a otro, una denuncia que vuelve a ocultar lo restaurado, huecos en `08_grants` y en tests de §5, e importaciones simultáneas.
+  - Antes de `supabase link`: revisar que el remoto no acepte registro por mail sin confirmación.
 - Moderadores por carrera (más adelante; por ahora solo admin = Agu).
 - Ingeniería Química u otras carreras (más adelante; por ahora solo LCD).
