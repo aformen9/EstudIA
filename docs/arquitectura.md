@@ -64,6 +64,8 @@ Tres capas. Todas las tablas en `public`, con RLS activado. IDs `uuid` (`gen_ran
 
 Estado `pendiente` = cargado por un alumno (vía IA o manual), visible solo para quien lo creó y para admins hasta que un admin lo publique.
 
+Universidad, carrera y plan no se borran en cascada: un padre con hijos no se puede borrar, tampoco si está pendiente. Una materia no cambia de `owner_id` ni de `plan_id`, para ningún rol. `materias.codigo` se guarda sin espacios al principio ni al final, y vacío pasa a null en las materias propias.
+
 ### 4.2 Alumno (privado)
 
 - **perfiles**: `id` (= auth.users.id), `nombre`, `avatar_url`, `es_admin` (bool, default false), `created_at`. Se crea por trigger al registrarse. El alumno **no puede** modificar `es_admin` (grants por columna).
@@ -73,7 +75,7 @@ Estado `pendiente` = cargado por un alumno (vía IA o manual), visible solo para
 
 ### 4.3 Material
 
-- **documentos** (contenido, deduplicado): `id`, `sha256` (único), `mime`, `bytes`, `paginas`, `texto` (text, null hasta extraer), `texto_tsv` (tsvector generado, configuración `spanish`), `extraido_con` (`pdfjs` | `ocr` | `ia` | null), `created_at`. Índice GIN sobre `texto_tsv`. **El binario original no se guarda en Supabase** (ver §7).
+- **documentos** (contenido, deduplicado): `id`, `sha256` (único), `mime`, `bytes`, `paginas`, `texto` (text, null hasta extraer), `texto_tsv` (tsvector generado, configuración `spanish`; indexa el prefijo más largo que entra en el tope de 1 MB, así que en el peor caso de 2 MB queda buscable un 25 %), `extraido_con` (`pdfjs` | `ocr` | `ia` | null), `created_at`. Índice GIN sobre `texto_tsv`. **El binario original no se guarda en Supabase** (ver §7).
 - **limites_documentos** (una sola fila, sin acceso desde la API): tope de texto por documento (unos 2 MB) y cuota por usuario (unos 50 MB). Se cambian sin tocar código.
 - **uso_documentos** (sin acceso desde la API): `user_id`, `documento_id`, bytes contados. Lo escribe `registrar_documento` para aplicar la cuota.
 - **materiales** (lo que ve cada alumno): `id` (lo puede generar el cliente: un reintento con el mismo id no duplica), `user_id`, `materia_id` (null = "sin materia"; CHECK: sin materia no puede ser `compartido`. Al borrar la materia, el material queda sin materia y pasa a `privado`. Al moverlo a otra materia, también pasa a `privado`), `tipo` (`archivo` | `link` | `nota`), `titulo`, `documento_id` (solo archivo; varios materiales pueden apuntar al mismo documento), `url` (solo link, y solo `http` o `https`), `texto` (solo nota), `drive_file_id` (fase 1), `visibilidad` (`privado` | `compartido`), `anonimo` (bool), `periodo` (text, ej. `"2025-2C"`), `oculto` (bool, por denuncias o admin), `created_at` (el cliente puede mandar una fecha pasada, para restaurar respaldos; una futura se lleva a ahora), `compartido_en` (la fija siempre el servidor al pasar a `compartido` y se borra al volver a `privado`; `material_compartido` ordena por esta columna). `user_id` no se puede cambiar.
@@ -92,6 +94,7 @@ Funciones auxiliares `security definer`, `stable`, con `search_path` fijo:
 | perfiles | el propio (admin: todos) | el propio, solo `nombre` y `avatar_url` |
 | inscripciones | solo propias | solo propias y en un plan visible. Activar un plan: RPC `activar_plan(plan_id)`, que inscribe si hace falta y deja ese plan como único activo |
 | progreso / historial | solo propio | solo propio, y solo sobre materias de un plan donde el alumno esté inscripto o materias propias (`owner_id = auth.uid()`) |
+| crear materia propia | — | RPC `crear_materia_propia(id, plan_id, materia, correlativas)` (security invoker, todo o nada): el `id` lo genera el cliente, y un reintento devuelve la materia existente sin duplicar ni pisar |
 | importación | — | RPC `reemplazar_datos_del_plan(plan_id, datos)` (security invoker, todo o nada): crea o reutiliza materias propias, reemplaza `progreso` e `historial` del alumno en ese plan y devuelve `{ clave: uuid }` de las materias propias. Reutiliza la materia propia del alumno en ese plan con el mismo código o, sin código, otra sin código y con el mismo nombre: el archivo pisa sus datos y sus correlativas. Las materias propias que no vienen en el archivo se conservan |
 | materiales | **solo propias** (admin: todas) | propias, y solo en una materia visible o sin materia; admin puede ocultar/borrar. `oculto` solo lo cambian un admin o el trigger de denuncias: el autor no puede modificarlo |
 | material compartido | vía RPC `material_compartido(materia_id)` (security definer): devuelve materiales `compartido`, no `oculto`, de esa materia, **solo si `cursa_o_curso(materia_id)`**; el autor se devuelve como `null` si `anonimo`. Del documento solo devuelve `mime`, `bytes` y `paginas`: ni `sha256` ni `id`, porque con el `id` se podría crear un material propio y leer la fila completa. Abrir un documento compartido (fase 1b) requiere una RPC que lea por `material_id` | — |
@@ -134,7 +137,7 @@ Objetivo: que la IA (y Claude vía MCP) pueda **ver y accionar sobre todo** sin 
   - **Casi duplicados (fase 1b):** similitud de texto con `pg_trgm` contra el material compartido de la materia. Si se parece mucho, se pregunta "¿Es el mismo?" con las opciones Ver / Subir igual. El umbral se define y se prueba con PDFs reales en esa fase.
 - Búsqueda: full-text de Postgres en español (`texto_tsv`). Embeddings/pgvector: **no por ahora** (decisión abierta, ver §12).
 - Límite de tamaño por archivo en el cliente: 50 MB.
-- **Límites en el servidor:** `registrar_documento` rechaza un texto de más de unos 2 MB y frena al usuario que supera unos 50 MB de cuota, con un error que la app le explica al alumno. Los valores están en `limites_documentos`. El error se decide antes de mirar si el documento ya existe, para no revelarlo.
+- **Límites en el servidor:** `registrar_documento` rechaza un texto de más de unos 2 MB y frena al usuario que supera unos 50 MB de cuota, con un error que la app le explica al alumno. Los valores están en `limites_documentos`. El error se decide antes de mirar si el documento ya existe, para no revelarlo. La cuota cuenta el texto más 1 KB por documento; registrar de nuevo cobra solo la diferencia con lo ya pagado, y borrar un material no la devuelve. El tope de 50 MB por archivo también se controla en el servidor, como constante.
 - **Un material en varias materias:** "Agregar también a…" crea otra referencia al mismo documento, sin duplicar archivo ni copia local. "Mover a otra materia" cambia la referencia y un material compartido pasa a privado. La copia local se borra solo si ninguna otra referencia del usuario la usa, de cualquier plan.
 - **Borrar un material:** desaparece en pantalla al instante, con "Deshacer" durante unos 8 s. El borrado real ocurre al vencer ese plazo.
 
