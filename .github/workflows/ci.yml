@@ -20,6 +20,8 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: El seed coincide con el catálogo
+        run: pnpm seed && git diff --exit-code -- supabase/seed.sql
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test

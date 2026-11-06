@@ -134,3 +134,14 @@ Una línea por decisión de Agu. Agregar al final, con fecha. Si una decisión n
 - Borrar un material es inmediato en pantalla, con "Deshacer" en un aviso de unos 8 s; el borrado real ocurre al vencer. Reemplaza al doble toque.
 - En el panel de materia, los materiales se separan visualmente del formulario.
 - El informe de SIU Guaraní queda en `docs/investigacion/siu-guarani.md`. Sus decisiones siguen abiertas para la fase 1.
+- Cuota de A1: cuenta el texto más 1 KB por documento, se cobra aunque el documento ya exista (para no revelarlo) y borrar un material no devuelve cuota.
+- También se arreglan antes de `supabase link`:
+  - B1: una materia no cambia de plan (mismo trigger que M1).
+  - B3: sin cascadas entre universidad, carrera y plan, también en pendientes.
+  - B8: un material no cambia de `user_id`.
+  - B10 y B11: se completan los tests.
+  - B12: `reemplazar_datos_del_plan` toma el mismo lock que `activar_plan`.
+  - B13: el login por mail se apaga en el remoto (lo hace Agu en el panel; en local se mantiene para el login de prueba), `texto_tsv` se resuelve contra el tope de 1 MB, por ejemplo con un prefijo, y los códigos de materia se normalizan con `trim`.
+- CI: se comprueba que el seed coincida con `fixtures/lcd-7023-catalogo.json`.
+- Fechas de material: se frena el futuro y se aceptan fechas pasadas, así restaurar conserva las originales. Se agrega `materiales.compartido_en`, que fija siempre el servidor: se llena al pasar a compartido y se borra al volver a privado. `material_compartido` ordena por esa columna.
+- Bloqueantes de la fase 1: M2, B2, B5 y B6. Para la fase 1b: M3 (el autor no puede volver a compartir un contenido oculto y el admin puede suspenderle compartir) y B9 (el contador de denuncias se reinicia al restaurar). B4 queda como riesgo aceptado.
