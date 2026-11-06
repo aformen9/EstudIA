@@ -1,7 +1,7 @@
 -- reemplazar_datos_del_plan: forma de DatosImportados, reutilización de materias propias y todo o nada.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(58);
+select plan(85);
 
 create function pg_temp.como(uid uuid) returns void language plpgsql as $$
 begin
@@ -194,6 +194,103 @@ select is((select count(*)::int from public.materias where owner_id = '00000000-
 select pg_temp.como('00000000-0000-4000-8000-00000000000c');
 select throws_ok($$select public.reemplazar_datos_del_plan(pg_temp.lcd(), pg_temp.archivo())$$, '42501', null, 'sin inscripción no importa materias del catálogo');
 select is((select count(*)::int from public.materias where owner_id = auth.uid()), 0, 'sin inscripción: tampoco quedan las materias propias');
+
+/* ---------- Una materia existente se reutiliza para una sola clave ---------- */
+
+select pg_temp.como_postgres();
+insert into auth.users (id, email) values ('00000000-0000-4000-8000-00000000000d', 'dani@test.local');
+insert into public.inscripciones (user_id, plan_id, activa) values ('00000000-0000-4000-8000-00000000000d', pg_temp.lcd(), true);
+
+create function pg_temp.propia(clave text, codigo text, nombre text, correlativas jsonb default '[]') returns jsonb language sql as $$
+  select jsonb_build_object('clave', clave, 'codigo', codigo, 'nombre', nombre, 'anio', 1, 'cuatrimestre', 1,
+    'tipo', 'Materia', 'area', null, 'requiereAnioCompletoParaCursar', null, 'correlativas', correlativas)
+$$;
+create function pg_temp.prog(materia text, estado text) returns jsonb language sql as $$
+  select jsonb_build_object('materiaId', materia, 'estado', estado, 'p1', null, 'p2', null, 'rec', null,
+    'notaCursada', null, 'notaFinalExamen', null, 'nota', null, 'aplazos', '[]'::jsonb)
+$$;
+create function pg_temp.datos(propias jsonb, progreso jsonb default '[]') returns jsonb language sql as $$
+  select jsonb_build_object('materiasPropias', propias, 'progreso', progreso, 'historial', '[]'::jsonb)
+$$;
+create function pg_temp.mismo_codigo() returns jsonb language sql as $$
+  select pg_temp.datos(
+    jsonb_build_array(
+      pg_temp.propia('a', 'REP', 'Repetida A'),
+      pg_temp.propia('b', 'REP', 'Repetida B', jsonb_build_array(jsonb_build_object('requiere', 'a', 'para', 'rendir', 'condicion', 'aprobada')))),
+    jsonb_build_array(pg_temp.prog('a', 'aprobada'), pg_temp.prog('b', 'cursando')))
+$$;
+create function pg_temp.dani_propias(cod text) returns int language sql as $$
+  select count(*)::int from public.materias where owner_id = auth.uid() and codigo = cod
+$$;
+
+-- La misma clave de bloqueo en las dos funciones: dani importa, eva activa un plan.
+create function pg_temp.tiene_bloqueo(uid uuid) returns boolean language sql as $$
+  select exists (
+    select 1
+    from pg_locks l, (select hashtextextended(uid::text, 0) as clave) k
+    where l.locktype = 'advisory' and l.pid = pg_backend_pid() and l.mode = 'ExclusiveLock' and l.objsubid = 1
+      and l.classid = ((k.clave >> 32) & 4294967295)::oid
+      and l.objid = (k.clave & 4294967295)::oid
+  )
+$$;
+
+insert into auth.users (id, email) values ('00000000-0000-4000-8000-00000000000e', 'eva@test.local');
+select pg_temp.como('00000000-0000-4000-8000-00000000000e');
+select ok(not pg_temp.tiene_bloqueo(auth.uid()), 'bloqueo: activar_plan no lo tiene antes');
+select public.activar_plan(pg_temp.lcd());
+select ok(pg_temp.tiene_bloqueo(auth.uid()), 'bloqueo: activar_plan lo toma');
+
+select pg_temp.como('00000000-0000-4000-8000-00000000000d');
+select ok(not pg_temp.tiene_bloqueo(auth.uid()), 'bloqueo: reemplazar_datos_del_plan no lo tiene antes');
+create temp table mapa_repetidas on commit drop as
+  select public.reemplazar_datos_del_plan(pg_temp.lcd(), pg_temp.mismo_codigo()) as mapa;
+grant select on mapa_repetidas to authenticated;
+
+select ok(pg_temp.tiene_bloqueo(auth.uid()), 'bloqueo: reemplazar_datos_del_plan toma el mismo que activar_plan');
+select is(pg_temp.dani_propias('REP'), 2, 'mismo código: dos claves crean dos materias, sin fusionar');
+select isnt((select mapa ->> 'a' from mapa_repetidas), (select mapa ->> 'b' from mapa_repetidas), 'mismo código: cada clave tiene su uuid');
+select is((select nombre from public.materias where id = (select (mapa ->> 'a')::uuid from mapa_repetidas)), 'Repetida A', 'mismo código: la primera conserva su nombre');
+select is((select nombre from public.materias where id = (select (mapa ->> 'b')::uuid from mapa_repetidas)), 'Repetida B', 'mismo código: la segunda conserva su nombre');
+select is((select estado from public.progreso where materia_id = (select (mapa ->> 'a')::uuid from mapa_repetidas)), 'aprobada', 'mismo código: la primera conserva su progreso');
+select is((select estado from public.progreso where materia_id = (select (mapa ->> 'b')::uuid from mapa_repetidas)), 'cursando', 'mismo código: la segunda conserva su progreso');
+select is((select requiere_id::text from public.correlativas where materia_id = (select (mapa ->> 'b')::uuid from mapa_repetidas)), (select mapa ->> 'a' from mapa_repetidas), 'mismo código: una puede ser correlativa de la otra');
+
+select is(public.reemplazar_datos_del_plan(pg_temp.lcd(), pg_temp.mismo_codigo()), (select mapa from mapa_repetidas), 'reimportar con código repetido: cada clave vuelve a su materia');
+select is(pg_temp.dani_propias('REP'), 2, 'reimportar con código repetido: no crea más');
+select is((select count(*)::int from public.progreso where user_id = auth.uid()), 2, 'reimportar con código repetido: un progreso por materia');
+select is((select count(*)::int from public.correlativas c where c.materia_id = (select (mapa ->> 'b')::uuid from mapa_repetidas)), 1, 'reimportar con código repetido: conserva la correlativa');
+
+-- Una materia ya existente: la toma la primera clave, en el orden del archivo.
+insert into public.materias (id, plan_id, codigo, nombre, anio, owner_id) values
+  ('40000000-0000-4000-8000-0000000000d1', pg_temp.lcd(), 'EXI', 'Ya existía', 1, auth.uid());
+create temp table mapa_existente on commit drop as
+  select public.reemplazar_datos_del_plan(pg_temp.lcd(), pg_temp.datos(
+    jsonb_build_array(pg_temp.propia('x', 'EXI', 'Primera'), pg_temp.propia('y', 'EXI', 'Segunda')),
+    jsonb_build_array(pg_temp.prog('x', 'final'), pg_temp.prog('y', 'cursando')))) as mapa;
+grant select on mapa_existente to authenticated;
+select is((select mapa ->> 'x' from mapa_existente), '40000000-0000-4000-8000-0000000000d1', 'una existente: la reutiliza la primera clave');
+select isnt((select mapa ->> 'y' from mapa_existente), '40000000-0000-4000-8000-0000000000d1', 'una existente: la segunda clave crea otra');
+select is(pg_temp.dani_propias('EXI'), 2, 'una existente: quedan dos materias');
+select is((select estado from public.progreso where materia_id = '40000000-0000-4000-8000-0000000000d1'), 'final', 'una existente: guarda el progreso de la primera');
+select is((select estado from public.progreso where materia_id = (select (mapa ->> 'y')::uuid from mapa_existente)), 'cursando', 'una existente: y el de la segunda');
+
+-- Sin código coinciden por nombre.
+create temp table mapa_sin_codigo on commit drop as
+  select public.reemplazar_datos_del_plan(pg_temp.lcd(), pg_temp.datos(
+    jsonb_build_array(
+      pg_temp.propia('t1', null, 'Taller'),
+      pg_temp.propia('t2', '   ', 'Taller', jsonb_build_array(jsonb_build_object('requiere', 't1', 'para', 'cursar', 'condicion', 'regular')))),
+    jsonb_build_array(pg_temp.prog('t1', 'aprobada'), pg_temp.prog('t2', 'cursando')))) as mapa;
+grant select on mapa_sin_codigo to authenticated;
+select is((select count(*)::int from public.materias where owner_id = auth.uid() and nombre = 'Taller' and codigo is null), 2, 'sin código y mismo nombre: dos materias; un código en blanco cuenta como sin código');
+select is((select requiere_id::text from public.correlativas where materia_id = (select (mapa ->> 't2')::uuid from mapa_sin_codigo)), (select mapa ->> 't1' from mapa_sin_codigo), 'sin código y mismo nombre: una puede ser correlativa de la otra');
+select is((select count(*)::int from public.progreso where materia_id in (select (mapa ->> k)::uuid from mapa_sin_codigo, jsonb_object_keys(mapa) k)), 2, 'sin código y mismo nombre: las dos conservan su progreso');
+
+-- El código del archivo se recorta antes de comparar.
+select lives_ok($$select public.reemplazar_datos_del_plan(pg_temp.lcd(), pg_temp.datos(jsonb_build_array(pg_temp.propia('r', '  EXI  ', 'Recortada'))))$$, 'código con espacios: aplica');
+select is((select nombre from public.materias where id = '40000000-0000-4000-8000-0000000000d1'), 'Recortada', 'código con espacios: reutiliza la materia con el código recortado');
+select is(pg_temp.dani_propias('EXI'), 2, 'una sola clave con dos existentes: la otra se conserva');
+select is((select count(*)::int from public.materias where owner_id = auth.uid() and codigo = 'EXI' and nombre = 'Segunda'), 1, 'una sola clave con dos existentes: la otra queda sin cambios');
 
 select pg_temp.como_postgres();
 select * from finish();

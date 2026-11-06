@@ -1,7 +1,7 @@
 -- inscripciones, activar_plan, progreso e historial.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(66);
+select plan(70);
 
 create function pg_temp.como(uid uuid) returns void language plpgsql as $$
 begin
@@ -61,6 +61,10 @@ select throws_ok($$insert into public.inscripciones (plan_id, activa) values ('3
 select lives_ok($$insert into public.inscripciones (plan_id, activa) values ('30000000-0000-4000-8000-000000000001', false)$$, 'inscripciones: una segunda inactiva sí se puede');
 select is(pg_temp.filas($$update public.inscripciones set activa = false where plan_id = '30000000-0000-4000-8000-000000000001'$$), 1, 'inscripciones update: edita la propia');
 select is(pg_temp.filas($$delete from public.inscripciones where plan_id = '30000000-0000-4000-8000-000000000001'$$), 1, 'inscripciones delete: borra la propia');
+select throws_ok($$update public.inscripciones set plan_id = '30000000-0000-4000-8000-000000000002' where plan_id = pg_temp.lcd()$$, '42501', null, 'inscripciones update: plan_id no pasa a un plan no visible');
+select is((select plan_id from public.inscripciones), pg_temp.lcd(), 'inscripciones update: lo rechazado no cambió');
+select is(pg_temp.filas($$update public.inscripciones set plan_id = '30000000-0000-4000-8000-000000000001' where plan_id = pg_temp.lcd()$$), 1, 'inscripciones update: plan_id pasa a un plan visible');
+select is(pg_temp.filas($$update public.inscripciones set plan_id = pg_temp.lcd() where plan_id = '30000000-0000-4000-8000-000000000001'$$), 1, 'inscripciones update: y vuelve');
 
 select pg_temp.como('00000000-0000-4000-8000-00000000000b');
 select is((select count(*)::int from public.inscripciones), 0, 'inscripciones select: no ve las de otro');

@@ -217,6 +217,7 @@ web3 = 30
 # provider = "hcaptcha"
 # secret = ""
 
+# El login por mail queda activo en local para el login de prueba. En el remoto lo apaga Agu desde el panel.
 [auth.email]
 # Allow/disallow the email provider. When false, users can't sign up or sign in with email.
 # To block new signups only, set enable_signup = false under [auth] instead.
