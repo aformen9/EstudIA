@@ -8,7 +8,7 @@ alter table public.correlativas enable row level security;
 alter table public.perfiles enable row level security;
 alter table public.inscripciones enable row level security;
 alter table public.progreso enable row level security;
-alter table public.historial enable row level security;
+alter table public.instancias enable row level security;
 alter table public.documentos enable row level security;
 alter table public.limites_documentos enable row level security;
 alter table public.uso_documentos enable row level security;
@@ -135,19 +135,19 @@ create policy progreso_update on public.progreso for update to authenticated
 create policy progreso_delete on public.progreso for delete to authenticated
   using (user_id = (select auth.uid()));
 
-/* ---------- historial ---------- */
+/* ---------- instancias ---------- */
 
-create policy historial_select on public.historial for select to authenticated
+create policy instancias_select on public.instancias for select to authenticated
   using (user_id = (select auth.uid()));
 
-create policy historial_insert on public.historial for insert to authenticated
+create policy instancias_insert on public.instancias for insert to authenticated
   with check (user_id = (select auth.uid()) and public.puede_registrar_en_materia(materia_id));
 
-create policy historial_update on public.historial for update to authenticated
+create policy instancias_update on public.instancias for update to authenticated
   using (user_id = (select auth.uid()))
   with check (user_id = (select auth.uid()) and public.puede_registrar_en_materia(materia_id));
 
-create policy historial_delete on public.historial for delete to authenticated
+create policy instancias_delete on public.instancias for delete to authenticated
   using (user_id = (select auth.uid()));
 
 /* ---------- documentos: se escriben solo por registrar_documento ---------- */

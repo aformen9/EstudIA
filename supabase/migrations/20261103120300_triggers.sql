@@ -176,7 +176,7 @@ create trigger materias_normalizar_codigo
 
 /* ---------- Materias del catálogo con datos de alumnos ---------- */
 
--- Borrar la materia se llevaría en cascada el progreso y el historial de sus alumnos, también si el
+-- Borrar la materia se llevaría en cascada el progreso y las instancias de sus alumnos, también si el
 -- borrado viene desde el plan. Security definer: la RLS le oculta a quien borra los datos ajenos.
 -- El bloqueo de la fila hace esperar a las escrituras en curso y frena las nuevas hasta terminar.
 create function public.materia_proteger_datos_de_alumnos()
@@ -193,8 +193,8 @@ begin
   perform 1 from public.materias m where m.id = old.id for update;
 
   if exists (select 1 from public.progreso p where p.materia_id = old.id)
-    or exists (select 1 from public.historial h where h.materia_id = old.id) then
-    raise exception 'la materia % del catálogo tiene progreso o historial de alumnos', old.codigo
+    or exists (select 1 from public.instancias i where i.materia_id = old.id) then
+    raise exception 'la materia % del catálogo tiene progreso o instancias de alumnos', old.codigo
       using errcode = '23503';
   end if;
 
@@ -209,7 +209,7 @@ create trigger materias_proteger_datos_de_alumnos
 /* ---------- Planes con materias propias ---------- */
 
 -- `materias.plan_id` va en cascada: sin esto, borrar un plan sin inscripciones se llevaría las materias
--- propias de un alumno dado de baja, con su progreso e historial. Security definer: la RLS le oculta a
+-- propias de un alumno dado de baja, con su progreso e instancias. Security definer: la RLS le oculta a
 -- quien borra las materias de los demás. Las del catálogo las cuida el trigger de arriba.
 create function public.plan_proteger_materias_propias()
 returns trigger

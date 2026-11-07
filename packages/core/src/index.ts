@@ -5,6 +5,7 @@ export * from "./calculo/promedios";
 export * from "./calculo/correlativas";
 export * from "./calculo/sugerencias";
 export * from "./calculo/notas";
+export * from "./calculo/instancias";
 export * from "./calculo/plan";
 export * from "./calculo/materiasPropias";
 export * from "./importacion/tipos";

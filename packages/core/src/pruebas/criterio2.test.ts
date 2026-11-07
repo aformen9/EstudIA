@@ -160,10 +160,13 @@ describe("importación del caso de prueba", () => {
       porEstado: { aprobada: 26, cursando: 5, final: 2, pendiente: 17 },
       materiasConMatch: 50,
       materiasPropias: 0,
-      eventos: 59,
+      // 59 eventos del historial menos los 5 "En curso", que no son instancias.
+      eventos: 54,
       materiales: 0,
       avisos: 0,
     });
-    expect(resultado.datos.historial.every((h) => h.fuente === "manual")).toBe(true);
+    expect(
+      resultado.datos.progreso.flatMap((f) => f.instancias).every((i) => i.fuente === "manual"),
+    ).toBe(true);
   });
 });

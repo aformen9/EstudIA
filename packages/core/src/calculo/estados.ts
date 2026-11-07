@@ -21,13 +21,7 @@ export function progresoInicial(materiaId: string): ProgresoMateria {
   return {
     materiaId,
     estado: "pendiente",
-    p1: null,
-    p2: null,
-    rec: null,
-    notaCursada: null,
-    notaFinalExamen: null,
-    nota: null,
-    aplazos: [],
+    instancias: [],
   };
 }
 

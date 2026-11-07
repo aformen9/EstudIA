@@ -3,7 +3,6 @@ import type {
   Carrera,
   DatosImportados,
   Documento,
-  EventoHistorial,
   Inscripcion,
   Material,
   Materia,
@@ -77,8 +76,8 @@ export interface Repositorio {
 
   /* Progreso */
   obtenerProgreso(planId: string): Promise<ProgresoMateria[]>;
+  /** Guarda de una vez el estado y las instancias de la materia: reemplaza las que tenía. */
   guardarProgreso(progreso: ProgresoMateria): Promise<void>;
-  obtenerHistorial(planId: string): Promise<EventoHistorial[]>;
 
   /* Materias propias */
   /**
@@ -112,7 +111,7 @@ export interface Repositorio {
   borrarMaterial(materialId: string): Promise<void>;
 
   /**
-   * Reemplaza de una vez (todo o nada) `progreso` e `historial` del plan. Hay que activar el plan
+   * Reemplaza de una vez (todo o nada) `progreso` del plan, con sus instancias. Hay que activar el plan
    * antes: la RLS rechaza filas de un plan sin inscripción. Devuelve `clave → uuid` de las materias
    * propias del archivo.
    */

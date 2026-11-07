@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { datosDe, evento, fila, materia, planBase, planLcd } from "../pruebas/auxiliares";
+import { datosDe, fila, instancia, materia, planBase, planLcd } from "../pruebas/auxiliares";
 import type { Correlativa, Material } from "../tipos";
 import { materiasBloqueadas, podesCursar, situacionCorrelativas } from "./correlativas";
 import { progresoInicial } from "./estados";
@@ -12,7 +12,6 @@ import {
   cuatrimestresDelAnio,
   esAnual,
   esMateriaPropia,
-  historialDeMateria,
   materialesDeMateria,
   materialesDelPlan,
   materialesRecientes,
@@ -148,11 +147,9 @@ describe("buscarMaterias", () => {
 });
 
 describe("sinDatosCargados", () => {
-  it("es no tener progreso ni historial", () => {
-    expect(sinDatosCargados({ progreso: [], historial: [] })).toBe(true);
-    expect(sinDatosCargados({ progreso: [fila("a")], historial: [] })).toBe(false);
-    const examen = evento("a", "2025-01-01", "Examen", "Aprobado", 8);
-    expect(sinDatosCargados({ progreso: [], historial: [examen] })).toBe(false);
+  it("es no tener ninguna fila de progreso", () => {
+    expect(sinDatosCargados({ progreso: [] })).toBe(true);
+    expect(sinDatosCargados({ progreso: [fila("a")] })).toBe(false);
   });
 });
 
@@ -191,57 +188,33 @@ describe("materiales", () => {
   });
 });
 
-describe("historial de una materia", () => {
-  const historial = [
-    evento("m", "2025-01-01", "Regularidad", "Aprobado", 7),
-    evento("otra", "2024-12-01", "Regularidad", "Aprobado", 8),
-    evento("m", "2025-03-01", "Examen", "Ausente", null),
-    evento("m", "2025-02-01", "Examen", "Reprobado", 2),
-  ];
+describe("resumen de Falta final", () => {
+  const hoy = "2026-11-07";
+  const plan = planBase();
 
-  it("va del más nuevo al más viejo, sin tocar la lista original", () => {
-    const original = [...historial];
-    expect(historialDeMateria(historial, "m").map((h) => h.fecha)).toEqual([
-      "2025-03-01",
-      "2025-02-01",
-      "2025-01-01",
-    ]);
-    expect(historial).toEqual(original);
-  });
-
-  it("a igual fecha invierte el orden de carga, como la referencia", () => {
-    const mismoDia = [
-      evento("m", "2025-01-01", "Regularidad", "Aprobado", 7),
-      evento("m", "2025-01-01", "Examen", "Aprobado", 8),
-    ];
-    expect(historialDeMateria(mismoDia, "m").map((h) => h.tipo)).toEqual(["Examen", "Regularidad"]);
-  });
-
-  it("el resumen del final da datos sin formatear, en orden de fecha", () => {
-    expect(resumenFinal(historial, "m")).toEqual({
-      cursadaAprobada: "2025-01-01",
+  it("da la cursada vigente y cada final con su situación, por fecha", () => {
+    const progreso = {
+      estado: "final" as const,
+      instancias: [
+        instancia("cursada", "2024-07-01", 5),
+        instancia("cursada", "2025-07-01", 6),
+        instancia("final", "2025-03-01", null),
+        instancia("final", "2025-02-01", 2),
+        instancia("final", "2026-12-10", null),
+      ],
+    };
+    expect(resumenFinal(progreso, plan, hoy)).toEqual({
+      cursadaVigente: "2025-07-01",
       intentos: [
-        { nota: 2, resultado: "Reprobado" },
-        { nota: null, resultado: "Ausente" },
+        { fecha: "2025-02-01", nota: 2, situacion: "aplazo" },
+        { fecha: "2025-03-01", nota: null, situacion: "ausente" },
+        { fecha: "2026-12-10", nota: null, situacion: "programada" },
       ],
     });
   });
 
-  it("el resumen toma la última cursada aprobada e ignora las reprobadas", () => {
-    expect(
-      resumenFinal(
-        [
-          evento("m", "2025-08-01", "Regularidad", "Reprobado", 2),
-          evento("m", "2025-07-01", "Regularidad", "Aprobado", 6),
-          evento("m", "2024-07-01", "Regularidad", "Aprobado", 5),
-        ],
-        "m",
-      ),
-    ).toEqual({ cursadaAprobada: "2025-07-01", intentos: [] });
-  });
-
-  it("sin eventos no hay cursada ni intentos", () => {
-    expect(resumenFinal([], "m")).toEqual({ cursadaAprobada: null, intentos: [] });
+  it("sin progreso no hay cursada ni intentos", () => {
+    expect(resumenFinal(null, plan, hoy)).toEqual({ cursadaVigente: null, intentos: [] });
   });
 });
 

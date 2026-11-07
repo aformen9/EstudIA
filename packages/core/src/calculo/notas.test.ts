@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { planBase } from "../pruebas/auxiliares";
 import {
   ajustarAlPaso,
-  camposNotaVisibles,
   leerNotaEscrita,
   notaAUnEntero,
   notaAUnPaso,
@@ -112,32 +111,5 @@ describe("nota escrita", () => {
     expect(notaConComa(8.5)).toBe("8,5");
     expect(notaConComa(8)).toBe("8");
     expect(notaConComa(0.1 + 0.2)).toBe("0,3");
-  });
-});
-
-describe("notas visibles por estado", () => {
-  it("muestra las notas de cada estado", () => {
-    expect(camposNotaVisibles("pendiente", [])).toEqual([]);
-    expect(camposNotaVisibles("cursando", [])).toEqual(["p1", "p2", "rec"]);
-    expect(camposNotaVisibles("final", [])).toEqual(["notaCursada", "notaFinalExamen"]);
-    expect(camposNotaVisibles("aprobada", [])).toEqual(["notaCursada", "notaFinalExamen", "nota"]);
-  });
-
-  it("una nota cargada se ve siempre, aunque no sea del estado", () => {
-    expect(camposNotaVisibles("pendiente", [{ p1: 8 }])).toEqual(["p1"]);
-    expect(camposNotaVisibles("cursando", [{ notaCursada: 7.25 }])).toEqual([
-      "p1",
-      "p2",
-      "rec",
-      "notaCursada",
-    ]);
-  });
-
-  it("una nota que se está vaciando no desaparece mientras siga guardada", () => {
-    expect(camposNotaVisibles("pendiente", [{ p1: 8 }, { p1: null }])).toEqual(["p1"]);
-  });
-
-  it("con todas muestra las seis", () => {
-    expect(camposNotaVisibles("pendiente", [], true)).toHaveLength(6);
   });
 });

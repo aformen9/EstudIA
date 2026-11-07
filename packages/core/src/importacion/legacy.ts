@@ -7,12 +7,13 @@ import type {
   PlanCompleto,
   ProgresoMateria,
 } from "../tipos";
+import { instanciasDesdeLegacy, progresoVacio } from "./convertir";
 import {
   Avisos,
   catalogoPorCodigo,
+  fechaValida,
   normalizarEvento,
   normalizarProgreso,
-  progresoVacio,
   resumirImportacion,
 } from "./normalizar";
 import type { ResultadoImportacion } from "./tipos";
@@ -133,10 +134,15 @@ function materiaPropia(
 
 /**
  * Convierte un respaldo de "Mi Plan de Estudio" en datos del plan, con match por `codigo`. El
- * catálogo manda: de una materia con match solo se toma el progreso y el historial. No lanza
- * excepciones por archivos inválidos.
+ * catálogo manda: de una materia con match solo se toma el progreso y el historial, que pasan a
+ * instancias. Las notas sin evento toman la fecha del respaldo (`actualizado`) o, si no tiene, `hoy`
+ * ("AAAA-MM-DD"). No lanza excepciones por archivos inválidos.
  */
-export function importarLegacy(json: unknown, plan: PlanCompleto): ResultadoImportacion {
+export function importarLegacy(
+  json: unknown,
+  plan: PlanCompleto,
+  hoy = "1970-01-01",
+): ResultadoImportacion {
   const lectura = esquemaLegacy.safeParse(json);
   if (!lectura.success) return { ok: false, error: mensajeDeError(lectura.error) };
 
@@ -187,7 +193,7 @@ export function importarLegacy(json: unknown, plan: PlanCompleto): ResultadoImpo
 
   const materiasPropias: MateriaPropiaImportada[] = [];
   const progreso: ProgresoMateria[] = [];
-  const historial: EventoHistorial[] = [];
+  const fechaDelRespaldo = fechaValida(lectura.data.actualizado) ?? hoy;
   for (const { materia, destino, codigo, esPropia } of aImportar) {
     if (esPropia) {
       avisos.agregar(
@@ -200,19 +206,18 @@ export function importarLegacy(json: unknown, plan: PlanCompleto): ResultadoImpo
 
     const nombre = materia.nombre;
     const origen = { id: codigo ?? materia.id, nombre };
-    const fila = normalizarProgreso(
+    const legacy = normalizarProgreso(
       { ...materia, notaFinalExamen: materia.final },
       destino,
       origen,
       plan.plan,
       avisos,
     );
-    if (!progresoVacio(fila)) progreso.push(fila);
-
+    const eventos: EventoHistorial[] = [];
     if (Array.isArray(materia.historial)) {
       for (const crudo of materia.historial as unknown[]) {
         const evento = normalizarEvento(crudo, destino, origen, fuente, plan.plan, avisos);
-        if (evento) historial.push(evento);
+        if (evento) eventos.push(evento);
       }
     } else if (materia.historial !== null && materia.historial !== undefined) {
       avisos.agregar(
@@ -222,6 +227,8 @@ export function importarLegacy(json: unknown, plan: PlanCompleto): ResultadoImpo
         materia.historial,
       );
     }
+    const fila = instanciasDesdeLegacy(legacy, eventos, fechaDelRespaldo, fuente);
+    if (!progresoVacio(fila)) progreso.push(fila);
   }
 
   for (const materia of catalogo.values()) {
@@ -234,7 +241,7 @@ export function importarLegacy(json: unknown, plan: PlanCompleto): ResultadoImpo
     }
   }
 
-  const datos = { materiasPropias, progreso, historial };
+  const datos = { materiasPropias, progreso };
   return {
     ok: true,
     datos,

@@ -1,12 +1,10 @@
-import type {
-  DatosAlumno,
-  EventoHistorial,
-  Material,
-  Materia,
-  Plan,
-  PlanCompleto,
-  ResultadoHistorial,
-} from "../tipos";
+import {
+  ordenarInstancias,
+  resumirMateria,
+  situacionDeInstancia,
+  type SituacionInstancia,
+} from "./instancias";
+import type { DatosAlumno, Material, Materia, Plan, PlanCompleto, ProgresoMateria } from "../tipos";
 
 type Lugar = Pick<Materia, "anio" | "cuatrimestre">;
 
@@ -18,15 +16,16 @@ export interface GrupoMaterias {
 }
 
 export interface IntentoFinal {
-  /** Null si el intento no tiene nota, por ejemplo un ausente. */
+  fecha: string;
+  /** Null si el intento no tiene nota: ausente o programado. */
   nota: number | null;
-  resultado: ResultadoHistorial;
+  situacion: SituacionInstancia;
 }
 
 export interface ResumenFinal {
-  /** Fecha de la última cursada aprobada, si está en el historial. */
-  cursadaAprobada: string | null;
-  /** Cada intento de final, del más viejo al más nuevo. */
+  /** Fecha de la cursada vigente, si hay. */
+  cursadaVigente: string | null;
+  /** Cada final, del más viejo al más nuevo. */
   intentos: IntentoFinal[];
 }
 
@@ -114,9 +113,9 @@ export function buscarMaterias(materias: Materia[], texto: string): Materia[] {
   );
 }
 
-/** Sin filas de progreso ni de historial: el alumno todavía no cargó nada. */
-export function sinDatosCargados(datos: Pick<DatosAlumno, "progreso" | "historial">): boolean {
-  return datos.progreso.length === 0 && datos.historial.length === 0;
+/** Sin filas de progreso: el alumno todavía no cargó nada. */
+export function sinDatosCargados(datos: Pick<DatosAlumno, "progreso">): boolean {
+  return datos.progreso.length === 0;
 }
 
 /** Lo último que se cargó primero. */
@@ -137,28 +136,23 @@ export function materialesDeMateria(materiales: Material[], materiaId: string): 
   return materiales.filter((m) => m.materiaId === materiaId);
 }
 
-/** Eventos de una materia, del más nuevo al más viejo; a igual fecha, el último cargado primero. */
-export function historialDeMateria(
-  historial: EventoHistorial[],
-  materiaId: string,
-): EventoHistorial[] {
-  return historial
-    .filter((h) => h.materiaId === materiaId)
-    .reverse()
-    .sort((a, b) => b.fecha.localeCompare(a.fecha));
-}
-
-/** Los datos de la vista de Finales pendientes, sin formatear. */
-export function resumenFinal(historial: EventoHistorial[], materiaId: string): ResumenFinal {
-  const eventos = historial
-    .filter((h) => h.materiaId === materiaId)
-    .sort((a, b) => a.fecha.localeCompare(b.fecha));
-  const cursadas = eventos.filter((h) => h.tipo === "Regularidad" && h.resultado === "Aprobado");
+/** Los datos de la vista de Falta final, sin formatear. `hoy` decide qué es ausente y qué programado. */
+export function resumenFinal(
+  progreso: Pick<ProgresoMateria, "estado" | "instancias"> | null,
+  plan: Pick<Plan, "notaAprobacion">,
+  hoy: string,
+): ResumenFinal {
+  if (!progreso) return { cursadaVigente: null, intentos: [] };
+  const resumen = resumirMateria(progreso, plan);
   return {
-    cursadaAprobada: cursadas.at(-1)?.fecha ?? null,
-    intentos: eventos
-      .filter((h) => h.tipo === "Examen")
-      .map(({ nota, resultado }) => ({ nota, resultado })),
+    cursadaVigente: resumen.cursadaVigente?.fecha ?? null,
+    intentos: ordenarInstancias(progreso.instancias)
+      .filter((i) => i.tipo === "final")
+      .map((i) => ({
+        fecha: i.fecha,
+        nota: i.nota,
+        situacion: situacionDeInstancia(i, resumen, hoy),
+      })),
   };
 }
 

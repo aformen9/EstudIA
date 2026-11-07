@@ -1,41 +1,6 @@
-import type { EstadoMateria, Plan, ProgresoMateria } from "../tipos";
+import type { Plan } from "../tipos";
 
 export type EscalaConPaso = Pick<Plan, "notaMin" | "notaMax" | "notaPaso">;
-
-export type CampoNota = "p1" | "p2" | "rec" | "notaCursada" | "notaFinalExamen" | "nota";
-
-/** Todas las notas de una materia, en el orden en que se muestran. */
-export const CAMPOS_NOTA: readonly CampoNota[] = [
-  "p1",
-  "p2",
-  "rec",
-  "notaCursada",
-  "notaFinalExamen",
-  "nota",
-];
-
-const CAMPOS_POR_ESTADO: Record<EstadoMateria, readonly CampoNota[]> = {
-  pendiente: [],
-  cursando: ["p1", "p2", "rec"],
-  final: ["notaCursada", "notaFinalExamen"],
-  aprobada: ["notaCursada", "notaFinalExamen", "nota"],
-};
-
-/**
- * Los campos de nota que se muestran para un estado. Una nota cargada se ve siempre, aunque no sea
- * de ese estado: cada elemento de `conValor` es un juego de valores, para poder pasar lo guardado y
- * lo que se está editando, y que un campo no desaparezca al vaciarlo.
- */
-export function camposNotaVisibles(
-  estado: EstadoMateria,
-  conValor: readonly Partial<Pick<ProgresoMateria, CampoNota>>[],
-  todas = false,
-): CampoNota[] {
-  const delEstado = CAMPOS_POR_ESTADO[estado];
-  return CAMPOS_NOTA.filter(
-    (campo) => todas || delEstado.includes(campo) || conValor.some((v) => v[campo] != null),
-  );
-}
 
 /** Evita arrastrar el error de coma flotante: 7,1 + 0,1 tiene que dar 7,2. */
 function limpiar(valor: number): number {

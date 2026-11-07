@@ -1,13 +1,14 @@
 import { materiasPropiasConservadas } from "./previsualizar";
 import { notaEnEscala } from "../calculo/sugerencias";
+import type { ProgresoLegacy } from "./convertir";
 import type {
   DatosImportados,
   EventoHistorial,
   FuenteHistorial,
+  Instancia,
   Materia,
   Plan,
   PlanCompleto,
-  ProgresoMateria,
   ResultadoHistorial,
   TipoHistorial,
 } from "../tipos";
@@ -64,7 +65,7 @@ function nombreDeCampo(campo: string): string {
     notaFinalExamen: "final",
     nota: "nota final",
     aplazos: "aplazo",
-    historial: "historial",
+    historial: "nota de una instancia",
   };
   return nombres[campo] ?? campo;
 }
@@ -109,7 +110,7 @@ export function normalizarProgreso(
   origen: OrigenMateria,
   plan: Plan,
   avisos: Avisos,
-): ProgresoMateria {
+): ProgresoLegacy {
   const estado = ESTADOS_MATERIA.find((e) => e === crudo.estado);
   if (!estado) {
     avisos.agregar(
@@ -150,21 +151,7 @@ export function normalizarProgreso(
   };
 }
 
-/** Una fila sin ningún dato equivale a no tener fila. */
-export function progresoVacio(progreso: ProgresoMateria): boolean {
-  return (
-    progreso.estado === "pendiente" &&
-    progreso.p1 === null &&
-    progreso.p2 === null &&
-    progreso.rec === null &&
-    progreso.notaCursada === null &&
-    progreso.notaFinalExamen === null &&
-    progreso.nota === null &&
-    progreso.aplazos.length === 0
-  );
-}
-
-function fechaValida(valor: unknown): string | null {
+export function fechaValida(valor: unknown): string | null {
   if (typeof valor !== "string") return null;
   const partes = /^(\d{4})-(\d{2})-(\d{2})/.exec(valor);
   if (!partes) return null;
@@ -212,6 +199,49 @@ export function normalizarEvento(
   };
 }
 
+const TIPOS_INSTANCIA_VALIDOS = new Set([
+  "parcial",
+  "recuperatorio",
+  "cursada",
+  "final",
+  "promocion",
+]);
+
+/** Valida una instancia del respaldo v2. Sin tipo o fecha válidos se descarta y se reporta. */
+export function normalizarInstancia(
+  crudo: unknown,
+  orden: number,
+  origen: OrigenMateria,
+  fuente: FuenteHistorial,
+  plan: Plan,
+  avisos: Avisos,
+): Instancia | null {
+  const dato = (typeof crudo === "object" && crudo !== null ? crudo : {}) as Record<
+    string,
+    unknown
+  >;
+  const fecha = fechaValida(dato.fecha);
+  const tipo =
+    typeof dato.tipo === "string" && TIPOS_INSTANCIA_VALIDOS.has(dato.tipo) ? dato.tipo : null;
+  if (!fecha || !tipo) {
+    avisos.agregar(
+      "evento-descartado",
+      origen.id,
+      `${origen.nombre}: descarté una instancia porque tiene fecha o tipo inválidos.`,
+      crudo,
+    );
+    return null;
+  }
+  return {
+    id: `importada-${orden}`,
+    tipo: tipo as Instancia["tipo"],
+    fecha,
+    nota: normalizarNota(dato.nota, "historial", origen, plan, avisos),
+    orden,
+    fuente,
+  };
+}
+
 export function resumirImportacion(
   plan: PlanCompleto,
   datos: DatosImportados,
@@ -231,7 +261,7 @@ export function resumirImportacion(
     porEstado,
     materiasConMatch,
     materiasPropias: datos.materiasPropias.length,
-    eventos: datos.historial.length,
+    eventos: datos.progreso.reduce((total, fila) => total + fila.instancias.length, 0),
     materiales,
     avisos: avisos.lista.length,
   };

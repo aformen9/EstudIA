@@ -111,7 +111,7 @@ as $$
     );
 $$;
 
--- Decisión de la fase 0: progreso e historial solo sobre materias propias o de un plan donde el
+-- Decisión de la fase 0: progreso e instancias solo sobre materias propias o de un plan donde el
 -- alumno está inscripto, para que no pueda destrabar material de otra carrera.
 create function public.puede_registrar_en_materia(materia_id uuid)
 returns boolean

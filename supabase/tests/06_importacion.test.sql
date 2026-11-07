@@ -1,7 +1,7 @@
 -- reemplazar_datos_del_plan: forma de DatosImportados, reutilización de materias propias y todo o nada.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(85);
+select plan(82);
 
 create function pg_temp.como(uid uuid) returns void language plpgsql as $$
 begin
@@ -34,13 +34,13 @@ create function pg_temp.archivo() returns jsonb language sql as $$
         'tipo', 'Seminario', 'area', null, 'requiereAnioCompletoParaCursar', null,
         'correlativas', '[]'::jsonb)),
     'progreso', jsonb_build_array(
-      jsonb_build_object('materiaId', pg_temp.materia('GMA0136'), 'estado', 'aprobada', 'p1', 7, 'p2', 8, 'rec', null,
-        'notaCursada', 7.5, 'notaFinalExamen', 9, 'nota', 9, 'aplazos', jsonb_build_array(2, 3)),
-      jsonb_build_object('materiaId', 'OPT1', 'estado', 'cursando', 'p1', null, 'p2', null, 'rec', null,
-        'notaCursada', null, 'notaFinalExamen', null, 'nota', null, 'aplazos', '[]'::jsonb)),
-    'historial', jsonb_build_array(
-      jsonb_build_object('materiaId', pg_temp.materia('GMA0136'), 'fecha', '2025-07-10', 'tipo', 'Examen', 'nota', 2, 'resultado', 'Reprobado', 'fuente', 'siu'),
-      jsonb_build_object('materiaId', 'sin-codigo', 'fecha', '2025-12-01', 'tipo', 'Promocion', 'nota', 8, 'resultado', 'Promocionado', 'fuente', 'manual')));
+      jsonb_build_object('materiaId', pg_temp.materia('GMA0136'), 'estado', 'aprobada', 'instancias', jsonb_build_array(
+        jsonb_build_object('tipo', 'cursada', 'fecha', '2025-06-20', 'nota', 7.5, 'fuente', 'siu'),
+        jsonb_build_object('tipo', 'final', 'fecha', '2025-07-10', 'nota', 2, 'fuente', 'siu'),
+        jsonb_build_object('tipo', 'final', 'fecha', '2025-07-25', 'nota', 9))),
+      jsonb_build_object('materiaId', 'OPT1', 'estado', 'cursando', 'instancias', '[]'::jsonb),
+      jsonb_build_object('materiaId', 'sin-codigo', 'estado', 'aprobada', 'instancias', jsonb_build_array(
+        jsonb_build_object('tipo', 'promocion', 'fecha', '2025-12-01', 'nota', 8, 'fuente', 'manual')))));
 $$;
 
 insert into auth.users (id, email) values
@@ -71,11 +71,11 @@ insert into public.progreso (user_id, materia_id, estado) values
   ('00000000-0000-4000-8000-00000000000a', '40000000-0000-4000-8000-0000000000a9', 'final'),
   ('00000000-0000-4000-8000-00000000000a', '40000000-0000-4000-8000-000000000001', 'cursando'),
   ('00000000-0000-4000-8000-00000000000b', pg_temp.materia('GES0132'), 'cursando');
-insert into public.historial (user_id, materia_id, fecha, tipo, resultado) values
-  ('00000000-0000-4000-8000-00000000000a', pg_temp.materia('GES0132'), '2024-01-01', 'En curso', 'En curso'),
-  ('00000000-0000-4000-8000-00000000000a', '40000000-0000-4000-8000-0000000000a9', '2024-01-02', 'En curso', 'En curso'),
-  ('00000000-0000-4000-8000-00000000000a', '40000000-0000-4000-8000-000000000001', '2024-01-03', 'En curso', 'En curso'),
-  ('00000000-0000-4000-8000-00000000000b', pg_temp.materia('GES0132'), '2024-01-04', 'En curso', 'En curso');
+insert into public.instancias (user_id, materia_id, tipo, fecha) values
+  ('00000000-0000-4000-8000-00000000000a', pg_temp.materia('GES0132'), 'parcial', '2024-01-01'),
+  ('00000000-0000-4000-8000-00000000000a', '40000000-0000-4000-8000-0000000000a9', 'parcial', '2024-01-02'),
+  ('00000000-0000-4000-8000-00000000000a', '40000000-0000-4000-8000-000000000001', 'parcial', '2024-01-03'),
+  ('00000000-0000-4000-8000-00000000000b', pg_temp.materia('GES0132'), 'parcial', '2024-01-04');
 
 /* ---------- Importación correcta ---------- */
 
@@ -93,19 +93,16 @@ select is((select count(*)::int from public.correlativas c join public.materias 
 select is((select r.nombre from public.correlativas c join public.materias m on m.id = c.materia_id join public.materias r on r.id = c.requiere_id where m.codigo = 'OPT1' and m.owner_id = auth.uid() and c.para = 'rendir'), 'Taller', 'importar: resuelve la clave de una correlativa a su uuid');
 select is((select c.requiere_id from public.correlativas c join public.materias m on m.id = c.materia_id where m.codigo = 'OPT1' and m.owner_id = auth.uid() and c.para = 'cursar'), pg_temp.materia('GMA0136'), 'importar: acepta el uuid del catálogo en una correlativa');
 
-select is((select count(*)::int from public.progreso p join public.materias m on m.id = p.materia_id where m.plan_id = pg_temp.lcd()), 2, 'importar: progreso del plan reemplazado');
+select is((select count(*)::int from public.progreso p join public.materias m on m.id = p.materia_id where m.plan_id = pg_temp.lcd()), 3, 'importar: progreso del plan reemplazado');
 select is((select count(*)::int from public.progreso where materia_id = pg_temp.materia('GES0132')), 0, 'importar: borra el progreso que no venía');
 select is((select count(*)::int from public.progreso where materia_id = '40000000-0000-4000-8000-0000000000a9'), 0, 'importar: borra el progreso de la materia propia que no vino');
 select is((select estado from public.progreso where materia_id = '40000000-0000-4000-8000-000000000001'), 'cursando', 'importar: no toca el progreso de otro plan');
-select is((select nota_cursada from public.progreso where materia_id = pg_temp.materia('GMA0136')), 7.5, 'importar: traduce notaCursada');
-select is((select nota_final_examen from public.progreso where materia_id = pg_temp.materia('GMA0136')), 9::numeric, 'importar: traduce notaFinalExamen');
-select is((select aplazos from public.progreso where materia_id = pg_temp.materia('GMA0136')), '{2,3}'::numeric[], 'importar: conserva aplazos en orden');
+select is((select array_agg(tipo || ':' || nota || ':' || orden || ':' || fuente order by orden) from public.instancias where materia_id = pg_temp.materia('GMA0136')), array['cursada:7.5:0:siu', 'final:2:1:siu', 'final:9:2:manual'], 'importar: instancias en orden, con nota, orden y fuente');
 select is((select estado from public.progreso p join public.materias m on m.id = p.materia_id where m.codigo = 'OPT1' and m.owner_id = auth.uid()), 'cursando', 'importar: resuelve la clave en progreso');
 
-select is((select count(*)::int from public.historial h join public.materias m on m.id = h.materia_id where m.plan_id = pg_temp.lcd()), 2, 'importar: historial del plan reemplazado');
-select is((select count(*)::int from public.historial where materia_id = '40000000-0000-4000-8000-000000000001'), 1, 'importar: no toca el historial de otro plan');
-select is((select fuente from public.historial where materia_id = pg_temp.materia('GMA0136')), 'siu', 'importar: conserva la fuente');
-select is((select h.resultado from public.historial h join public.materias m on m.id = h.materia_id where m.nombre = 'Taller' and m.owner_id = auth.uid()), 'Promocionado', 'importar: resuelve la clave en historial');
+select is((select count(*)::int from public.instancias i join public.materias m on m.id = i.materia_id where m.plan_id = pg_temp.lcd()), 4, 'importar: instancias del plan reemplazadas');
+select is((select count(*)::int from public.instancias where materia_id = '40000000-0000-4000-8000-000000000001'), 1, 'importar: no toca las instancias de otro plan');
+select is((select i.tipo from public.instancias i join public.materias m on m.id = i.materia_id where m.nombre = 'Taller' and m.owner_id = auth.uid()), 'promocion', 'importar: resuelve la clave en las instancias');
 
 /* ---------- Reimportar no duplica ---------- */
 
@@ -117,7 +114,7 @@ select lives_ok($$select public.reemplazar_datos_del_plan(pg_temp.lcd(), pg_temp
 select is((select count(*)::int from public.materias where owner_id = auth.uid() and plan_id = pg_temp.lcd()), 3, 'reimportar: no duplica materias propias');
 select is((select count(*)::int from public.materias where owner_id = auth.uid() and plan_id = pg_temp.lcd() and id not in (select id from ids_antes)), 0, 'reimportar: reutiliza los mismos uuid');
 select is((select count(*)::int from public.correlativas c join public.materias m on m.id = c.materia_id where m.codigo = 'OPT1' and m.owner_id = auth.uid()), 2, 'reimportar: no duplica correlativas');
-select is((select count(*)::int from public.historial h join public.materias m on m.id = h.materia_id where m.plan_id = pg_temp.lcd()), 2, 'reimportar: no duplica historial');
+select is((select count(*)::int from public.instancias i join public.materias m on m.id = i.materia_id where m.plan_id = pg_temp.lcd()), 4, 'reimportar: no duplica instancias');
 
 /* ---------- Devuelve { clave: uuid } de las materias propias ---------- */
 
@@ -142,16 +139,16 @@ create temp table estado_antes on commit drop as
   select
     (select count(*) from public.materias where owner_id = auth.uid()) as materias,
     (select count(*) from public.progreso) as progreso,
-    (select count(*) from public.historial) as historial,
-    (select nota from public.progreso where materia_id = pg_temp.materia('GMA0136')) as nota;
+    (select count(*) from public.instancias) as instancias,
+    (select estado from public.progreso where materia_id = pg_temp.materia('GMA0136')) as estado;
 grant select on estado_antes to authenticated;
 
 create function pg_temp.sin_cambios() returns boolean language sql as $$
   select
     (select count(*) from public.materias where owner_id = auth.uid()) = (select materias from estado_antes)
     and (select count(*) from public.progreso) = (select progreso from estado_antes)
-    and (select count(*) from public.historial) = (select historial from estado_antes)
-    and (select nota from public.progreso where materia_id = pg_temp.materia('GMA0136')) is not distinct from (select nota from estado_antes)
+    and (select count(*) from public.instancias) = (select instancias from estado_antes)
+    and (select estado from public.progreso where materia_id = pg_temp.materia('GMA0136')) is not distinct from (select estado from estado_antes)
     and not exists (select 1 from public.materias where nombre = 'No debe quedar' and owner_id = auth.uid());
 $$;
 
@@ -161,8 +158,8 @@ create function pg_temp.con_materia_nueva() returns jsonb language sql as $$
       'anio', 1, 'cuatrimestre', 1, 'tipo', 'Materia', 'area', null, 'requiereAnioCompletoParaCursar', null, 'correlativas', '[]'::jsonb));
 $$;
 
-select throws_ok($$select public.reemplazar_datos_del_plan(pg_temp.lcd(), jsonb_set(pg_temp.con_materia_nueva(), '{historial,1,tipo}', '"Inventado"'))$$, '23514', null, 'todo o nada: falla la última fila del historial');
-select ok(pg_temp.sin_cambios(), 'todo o nada: nada cambió tras fallar el historial');
+select throws_ok($$select public.reemplazar_datos_del_plan(pg_temp.lcd(), jsonb_set(pg_temp.con_materia_nueva(), '{progreso,2,instancias,0,tipo}', '"inventado"'))$$, '23514', null, 'todo o nada: falla la última instancia');
+select ok(pg_temp.sin_cambios(), 'todo o nada: nada cambió tras fallar una instancia');
 select throws_ok($$select public.reemplazar_datos_del_plan(pg_temp.lcd(), jsonb_set(pg_temp.con_materia_nueva(), '{progreso,1,estado}', '"inventado"'))$$, '23514', null, 'todo o nada: falla el progreso');
 select ok(pg_temp.sin_cambios(), 'todo o nada: nada cambió tras fallar el progreso');
 select throws_ok($$select public.reemplazar_datos_del_plan(pg_temp.lcd(), jsonb_set(pg_temp.con_materia_nueva(), '{progreso,0,materiaId}', '"NO-EXISTE"'))$$, '22023', null, 'referencia a una clave inexistente');
@@ -176,18 +173,18 @@ select ok(pg_temp.sin_cambios(), 'todo o nada: nada cambió tras una clave repet
 
 /* ---------- Forma y permisos ---------- */
 
-select throws_ok($$select public.reemplazar_datos_del_plan(pg_temp.lcd(), '{"progreso": [], "historial": []}')$$, '22023', null, 'faltan materiasPropias');
-select throws_ok($$select public.reemplazar_datos_del_plan(pg_temp.lcd(), '{"materiasPropias": [], "progreso": {}, "historial": []}')$$, '22023', null, 'progreso no es una lista');
-select throws_ok($$select public.reemplazar_datos_del_plan('30000000-0000-4000-8000-000000000002', '{"materiasPropias": [], "progreso": [], "historial": []}')$$, '42501', null, 'no sobre un plan que no puede ver');
+select throws_ok($$select public.reemplazar_datos_del_plan(pg_temp.lcd(), '{"progreso": []}')$$, '22023', null, 'faltan materiasPropias');
+select throws_ok($$select public.reemplazar_datos_del_plan(pg_temp.lcd(), '{"materiasPropias": [], "progreso": {}}')$$, '22023', null, 'progreso no es una lista');
+select throws_ok($$select public.reemplazar_datos_del_plan('30000000-0000-4000-8000-000000000002', '{"materiasPropias": [], "progreso": []}')$$, '42501', null, 'no sobre un plan que no puede ver');
 
 -- Un archivo vacío deja el plan sin progreso, solo para quien lo aplica.
-select is(public.reemplazar_datos_del_plan(pg_temp.lcd(), '{"materiasPropias": [], "progreso": [], "historial": []}'), '{}'::jsonb, 'archivo vacío: se acepta y devuelve un objeto vacío');
+select is(public.reemplazar_datos_del_plan(pg_temp.lcd(), '{"materiasPropias": [], "progreso": []}'), '{}'::jsonb, 'archivo vacío: se acepta y devuelve un objeto vacío');
 select is((select count(*)::int from public.progreso p join public.materias m on m.id = p.materia_id where m.plan_id = pg_temp.lcd()), 0, 'archivo vacío: reemplaza por nada');
 select is((select count(*)::int from public.progreso), 1, 'archivo vacío: el otro plan sigue');
 
 select pg_temp.como('00000000-0000-4000-8000-00000000000b');
 select is((select count(*)::int from public.progreso), 1, 'otro alumno: su progreso sigue intacto');
-select is((select count(*)::int from public.historial), 1, 'otro alumno: su historial sigue intacto');
+select is((select count(*)::int from public.instancias), 1, 'otro alumno: sus instancias siguen intactas');
 select is((select count(*)::int from public.materias where owner_id = '00000000-0000-4000-8000-00000000000a'), 0, 'otro alumno: no ve las materias propias importadas');
 
 -- Sin inscripción: la RLS de progreso rechaza y no queda nada.
@@ -206,11 +203,10 @@ create function pg_temp.propia(clave text, codigo text, nombre text, correlativa
     'tipo', 'Materia', 'area', null, 'requiereAnioCompletoParaCursar', null, 'correlativas', correlativas)
 $$;
 create function pg_temp.prog(materia text, estado text) returns jsonb language sql as $$
-  select jsonb_build_object('materiaId', materia, 'estado', estado, 'p1', null, 'p2', null, 'rec', null,
-    'notaCursada', null, 'notaFinalExamen', null, 'nota', null, 'aplazos', '[]'::jsonb)
+  select jsonb_build_object('materiaId', materia, 'estado', estado, 'instancias', '[]'::jsonb)
 $$;
 create function pg_temp.datos(propias jsonb, progreso jsonb default '[]') returns jsonb language sql as $$
-  select jsonb_build_object('materiasPropias', propias, 'progreso', progreso, 'historial', '[]'::jsonb)
+  select jsonb_build_object('materiasPropias', propias, 'progreso', progreso)
 $$;
 create function pg_temp.mismo_codigo() returns jsonb language sql as $$
   select pg_temp.datos(

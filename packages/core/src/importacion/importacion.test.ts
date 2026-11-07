@@ -1,13 +1,16 @@
 import { describe, expect, it } from "vitest";
 import legacyCaso from "../../../../fixtures/caso-prueba-legacy.json";
-import { fila, materia, planBase, planLcd, evento } from "../pruebas/auxiliares";
+import { fila, instancia, materia, planBase, planLcd } from "../pruebas/auxiliares";
 import {
   datosAlumnoDesdeImportacion,
   estadoCorrelativas,
   materiasPropiasConservadas,
   progresoCarrera,
+  ordenarInstancias,
   promedio,
+  resumirMateria,
   type DatosAlumno,
+  type ProgresoMateria,
   type DatosImportados,
   type Material,
   type MateriaPropiaImportada,
@@ -23,6 +26,19 @@ import {
   leerRespaldo,
   parsearArchivo,
 } from "../importacion";
+
+/** La nota de la materia, como la deduce `core` de sus instancias. */
+const notaDe = (p: ProgresoMateria | undefined) => (p ? resumirMateria(p, planBase()).nota : null);
+/** Las instancias sin id ni orden, en orden de fecha: lo que se puede comparar entre formatos. */
+const comparables = (p: ProgresoMateria) => ({
+  ...p,
+  instancias: ordenarInstancias(p.instancias).map(({ tipo, fecha, nota, fuente }) => ({
+    tipo,
+    fecha,
+    nota,
+    fuente,
+  })),
+});
 
 const ANCLA = { id: "ancla", codigo: "AAA", nombre: "Con match" };
 
@@ -121,12 +137,10 @@ describe("importarLegacy: match y materias propias", () => {
         { id: "PRO", codigo: "PRO", nombre: "Propia vieja", anio: 1, sem: 1, estado: "cursando" },
       ]),
     );
-    expect(resultado.datos.progreso.map((p) => [p.materiaId, p.estado, p.notaFinalExamen])).toEqual(
-      [
-        ["uuid-a", "aprobada", 8],
-        ["PRO", "cursando", null],
-      ],
-    );
+    expect(resultado.datos.progreso.map((p) => [p.materiaId, p.estado, notaDe(p)])).toEqual([
+      ["uuid-a", "aprobada", 8],
+      ["PRO", "cursando", null],
+    ]);
     expect(resultado.datos.materiasPropias.map((m) => m.clave)).toEqual(["PRO"]);
   });
 
@@ -168,7 +182,10 @@ describe("importarLegacy: match y materias propias", () => {
         correlativas: [],
       },
     ]);
-    expect(resultado.datos.progreso[0]).toMatchObject({ materiaId: "m123", p1: 7 });
+    expect(resultado.datos.progreso[0]?.materiaId).toBe("m123");
+    expect(resultado.datos.progreso[0]?.instancias.map((i) => [i.tipo, i.nota])).toEqual([
+      ["parcial", 7],
+    ]);
     expect(avisosDe(resultado, "materia-sin-match")[0]).toMatchObject({ materia: "m123" });
     // 2 del catálogo, la del archivo y PRO, la propia que ya tenía y se conserva.
     expect(resultado.resumen).toMatchObject({ materiasPropias: 1, totalMaterias: 4 });
@@ -316,13 +333,11 @@ describe("importarLegacy: datos que no se confían", () => {
         },
       ]),
     );
-    expect(resultado.datos.progreso[0]).toMatchObject({
-      nota: null,
-      notaFinalExamen: null,
-      p1: null,
-      p2: 7,
-      aplazos: [2],
-    });
+    // Quedan el parcial 7 y el aplazo 2; la nota y el final inválidos se descartan.
+    expect(resultado.datos.progreso[0]?.instancias.map((i) => [i.tipo, i.nota])).toEqual([
+      ["parcial", 7],
+      ["final", 2],
+    ]);
     expect(avisosDe(resultado, "nota-fuera-de-escala")).toHaveLength(5);
   });
 
@@ -335,8 +350,17 @@ describe("importarLegacy: datos que no se confían", () => {
       { id: "AAA", codigo: "AAA", nombre: "A", estado: "aprobada", nota: 9, aplazos: [8, 3] },
     ]);
     const resultado = importarOk(crudo, plan);
-    expect(resultado.datos.progreso[0]).toMatchObject({ nota: null, aplazos: [3] });
-    expect(importarOk(crudo).datos.progreso[0]).toMatchObject({ nota: 9, aplazos: [8, 3] });
+    // Fuera de escala se descartan la nota 9 y el aplazo 8: queda un final con 3.
+    const tipos = (p: ProgresoMateria | undefined) => p?.instancias.map((i) => [i.tipo, i.nota]);
+    expect(tipos(resultado.datos.progreso[0])).toEqual([["final", 3]]);
+    // Con la escala de 1 a 10 entran todas: los aplazos antes y la nota aprobada al final.
+    const completa = importarOk(crudo).datos.progreso[0];
+    expect(tipos(completa)).toEqual([
+      ["final", 8],
+      ["final", 3],
+      ["final", 9],
+    ]);
+    expect(completa && resumirMateria(completa, planBase())).toMatchObject({ nota: 9 });
   });
 
   it("limpia el historial: descarta eventos inválidos y notas fuera de escala", () => {
@@ -351,9 +375,10 @@ describe("importarLegacy: datos que no se confían", () => {
     const resultado = importarOk(
       legacy([{ id: "AAA", codigo: "AAA", nombre: "A", estado: "final", historial }]),
     );
-    expect(resultado.datos.historial).toEqual([
-      evento("uuid-a", "2024-01-01", "Examen", "Aprobado", 7),
-      evento("uuid-a", "2024-01-04", "Examen", "Reprobado", null),
+    // Un reprobado con la nota fuera de escala queda como final sin nota.
+    expect(resultado.datos.progreso[0]?.instancias.map((i) => [i.tipo, i.fecha, i.nota])).toEqual([
+      ["final", "2024-01-01", 7],
+      ["final", "2024-01-04", null],
     ]);
     expect(avisosDe(resultado, "evento-descartado")).toHaveLength(4);
     expect(avisosDe(resultado, "nota-fuera-de-escala")).toHaveLength(1);
@@ -395,7 +420,7 @@ describe("importarLegacy: fuente del historial", () => {
     [undefined, "manual"],
     [3, "manual"],
   ])("con fuente %j usa %s", (fuente, esperada) => {
-    expect(importarOk(conEvento(fuente)).datos.historial[0]?.fuente).toBe(esperada);
+    expect(importarOk(conEvento(fuente)).datos.progreso[0]?.instancias[0]?.fuente).toBe(esperada);
   });
 });
 
@@ -424,14 +449,18 @@ function datosOrigen(): DatosAlumno {
       { materiaId: "propia-1", requiereId: "propia-2", para: "rendir", condicion: "aprobada" },
     ],
     progreso: [
-      fila(ID_A, { estado: "aprobada", nota: 8, notaFinalExamen: 8, aplazos: [2] }),
-      fila(ID_B, { estado: "cursando", p1: 6 }),
-      fila("propia-1", { estado: "aprobada", nota: 10 }),
-    ],
-    historial: [
-      { ...evento(ID_A, "2024-01-01", "Examen", "Reprobado", 2), fuente: "siu" },
-      { ...evento(ID_A, "2024-03-01", "Examen", "Aprobado", 8), fuente: "ia" },
-      evento("propia-1", "2024-04-01", "Promocion", "Promocionado", 10),
+      fila(ID_A, {
+        estado: "aprobada",
+        instancias: [
+          { ...instancia("final", "2024-01-01", 2), fuente: "siu" },
+          { ...instancia("final", "2024-03-01", 8), fuente: "ia" },
+        ],
+      }),
+      fila(ID_B, { estado: "cursando", instancias: [instancia("parcial", "2025-05-01", 6)] }),
+      fila("propia-1", {
+        estado: "aprobada",
+        instancias: [instancia("promocion", "2024-04-01", 10)],
+      }),
     ],
   };
 }
@@ -481,7 +510,7 @@ describe("crearRespaldo", () => {
     const json = respaldoJson();
     expect(json).toMatchObject({
       formato: FORMATO_RESPALDO,
-      version: 1,
+      version: 2,
       creadoEn: "2026-11-03T00:00:00.000Z",
       plan: { universidad: "UCA", carrera: "LCD", version: "7023" },
     });
@@ -537,11 +566,8 @@ describe("leerRespaldo: ida y vuelta", () => {
 
     const original = datosOrigen();
     const traducir = (id: string) => (id === ID_A ? idA : id === ID_B ? idB : id);
-    expect(resultado.datos.progreso).toEqual(
-      original.progreso.map((p) => ({ ...p, materiaId: traducir(p.materiaId) })),
-    );
-    expect(resultado.datos.historial).toEqual(
-      original.historial.map((h) => ({ ...h, materiaId: traducir(h.materiaId) })),
+    expect(resultado.datos.progreso.map(comparables)).toEqual(
+      original.progreso.map((p) => comparables({ ...p, materiaId: traducir(p.materiaId) })),
     );
     expect(resultado.datos.materiasPropias).toEqual([
       {
@@ -588,7 +614,7 @@ describe("leerRespaldo: ida y vuelta", () => {
       porEstado: { aprobada: 2, cursando: 1, final: 0, pendiente: 49 },
       materiasConMatch: 2,
       materiasPropias: 2,
-      eventos: 3,
+      eventos: 4,
       materiales: 3,
       avisos: 0,
     });
@@ -667,7 +693,7 @@ describe("leerRespaldo: rechazos", () => {
   });
 
   it("rechaza una versión de formato más nueva", () => {
-    const resultado = leerRespaldo(respaldoJson({ version: 2 }), planDestino);
+    const resultado = leerRespaldo(respaldoJson({ version: 3 }), planDestino);
     expect(resultado.ok).toBe(false);
     if (!resultado.ok) expect(resultado.error).toContain("más nueva");
   });
@@ -695,9 +721,11 @@ describe("leerRespaldo: rechazos", () => {
 
 describe("leerRespaldo: datos que no se confían", () => {
   it("reporta y descarta lo que no se puede mapear, sin perder el resto", () => {
+    // Versión 1: notas en campos fijos e historial aparte.
     const base = respaldoJson();
     const json = {
       ...base,
+      version: 1,
       progreso: [
         ...base.progreso,
         { materia: { codigo: "NOEXISTE" }, estado: "aprobada", nota: 9 },
@@ -705,7 +733,6 @@ describe("leerRespaldo: datos que no se confían", () => {
         { materia: { codigo: "GCO0137" }, estado: "aprobada" },
       ],
       historial: [
-        ...base.historial,
         {
           materia: { clave: "fantasma" },
           fecha: "2024-01-01",
@@ -724,12 +751,41 @@ describe("leerRespaldo: datos que no se confían", () => {
     };
     const resultado = leerOk(json);
     const fila = resultado.datos.progreso.find((p) => p.materiaId === uuid(planDestino, "GCO0137"));
-    expect(fila).toMatchObject({ estado: "pendiente", nota: null, aplazos: [] });
+    expect(fila?.estado).toBe("pendiente");
+    expect(fila?.instancias.map((i) => [i.tipo, i.nota, i.fuente])).toEqual([
+      ["final", null, "manual"],
+    ]);
     expect(avisosDe(resultado, "referencia-sin-resolver")).toHaveLength(2);
     expect(avisosDe(resultado, "estado-desconocido")).toHaveLength(1);
     expect(avisosDe(resultado, "nota-fuera-de-escala")).toHaveLength(2);
     expect(avisosDe(resultado, "dato-invalido")).toHaveLength(2);
-    expect(resultado.datos.historial.at(-1)?.fuente).toBe("manual");
+  });
+
+  it("versión 2: descarta instancias con tipo o fecha inválidos y valida las notas", () => {
+    const base = respaldoJson();
+    const json = {
+      ...base,
+      progreso: [
+        {
+          materia: { codigo: "GCO0137" },
+          estado: "final",
+          instancias: [
+            { tipo: "final", fecha: "2024-02-01", nota: 7, fuente: "siu" },
+            { tipo: "examen", fecha: "2024-02-02", nota: 7, fuente: "siu" },
+            { tipo: "final", fecha: "ayer", nota: 7, fuente: "siu" },
+            { tipo: "parcial", fecha: "2024-02-03", nota: 15, fuente: "siu" },
+          ],
+        },
+      ],
+    };
+    const resultado = leerOk(json);
+    const fila = resultado.datos.progreso[0];
+    expect(fila?.instancias.map((i) => [i.tipo, i.nota, i.fuente])).toEqual([
+      ["final", 7, "siu"],
+      ["parcial", null, "siu"],
+    ]);
+    expect(avisosDe(resultado, "evento-descartado")).toHaveLength(2);
+    expect(avisosDe(resultado, "nota-fuera-de-escala")).toHaveLength(1);
   });
 
   it("descarta links que no son http(s) y sha256 inválidos", () => {
@@ -822,7 +878,7 @@ describe("leerRespaldo: datos que no se confían", () => {
     };
     const resultado = leerOk(respaldoJson(), plan);
     const fila = resultado.datos.progreso.find((p) => p.materiaId === "propia-1");
-    expect(fila?.nota).toBeNull();
+    expect(notaDe(fila)).toBeNull();
     expect(avisosDe(resultado, "nota-fuera-de-escala").length).toBeGreaterThan(0);
   });
 });
@@ -890,7 +946,6 @@ describe("M4: la vista previa cuenta igual que reemplazar_datos_del_plan", () =>
   const datosCon = (...materiasPropias: MateriaPropiaImportada[]): DatosImportados => ({
     materiasPropias,
     progreso: [],
-    historial: [],
   });
   const conservadas = (plan: PlanCompleto, datos: DatosImportados) =>
     materiasPropiasConservadas(plan, datos).map((m) => m.id);
@@ -1005,7 +1060,6 @@ describe("M4: la vista previa cuenta igual que reemplazar_datos_del_plan", () =>
           { materiaId: "p2", requiereId: "p1", para: "cursar", condicion: "aprobada" },
         ],
         progreso: [],
-        historial: [],
       };
       const { respaldo } = crearRespaldo(origen, [], "2026-11-05T00:00:00.000Z");
       const leido = leerRespaldo(JSON.parse(JSON.stringify(respaldo)), planCon());
@@ -1114,13 +1168,9 @@ describe("M4: dos materias propias duplicadas en el respaldo", () => {
       { materiaId: "dup-2", requiereId: "dup-1", para: "rendir", condicion: "aprobada" },
     ],
     progreso: [
-      fila(ID_A, { estado: "aprobada", nota: 8 }),
-      fila("dup-1", { estado: "aprobada", nota: 7 }),
-      fila("dup-2", { estado: "cursando", p1: 6 }),
-    ],
-    historial: [
-      evento("dup-1", "2024-01-01", "Promocion", "Promocionado", 7),
-      evento("dup-2", "2024-02-01", "En curso", "En curso", null),
+      fila(ID_A, { estado: "aprobada", instancias: [instancia("final", "2024-01-01", 8)] }),
+      fila("dup-1", { estado: "aprobada", instancias: [instancia("promocion", "2024-01-01", 7)] }),
+      fila("dup-2", { estado: "cursando", instancias: [instancia("parcial", "2024-02-01", 6)] }),
     ],
   });
   const materiales: Material[] = [
@@ -1146,10 +1196,10 @@ describe("M4: dos materias propias duplicadas en el respaldo", () => {
       expect(resultado.datos.materiasPropias[1]?.correlativas).toEqual([
         { requiere: "dup-1", para: "rendir", condicion: "aprobada" },
       ]);
-      const notaDe = (id: string) => resultado.datos.progreso.find((p) => p.materiaId === id);
-      expect(notaDe("dup-1")).toMatchObject({ estado: "aprobada", nota: 7 });
-      expect(notaDe("dup-2")).toMatchObject({ estado: "cursando", p1: 6 });
-      expect(resultado.datos.historial.map((e) => e.materiaId)).toEqual(["dup-1", "dup-2"]);
+      const filaDe = (id: string) => resultado.datos.progreso.find((p) => p.materiaId === id);
+      expect(notaDe(filaDe("dup-1"))).toBe(7);
+      expect(filaDe("dup-1")?.estado).toBe("aprobada");
+      expect(filaDe("dup-2")?.instancias.map((i) => [i.tipo, i.nota])).toEqual([["parcial", 6]]);
       expect(resultado.materiales.map((m) => m.materiaId)).toEqual(["dup-1", "dup-2"]);
       expect(resultado.resumen.materiasPropias).toBe(2);
     });

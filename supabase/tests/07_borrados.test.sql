@@ -35,7 +35,7 @@ insert into public.planes (id, carrera_id, version, estado) values
   ('30000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000001', 'P1', 'publicado');
 insert into public.planes (id, carrera_id, version, estado, creado_por) values
   ('30000000-0000-4000-8000-000000000002', '20000000-0000-4000-8000-000000000001', 'P2', 'pendiente', '00000000-0000-4000-8000-00000000000a');
--- Plan con una inscripción y sin progreso ni historial: lo único que lo protege es el RESTRICT.
+-- Plan con una inscripción y sin progreso ni instancias: lo único que lo protege es el RESTRICT.
 insert into public.universidades (id, nombre, estado) values ('10000000-0000-4000-8000-000000000003', 'Uni 3', 'publicado');
 insert into public.carreras (id, universidad_id, nombre, estado) values ('20000000-0000-4000-8000-000000000003', '10000000-0000-4000-8000-000000000003', 'Carrera 3', 'publicado');
 insert into public.planes (id, carrera_id, version, estado) values ('30000000-0000-4000-8000-000000000003', '20000000-0000-4000-8000-000000000003', 'P3', 'publicado');
@@ -45,7 +45,7 @@ insert into public.inscripciones (user_id, plan_id, activa) values
   ('00000000-0000-4000-8000-00000000000b', '30000000-0000-4000-8000-000000000003', true);
 insert into public.materias (id, plan_id, codigo, nombre, anio) values
   ('40000000-0000-4000-8000-000000000001', '30000000-0000-4000-8000-000000000001', 'CONPROG', 'Con progreso', 1),
-  ('40000000-0000-4000-8000-000000000002', '30000000-0000-4000-8000-000000000001', 'CONHIST', 'Con historial', 1),
+  ('40000000-0000-4000-8000-000000000002', '30000000-0000-4000-8000-000000000001', 'CONHIST', 'Con instancias', 1),
   ('40000000-0000-4000-8000-000000000003', '30000000-0000-4000-8000-000000000001', 'SINDATOS', 'Sin datos', 1),
   ('40000000-0000-4000-8000-000000000004', '30000000-0000-4000-8000-000000000002', 'PEND', 'De plan pendiente', 1);
 insert into public.materias (id, plan_id, nombre, anio, owner_id) values
@@ -55,10 +55,11 @@ insert into public.inscripciones (user_id, plan_id, activa) values
   ('00000000-0000-4000-8000-00000000000a', '30000000-0000-4000-8000-000000000002', false);
 insert into public.progreso (user_id, materia_id, estado) values
   ('00000000-0000-4000-8000-00000000000a', '40000000-0000-4000-8000-000000000001', 'aprobada'),
-  ('00000000-0000-4000-8000-00000000000a', '40000000-0000-4000-8000-0000000000a1', 'cursando');
-insert into public.historial (user_id, materia_id, fecha, tipo, resultado) values
-  ('00000000-0000-4000-8000-00000000000a', '40000000-0000-4000-8000-000000000002', '2025-07-01', 'Examen', 'Aprobado'),
-  ('00000000-0000-4000-8000-00000000000a', '40000000-0000-4000-8000-0000000000a1', '2025-07-01', 'Examen', 'Aprobado');
+  ('00000000-0000-4000-8000-00000000000a', '40000000-0000-4000-8000-0000000000a1', 'cursando'),
+  ('00000000-0000-4000-8000-00000000000a', '40000000-0000-4000-8000-000000000002', 'final');
+insert into public.instancias (user_id, materia_id, tipo, fecha, nota) values
+  ('00000000-0000-4000-8000-00000000000a', '40000000-0000-4000-8000-000000000002', 'final', '2025-07-01', 8),
+  ('00000000-0000-4000-8000-00000000000a', '40000000-0000-4000-8000-0000000000a1', 'final', '2025-07-01', 8);
 
 /* ---------- Sin cascadas entre universidad, carrera y plan ---------- */
 
@@ -106,8 +107,8 @@ select is(pg_temp.filas($$delete from public.planes where id = '30000000-0000-40
 /* ---------- Materia del catálogo con datos de alumnos ---------- */
 
 select pg_temp.como('00000000-0000-4000-8000-0000000000ad');
-select throws_ok($$delete from public.materias where id = '40000000-0000-4000-8000-000000000001'$$, '23503', 'la materia CONPROG del catálogo tiene progreso o historial de alumnos', 'materia del catálogo con progreso: admin no la borra');
-select throws_ok($$delete from public.materias where id = '40000000-0000-4000-8000-000000000002'$$, '23503', 'la materia CONHIST del catálogo tiene progreso o historial de alumnos', 'materia del catálogo con historial: admin no la borra');
+select throws_ok($$delete from public.materias where id = '40000000-0000-4000-8000-000000000001'$$, '23503', 'la materia CONPROG del catálogo tiene progreso o instancias de alumnos', 'materia del catálogo con progreso: admin no la borra');
+select throws_ok($$delete from public.materias where id = '40000000-0000-4000-8000-000000000002'$$, '23503', 'la materia CONHIST del catálogo tiene progreso o instancias de alumnos', 'materia del catálogo con instancias: admin no la borra');
 select is(pg_temp.filas($$delete from public.materias where id = '40000000-0000-4000-8000-000000000003'$$), 1, 'materia del catálogo sin datos: admin la borra');
 
 /* ---------- Una materia no cambia de dueño ni de plan: así no se elude el trigger de borrado ---------- */
@@ -134,7 +135,7 @@ select is((select plan_id from public.materias where id = '40000000-0000-4000-80
 
 select throws_ok($$delete from public.materias where id = '40000000-0000-4000-8000-000000000001'$$, '23503', null, 'materia del catálogo con progreso: tampoco la borra postgres');
 select is((select count(*)::int from public.progreso where materia_id = '40000000-0000-4000-8000-000000000001'), 1, 'materia del catálogo: su progreso sigue intacto');
-select is((select count(*)::int from public.historial where materia_id = '40000000-0000-4000-8000-000000000002'), 1, 'materia del catálogo: su historial sigue intacto');
+select is((select count(*)::int from public.instancias where materia_id = '40000000-0000-4000-8000-000000000002'), 1, 'materia del catálogo: sus instancias siguen intactas');
 
 -- Sin inscripciones, el plan sigue protegido por el progreso que cuelga de sus materias.
 delete from public.inscripciones where plan_id = '30000000-0000-4000-8000-000000000001';
@@ -147,7 +148,7 @@ insert into public.inscripciones (user_id, plan_id, activa) values ('00000000-00
 select pg_temp.como('00000000-0000-4000-8000-00000000000a');
 select is(pg_temp.filas($$delete from public.materias where id = '40000000-0000-4000-8000-0000000000a1'$$), 1, 'materia propia con datos: su dueño la borra');
 select is((select count(*)::int from public.progreso where materia_id = '40000000-0000-4000-8000-0000000000a1'), 0, 'materia propia: se borra su progreso');
-select is((select count(*)::int from public.historial where materia_id = '40000000-0000-4000-8000-0000000000a1'), 0, 'materia propia: se borra su historial');
+select is((select count(*)::int from public.instancias where materia_id = '40000000-0000-4000-8000-0000000000a1'), 0, 'materia propia: se borran sus instancias');
 
 /* ---------- Otro alumno no puede usar el borrado para enterarse de nada ni borrar ---------- */
 
@@ -161,7 +162,7 @@ select pg_temp.como_postgres();
 select lives_ok($$delete from auth.users where id = '00000000-0000-4000-8000-00000000000a'$$, 'usuario: se puede borrar aunque tenga inscripciones y progreso');
 select is((select count(*)::int from public.inscripciones where plan_id = '30000000-0000-4000-8000-000000000001'), 0, 'usuario borrado: se borran sus inscripciones');
 select is((select count(*)::int from public.progreso where materia_id = '40000000-0000-4000-8000-000000000001'), 0, 'usuario borrado: se borra su progreso');
-select is((select count(*)::int from public.historial where materia_id = '40000000-0000-4000-8000-000000000002'), 0, 'usuario borrado: se borra su historial');
+select is((select count(*)::int from public.instancias where materia_id = '40000000-0000-4000-8000-000000000002'), 0, 'usuario borrado: se borran sus instancias');
 
 select pg_temp.como('00000000-0000-4000-8000-0000000000ad');
 select is(pg_temp.filas($$delete from public.materias where id = '40000000-0000-4000-8000-000000000001'$$), 1, 'materia del catálogo sin datos ya: admin la borra');
