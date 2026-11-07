@@ -11,3 +11,4 @@ export * from "./importacion/tipos";
 export * from "./importacion/previsualizar";
 export * from "./importacion/materiales";
 export * from "./materiales/referencias";
+export * from "./materiales/archivos";

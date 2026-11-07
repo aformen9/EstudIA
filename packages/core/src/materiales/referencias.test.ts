@@ -4,7 +4,7 @@ import {
   agregarOCorregirMaterial,
   copiaLocalEnUso,
   materiasParaAgregar,
-  materiasParaMover,
+  agruparPorArchivo,
   nuevoMaterialDesde,
   type Material,
   type MaterialArchivo,
@@ -130,20 +130,40 @@ describe("materiasParaAgregar", () => {
   });
 });
 
-describe("materiasParaMover", () => {
-  it("saca la materia actual y las que ya tienen el contenido", () => {
-    const original = archivo("1", "A");
-    const materiales = [original, archivo("2", "B")];
-    expect(ids(materiasParaMover(original, materiales, MATERIAS))).toEqual(["C"]);
+describe("agruparPorArchivo", () => {
+  const conFecha = <M extends Material>(material: M, dia: number): M => ({
+    ...material,
+    createdAt: `2025-08-${String(dia).padStart(2, "0")}T00:00:00.000Z`,
   });
 
-  it("no ofrece la actual aunque la lista de materiales esté desactualizada", () => {
-    expect(ids(materiasParaMover(link("1", "C"), [], MATERIAS))).toEqual(["A", "B"]);
+  it("junta las referencias de un mismo documento en una tarjeta", () => {
+    const tarjetas = agruparPorArchivo([
+      conFecha(archivo("1", "A"), 1),
+      conFecha(archivo("2", "B"), 3),
+      conFecha(archivo("3", "C", "doc-2"), 2),
+    ]);
+    expect(tarjetas.map((t) => t.clave)).toEqual(["doc:doc-1", "doc:doc-2"]);
+    expect(tarjetas[0]?.principal.id).toBe("2");
+    expect(tarjetas[0]?.referencias.map((m) => m.id)).toEqual(["2", "1"]);
   });
 
-  it("un material sin materia se puede mover a cualquiera", () => {
-    const original = link("1", null);
-    expect(ids(materiasParaMover(original, [original], MATERIAS))).toEqual(["A", "B", "C"]);
+  it("deja cada link y cada nota en su propia tarjeta, aunque sean copias", () => {
+    const tarjetas = agruparPorArchivo([link("1", "A"), link("2", "B"), nota("3", "A")]);
+    expect(tarjetas.map((t) => t.clave).sort()).toEqual(["1", "2", "3"]);
+    expect(tarjetas.every((t) => t.referencias.length === 1)).toBe(true);
+  });
+
+  it("ordena por la referencia más nueva de cada tarjeta", () => {
+    const tarjetas = agruparPorArchivo([
+      conFecha(link("1", "A"), 5),
+      conFecha(archivo("2", "A"), 1),
+      conFecha(archivo("3", "B"), 9),
+    ]);
+    expect(tarjetas.map((t) => t.principal.id)).toEqual(["3", "1"]);
+  });
+
+  it("sin materiales no hay tarjetas", () => {
+    expect(agruparPorArchivo([])).toEqual([]);
   });
 });
 
