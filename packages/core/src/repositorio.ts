@@ -32,6 +32,13 @@ export type NuevoMaterial = NuevoMaterialBase &
     | { tipo: "nota"; texto: string }
   );
 
+/** Lo que se puede corregir de un material ya creado. */
+export interface CambiosMaterial {
+  titulo?: string;
+  url?: string;
+  texto?: string;
+}
+
 export interface NuevoDocumento {
   sha256: string;
   mime: string | null;
@@ -100,6 +107,8 @@ export interface Repositorio {
    * Un material compartido queda privado. Rechaza si no existe o no es del usuario.
    */
   moverMaterial(materialId: string, materiaId: string | null): Promise<Material>;
+  /** Corrige un link o una nota. Rechaza si no existe o no es del usuario. */
+  actualizarMaterial(materialId: string, cambios: CambiosMaterial): Promise<Material>;
   borrarMaterial(materialId: string): Promise<void>;
 
   /**

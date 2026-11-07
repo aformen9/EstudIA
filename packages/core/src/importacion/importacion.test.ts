@@ -2,16 +2,9 @@ import { describe, expect, it } from "vitest";
 import legacyCaso from "../../../../fixtures/caso-prueba-legacy.json";
 import { fila, materia, planBase, planLcd, evento } from "../pruebas/auxiliares";
 import {
-  crearRespaldo,
   datosAlumnoDesdeImportacion,
-  detectarFormatoRespaldo,
   estadoCorrelativas,
-  FORMATO_RESPALDO,
-  importarArchivo,
-  importarLegacy,
-  leerRespaldo,
   materiasPropiasConservadas,
-  parsearArchivo,
   progresoCarrera,
   promedio,
   type DatosAlumno,
@@ -21,6 +14,15 @@ import {
   type PlanCompleto,
   type TipoAviso,
 } from "../index";
+import {
+  crearRespaldo,
+  detectarFormatoRespaldo,
+  FORMATO_RESPALDO,
+  importarArchivo,
+  importarLegacy,
+  leerRespaldo,
+  parsearArchivo,
+} from "../importacion";
 
 const ANCLA = { id: "ancla", codigo: "AAA", nombre: "Con match" };
 
