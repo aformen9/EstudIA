@@ -206,6 +206,10 @@ create table public.materiales (
   constraint materiales_compartido_con_materia check (visibilidad = 'privado' or materia_id is not null),
   -- Un `javascript:` guardado se ejecutaría al abrir el link.
   constraint materiales_url_http check (url ~* '^https?://'),
+  -- Topes para que la base no se pueda llenar por acá: documentos ya tiene los suyos (arquitectura §7).
+  constraint materiales_titulo_largo check (char_length(titulo) <= 200),
+  constraint materiales_url_largo check (char_length(url) <= 2048),
+  constraint materiales_texto_largo check (octet_length(texto) <= 51200),
   -- Cada tipo lleva su contenido y solo ese.
   constraint materiales_contenido_segun_tipo check (
     case tipo
