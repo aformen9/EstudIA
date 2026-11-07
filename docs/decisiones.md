@@ -146,4 +146,12 @@ Una línea por decisión de Agu. Agregar al final, con fecha. Si una decisión n
 - Fechas de material: se frena el futuro y se aceptan fechas pasadas, así restaurar conserva las originales. Se agrega `materiales.compartido_en`, que fija siempre el servidor: se llena al pasar a compartido y se borra al volver a privado. `material_compartido` ordena por esa columna.
 - Al restaurar, la identidad de un material incluye la materia: un material en A y en B vuelve en las dos, sin duplicar si se restaura otra vez. Un material movido después del respaldo reaparece en la materia vieja. Si una materia propia se borró después del respaldo, su material queda "sin materia" y aparece también en la materia recreada; queda documentado con un test de punta a punta.
 - Crear una materia propia con sus correlativas es atómico, con la RPC `crear_materia_propia`: el reintento con el mismo id es seguro.
+- Un link o una nota corregidos tras un timeout usan el mismo id y después se actualizan, como las materias. Materia nueva, orden del panel, modal de mover y agregar, y subida con timeout quedan como los dejó `web`.
+- Correlativas con un ciclo nuevo: se guardan las notas y lo demás, y se rechazan solo las correlativas, con un mensaje claro. El panel queda abierto para corregirlas.
+- Lo rechazado por un límite al restaurar va en un contador aparte de "Fallaron".
+- Antes de `supabase link`: borrar un plan con materias propias se rechaza, también si su alumno se dio de baja. Topes en la base: título 200 caracteres, link 2048 caracteres y nota 50 KB.
+- Restaurar ejecuta primero los borrados pendientes de Deshacer, para que un material por borrarse no cuente como existente.
+- Salir de la página cancela los borrados pendientes. Lo decidió la coordinadora tras probar el botón Atrás en Chrome: al volver de la caché del navegador, el plazo vencido borraba el material sin poder deshacer.
+- JS: `zod` se saca de la carga inicial con la entrada `@estudia/core/importacion`. Lo demás (`react-dom` y Supabase) se acepta para la fase 0 y se revisa antes de publicar.
+- Para más adelante, en `arquitectura.md` §12: cuota que no vuelve y `extraido_con` (fase 1), y republicar para quedar primero (fase 1b).
 - Bloqueantes de la fase 1: M2, B2, B5 y B6. Para la fase 1b: M3 (el autor no puede volver a compartir un contenido oculto y el admin puede suspenderle compartir) y B9 (el contador de denuncias se reinicia al restaurar). B4 queda como riesgo aceptado.
