@@ -12,6 +12,7 @@ Prerrequisito: fase 1 aprobada.
 - Pestaña "Comunidad" en cada materia y en Materiales: material compartido accesible (`material_compartido`), agrupado por período, con autor o "Anónimo", búsqueda en texto.
 - Botón "Denunciar" (motivo: no corresponde, contenido inapropiado, derechos de autor, spam). Con 3 denuncias se oculta solo. Panel de admin: denuncias, ocultar/restaurar/borrar.
 - Términos de uso breves al compartir por primera vez (responsabilidad del contenido, retiro ante reclamos).
+- **Ejecutables bloqueados al compartir** (decidido por Agu el 2026-11-07). Se pueden seguir subiendo como privados, porque se acepta cualquier tipo. La lista de tipos y cómo detectarlos sin confiar solo en la extensión se le proponen a Agu en esta fase.
 - Indicador en Inicio: "Hay N materiales nuevos en tus materias en curso".
 
 ### Duplicados al subir (`arquitectura.md` §7)
@@ -32,4 +33,5 @@ Prerrequisito: fase 1 aprobada.
 5. Nada compartido expone el `user_id` de un autor anónimo (revisar respuesta de la RPC en Network).
 6. Ninguna vía devuelve el `sha256` de documentos ajenos, tampoco las detecciones de duplicados (tests de RLS).
 7. Subir un archivo ya compartido en la materia y visible lleva al material existente sin crear filas; si solo existe como privado de otro, se reutiliza sin ningún aviso que delate que ya existía.
-8. Con PDFs reales, un casi duplicado dispara "¿Es el mismo?", y tanto Ver como Subir igual funcionan. El umbral elegido queda registrado en `docs/decisiones.md`.
+8. Un ejecutable subido como privado no se puede compartir, y el alumno ve un mensaje claro.
+9. Con PDFs reales, un casi duplicado dispara "¿Es el mismo?", y tanto Ver como Subir igual funcionan. El umbral elegido queda registrado en `docs/decisiones.md`.

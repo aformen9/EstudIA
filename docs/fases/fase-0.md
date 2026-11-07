@@ -50,9 +50,26 @@ Si falta alguno, se puede avanzar con Supabase local (`supabase start`) y dejar 
 - Deploy en Vercel.
 - `README.md` del repo: cómo correr local, variables, cómo hacerse admin.
 
+### 0.6 Cambios de la prueba manual en Safari (`docs/decisiones.md`, 2026-11-07)
+
+Se implementan después del ok de Agu a los mockups.
+
+- Onboarding en modal centrado con blur, "Paso anterior" arriba y línea de pasos abajo para volver.
+  - Carrera con un solo plan: se saltea la elección. Con varios: el más reciente preseleccionado como "vigente", con la ayuda "¿No sabés cuál es? Figura en tu Historia Académica del Guaraní".
+  - Paso de carga: "Importar desde SIU Guaraní" ("Próximamente", con "¿Cómo consigo el archivo?" previsto), "Cargar a mano" e "Importar respaldo de EstudIA".
+- Paneles laterales convertidos en modales centrados con blur; en el celular ocupan casi toda la pantalla.
+- Ninguna lista nativa: selector propio de materias (por año, con buscador y estado visible), nota en botones 1 a 10 y controles segmentados para estado, año y cuatrimestre.
+- Una tarjeta por archivo, con las materias como etiquetas, para quitar o agregar. "Borrar archivo" avisa de cuántas materias se borró.
+- Celebración a pantalla completa, tarjeta de Promedio pareja, tope de 4 px al imán y zona de subida más evidente.
+- Vista previa en las tarjetas de Materiales:
+  - PDF: primera página. Imágenes: miniatura (HEIC si se puede). Texto (`.txt`, `.md`, `.csv`, `.py`): primeras líneas, como texto plano.
+  - Se generan en el dispositivo y se cachean localmente. No suben a la nube.
+  - La librería de PDF se carga solo al entrar a Materiales.
+- Se acepta cualquier tipo hasta 50 MB. Fuera de los tipos con vista previa: ícono por tipo y descarga, nunca se abre adentro de la app.
+
 ## Fuera de alcance (no hacer en fase 0)
 
-IA de cualquier tipo · Google Drive · extracción de texto/OCR · compartir material y comunidades · importador de SIU Guaraní · cierre de cuatrimestre · MCP · Tauri.
+IA de cualquier tipo · Google Drive · extracción de texto/OCR (la vista previa dibuja la página, no extrae texto) · compartir material y comunidades · importador de SIU Guaraní · cierre de cuatrimestre · MCP · Tauri.
 
 ## Criterios de aceptación (verificar y reportar cada uno)
 
@@ -72,5 +89,7 @@ IA de cualquier tipo · Google Drive · extracción de texto/OCR · compartir ma
 5. Flujo manual en el navegador (con capturas): entrar con Google → elegir UCA / LCD / 7023 → importar el caso de prueba legacy → Inicio muestra 26 de 50 y promedio 7,73 → cambiar una nota y recargar persiste → modo oscuro → vista celular (390 px) sin scroll horizontal.
 6. Ninguna clave real en el repo: gitleaks corre en el CI sobre todo el historial y no encuentra nada.
 7. Logo aprobado por Agu.
+8. No queda ningún `<select>` en `apps/web/src`. Una carrera con un solo plan saltea la elección de plan, y una con varios preselecciona el más reciente (con tests).
+9. La vista previa funciona con PDF, imagen y texto, y un PDF ya cacheado no vuelve a procesarse. La librería de PDF no está en la carga inicial (comprobado en el build). Un archivo de otro tipo, incluidos HTML y SVG, no se abre adentro de la app.
 
 Al terminar: resumen corto, lista de criterios con ✅/❌ y lo que quedó pendiente o dudoso. Esperar aprobación antes de la fase 1.

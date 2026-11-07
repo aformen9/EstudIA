@@ -10,6 +10,7 @@ Prerrequisito: fase 1b aprobada.
 - Proveedores: los de fase 1 + **Ollama / LM Studio** detectados en `localhost` (mostrar cómo instalar y qué modelo bajar; sugerir 2–3 modelos chicos con buen tool calling y **preguntar a Agu** cuál recomendar por defecto).
 - Escrituras: la IA propone → tarjeta de confirmación con el cambio exacto ("Optimización: En curso → Aprobada, nota 9") → aplicar / descartar. Nunca escribir sin confirmar.
 - `buscar_en_apuntes` y `leer_documento` sobre texto propio + compartido accesible; respuestas citan el documento y página.
+- **Gráficos a pedido desde el asistente** ("quiero ver tal cosa de mi carrera"), con una herramienta de solo lectura. Los datos salen de `packages/core` y los gráficos reutilizan los de la app. Los tipos de gráfico se definen con Agu al arrancar la fase.
 - Selector de modo de IA en Ajustes (Local / Clave propia / ninguno), con estado de conexión.
 - Límites: contexto recortado (no mandar el plan entero si no hace falta), aviso si la clave gratuita llegó al límite.
 
@@ -20,3 +21,4 @@ Prerrequisito: fase 1b aprobada.
 4. Pregunta sobre un apunte subido devuelve respuesta con cita al documento correcto.
 5. Sin IA configurada, la app funciona igual y el asistente explica cómo conectarla.
 6. Las claves nunca viajan a Supabase (verificar Network).
+7. Pedir un gráfico de la carrera, con el caso de prueba, muestra en el chat un gráfico con los mismos números que calcula `core`, sin escribir ningún dato.

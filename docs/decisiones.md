@@ -129,7 +129,7 @@ Una línea por decisión de Agu. Agregar al final, con fecha. Si una decisión n
 - Materias y materiales se crean con un id de idempotencia generado en el cliente: un reintento después de un timeout no duplica.
 - Dudas de `web`: un ciclo importado no impide guardar notas, solo cambiar correlativas. La casilla de cerrar sesión se oculta si no hay archivos. Si `avatar_url` no sirve, se prueba con `picture`. El resto queda como lo dejó `web`: cambiar de plan no borra datos, fuentes variables, año y cuatrimestre editables en materias propias, y el manejo de filas fallidas.
 - Fuentes: se recortan al subset `latin`. El peso del JS se baja en esta tanda.
-- Un material puede estar en varias materias: "Mover a otra materia" y "Agregar también a…" (otra referencia al mismo documento, sin duplicar archivo ni copia local).
+- Un material puede estar en varias materias: ~~"Mover a otra materia" y~~ "Agregar también a…" (otra referencia al mismo documento, sin duplicar archivo ni copia local). "Mover" se saca por la decisión del 2026-11-07.
 - Al mover un material compartido, pasa a privado en la materia nueva. La copia local se borra solo si ninguna otra referencia del usuario la usa.
 - Borrar un material es inmediato en pantalla, con "Deshacer" en un aviso de unos 8 s; el borrado real ocurre al vencer. Reemplaza al doble toque.
 - En el panel de materia, los materiales se separan visualmente del formulario.
@@ -155,3 +155,44 @@ Una línea por decisión de Agu. Agregar al final, con fecha. Si una decisión n
 - JS: `zod` se saca de la carga inicial con la entrada `@estudia/core/importacion`. Lo demás (`react-dom` y Supabase) se acepta para la fase 0 y se revisa antes de publicar.
 - Para más adelante, en `arquitectura.md` §12: cuota que no vuelve y `extraido_con` (fase 1), y republicar para quedar primero (fase 1b).
 - Bloqueantes de la fase 1: M2, B2, B5 y B6. Para la fase 1b: M3 (el autor no puede volver a compartir un contenido oculto y el admin puede suspenderle compartir) y B9 (el contador de denuncias se reinicia al restaurar). B4 queda como riesgo aceptado.
+
+## 2026-11-07 (prueba manual en Safari)
+
+- Fase 0, antes de cerrarla, ocho cambios de diseño. Se implementan después del dale de Agu a los mockups:
+  - Onboarding como modal centrado con fondo blur, línea de pasos abajo clickeable para volver a pasos anteriores y botón sin relleno "Paso anterior" arriba.
+  - Todos los paneles laterales pasan a modales centrados con fondo blur; en el celular ocupan casi toda la pantalla.
+  - Selector de materias propio y reutilizable: agrupado por año, con buscador y con el estado bien visible (color e ícono).
+  - Un mismo archivo en varias materias se muestra como una sola tarjeta, con las materias como etiquetas y opciones para quitar de una materia o agregar a otra.
+  - Celebración al aprobar: overlay a pantalla completa con blur, confeti y detrás el texto "¡Felicitaciones! Aprobaste X", sin el recuadro blanco.
+  - Tarjeta de Promedio: los 4 números del mismo tamaño y distribuidos a lo ancho.
+  - Botón de iniciar sesión con menos movimiento al pasar el mouse.
+  - Zona de subida que deje más claro que se pueden arrastrar archivos.
+- Fase 1: importar la Historia Académica del SIU en **PDF y XLS** (resuelve la decisión 1 de `docs/investigacion/siu-guarani.md`), con una guía "¿Cómo consigo el archivo?" con capturas que aporta Agu. La dependencia para XLS sigue a decisión de Agu.
+- ~~Fase 1: vista previa de la primera página del PDF en la tarjeta, generada en la misma pasada que la extracción de texto.~~ Adelantada a la fase 0, ver abajo.
+- Fase 2: gráficos a pedido desde el asistente ("quiero ver tal cosa de mi carrera").
+
+## 2026-11-07 (revisión de los mockups de la fase 0)
+
+Agu aprobó las 9 decisiones de los mockups con dos ajustes y sumó pedidos. Sigue sin implementarse nada: espera su ok a la versión nueva de los mockups.
+
+- Onboarding: se puede volver a los pasos anteriores con el plan ya activado. Otro plan se activa recién al confirmar, y lo cargado queda guardado en el plan anterior.
+- Modales: tocar afuera no los cierra; se cierran con la X, Cancelar o Esc. El menú lateral del celular no cambia.
+- **Ninguna lista nativa en la app:**
+  - Materias: selector propio con grupo "En curso ahora" arriba de los años.
+  - Nota: fila de botones 1 a 10. El valor guardado con decimales aparece como opción extra y se conserva, como ya estaba decidido.
+  - Año y cuatrimestre: botones de opción (segmented).
+- Estados: en toda la app, "Pendiente" pasa a "Por cursar" y "Final pendiente" a "Falta final".
+- Tarjeta de archivo:
+  - ~~"Mover a otra materia"~~ se saca: agregar y quitar hacen lo mismo. Reemplaza esa parte de lo decidido el 2026-11-05.
+  - Quitar la última etiqueta deja el archivo en "Sin materia", sin borrarlo.
+  - "Borrar archivo" lo saca de todas las materias del plan activo, con un solo Deshacer. El aviso dice de cuántas materias se borró: "Borrado de 2 materias · Deshacer".
+  - Solo se agrupan archivos: una nota o un link agregado a otra materia es una copia independiente. No cambia la base, y el contador del menú pasa a contar tarjetas.
+- Celebración: muestra la nota si la materia tiene ("con un 9"). Sale solo al aprobar desde el panel de materia, no desde la grilla ni al importar.
+- Imán: tope de 4 px en todos los botones primarios, no solo en el login.
+- **Onboarding, elección de plan:** si la carrera tiene un solo plan, se saltea y se elige solo. Si tiene varios, se preselecciona el más reciente como "vigente", con la ayuda "¿No sabés cuál es? Figura en tu Historia Académica del Guaraní".
+- **Onboarding, paso de carga:** después de la carrera ofrece "Importar desde SIU Guaraní" (en la fase 0 como "Próximamente", con el botón "¿Cómo consigo el archivo?" ya previsto en el diseño), "Cargar a mano" e "Importar respaldo de EstudIA".
+- El importador del SIU es el primer punto de la fase 1.
+- **Vista previa adelantada a la fase 0:** primera página del PDF y miniatura de imágenes en las tarjetas, generadas en el dispositivo y cacheadas localmente. La librería de PDF se carga solo al entrar a Materiales, sin sumar al peso inicial. Esto adelanta PDF.js, que estaba previsto para la fase 1.
+- **Archivos:** se acepta cualquier tipo hasta 50 MB. Hay vista previa para PDF, imágenes (HEIC si se puede) y texto (`.txt`, `.md`, `.csv`, `.py`); el resto va con ícono por tipo y descarga. Nada fuera de esos tipos se abre adentro de la app.
+- Fase 1: extraer texto de `.docx`, `.pptx`, `.txt` e imágenes (OCR).
+- Fase 1b: bloquear ejecutables al compartir.
