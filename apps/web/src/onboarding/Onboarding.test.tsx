@@ -1,10 +1,14 @@
+import type { Material } from "@estudia/core";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
 import { Shell } from "../interfaz/Shell";
 import {
   hashEs,
   ID_PLAN,
   INSCRIPCION,
+  PLAN,
   pasarPasosDelCatalogo,
   renderConRepositorio,
   repositorioFalso,
@@ -95,7 +99,7 @@ describe("redirección obligatoria", () => {
     await hashEs("#inicio");
 
     await irAHash("materias");
-    expect(screen.getByRole("heading", { name: "Materias" })).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "Materias" })).toBeTruthy();
     expect(window.location.hash).toBe("#materias");
   });
 
@@ -232,5 +236,44 @@ describe("datos del cascarón", () => {
     expect(nav.getByRole("link", { name: /^Aprobadas\s*0$/ })).toBeTruthy();
     expect(nav.getByRole("link", { name: /^Promedio\s*–$/ })).toBeTruthy();
     await waitFor(() => expect(nav.getByRole("link", { name: /^Materiales\s*0$/ })).toBeTruthy());
+  });
+
+  it("el contador de materiales cuenta los del plan y los sin materia, no los de otro plan", async () => {
+    const nota = (id: string, materiaId: string | null): Material => ({
+      id,
+      materiaId,
+      tipo: "nota",
+      titulo: id,
+      texto: "x",
+      visibilidad: "privado",
+      anonimo: false,
+      periodo: null,
+      oculto: false,
+      createdAt: "2026-01-01T00:00:00Z",
+    });
+    const repositorio = repositorioFalso({
+      inscripciones: [INSCRIPCION],
+      materiales: [
+        nota("del-plan", PLAN.materias[0]?.id ?? ""),
+        nota("suelta", null),
+        nota("de-otro-plan", "otra-materia"),
+      ],
+    });
+    const { container } = renderConRepositorio(<Shell />, repositorio);
+    await within(container.querySelector(".brand") as HTMLElement).findByText(/Plan 7023/);
+    const nav = within(container.querySelector("nav") as HTMLElement);
+    await waitFor(() => expect(nav.getByRole("link", { name: /^Materiales\s*2$/ })).toBeTruthy());
+  });
+
+  it("el nombre completo de la carrera se ve en el menú, con tooltip", async () => {
+    const repositorio = repositorioFalso({ inscripciones: [INSCRIPCION] });
+    const { container } = renderConRepositorio(<Shell />, repositorio);
+    const texto = await within(container.querySelector(".brand") as HTMLElement).findByText(
+      "Ciencias de Datos · Plan 7023",
+    );
+    expect(texto.getAttribute("title")).toBe("Ciencias de Datos · Plan 7023");
+    const css = readFileSync(resolve(import.meta.dirname, "../estilos/styles.css"), "utf8");
+    const regla = /\.brand-txt small \{([^}]*)\}/.exec(css)?.[1] ?? "";
+    expect(regla).not.toContain("nowrap");
   });
 });

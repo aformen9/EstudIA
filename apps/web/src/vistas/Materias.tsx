@@ -1,27 +1,17 @@
-import type { DatosAlumno } from "@estudia/core";
-import { useLayoutEffect, useRef } from "react";
-import { Icono } from "../interfaz/Iconos";
-import { ConPlan } from "../plan/planActivo";
 import {
   aniosDelPlan,
   buscarMaterias,
-  cantidad,
   cuatrimestresDelAnio,
   materiasDePestania,
-} from "../plan/presentacion";
+  type DatosAlumno,
+} from "@estudia/core";
+import { useLayoutEffect, useRef } from "react";
+import { Icono } from "../interfaz/Iconos";
+import { useAbrirNuevaMateria } from "../plan/abrirMateria";
+import { ConPlan } from "../plan/planActivo";
+import { cantidad } from "../plan/presentacion";
 import { CajaVacia, EncabezadoVista, FilaMateria, GruposDeMaterias, retardo } from "./comunes";
-
-export interface FiltrosMaterias {
-  anio: number;
-  cuatrimestre: number;
-  busqueda: string;
-}
-
-export const FILTROS_MATERIAS_INICIALES: FiltrosMaterias = {
-  anio: 1,
-  cuatrimestre: 1,
-  busqueda: "",
-};
+import type { FiltrosMaterias } from "./filtros";
 
 interface Pestania {
   valor: number;
@@ -168,9 +158,19 @@ export function Materias({
   filtros: FiltrosMaterias;
   alCambiar: (cambios: Partial<FiltrosMaterias>) => void;
 }) {
+  const abrirNueva = useAbrirNuevaMateria();
   return (
     <>
-      <EncabezadoVista seccion="Plan de estudios" titulo="Materias" />
+      <EncabezadoVista seccion="Plan de estudios" titulo="Materias">
+        <button
+          className="btn primary"
+          type="button"
+          onClick={() => abrirNueva({ anio: filtros.anio, cuatrimestre: filtros.cuatrimestre })}
+        >
+          <Icono nombre="plus" />
+          Agregar materia
+        </button>
+      </EncabezadoVista>
       <div className="row-tools rise" style={retardo(1)}>
         <label className="search">
           <Icono nombre="search" />

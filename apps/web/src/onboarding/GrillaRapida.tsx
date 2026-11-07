@@ -1,4 +1,5 @@
 import {
+  agruparMaterias,
   conteoPorEstado,
   ESTADOS_MATERIA,
   estadoDe,
@@ -7,8 +8,9 @@ import {
   type Materia,
 } from "@estudia/core";
 import { useCallback, useEffect, useId, useRef, useState, type RefObject } from "react";
-import { agruparMaterias, ETIQUETAS_ESTADO } from "../plan/presentacion";
+import { ETIQUETAS_ESTADO, lugarMateria } from "../plan/presentacion";
 import { useGuardarProgreso, type EstadoGuardadoFila } from "../plan/useGuardarProgreso";
+import { useGuardado } from "../sesion/sesion";
 
 function FilaMateria({
   planId,
@@ -83,6 +85,7 @@ export function GrillaRapida({
   alVolver: () => void;
   alTerminar: () => void;
 }) {
+  const almacen = useGuardado();
   const conteo = conteoPorEstado(datos);
   const [filas, setFilas] = useState<Record<string, EstadoGuardadoFila>>({});
   // Pidió salir. Qué pasa ahora se deduce de cómo están las filas, sin guardarlo aparte.
@@ -118,6 +121,8 @@ export function GrillaRapida({
   }
 
   function salirIgual() {
+    // Ya le avisamos y eligió salir: recargar después no le vuelve a preguntar por estas filas.
+    almacen.resolverFilas(fallidas);
     setSalida(null);
     if (salida?.accion === "volver") alVolver();
     else alTerminar();
@@ -128,16 +133,20 @@ export function GrillaRapida({
       <p className="sub">
         Cada cambio se guarda solo. Las notas las cargás después, en cada materia.
       </p>
-      {agruparMaterias(datos.materias).map(({ titulo, materias }) => (
-        <section className="grilla-grupo" key={titulo} aria-label={titulo}>
+      {agruparMaterias(datos.materias).map((grupo) => (
+        <section
+          className="grilla-grupo"
+          key={`${grupo.anio}-${grupo.cuatrimestre}`}
+          aria-label={lugarMateria(grupo)}
+        >
           <div className="group-t">
-            <h3>{titulo}</h3>
+            <h3>{lugarMateria(grupo)}</h3>
             <span>
-              {materias.length} materia{materias.length === 1 ? "" : "s"}
+              {grupo.materias.length} materia{grupo.materias.length === 1 ? "" : "s"}
             </span>
           </div>
           <div className="list">
-            {materias.map((materia) => (
+            {grupo.materias.map((materia) => (
               <FilaMateria
                 key={materia.id}
                 planId={datos.plan.id}

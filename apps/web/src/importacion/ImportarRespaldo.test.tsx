@@ -1,4 +1,5 @@
-import { crearRespaldo, type DatosAlumno, type Material, type Materia } from "@estudia/core";
+import { type DatosAlumno, type Material, type Materia } from "@estudia/core";
+import { crearRespaldo } from "@estudia/core/importacion";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ConPlan } from "../plan/planActivo";
@@ -46,8 +47,10 @@ function respaldoNuevo(materiales: Material[]): string {
   return JSON.stringify(creado.respaldo);
 }
 
+import { LimiteDeDocumento } from "../repositorio/limites";
+
 const LINK = (titulo: string, id = titulo) =>
-  materialDesde({ tipo: "link", materiaId: null, titulo, url: `https://e.test/${titulo}` }, id);
+  materialDesde({ id, tipo: "link", materiaId: null, titulo, url: `https://e.test/${titulo}` });
 
 beforeEach(() => {
   window.location.hash = "onboarding";
@@ -363,6 +366,74 @@ describe("guardar", () => {
     await waitFor(() => expect(dato("Fallaron")).toBe("0"));
     expect(dato("Omitidos (ya estaban)")).toBe("1");
     expect(repositorio.base.materiales).toHaveLength(1);
+  });
+
+  it("un timeout reintenta con el mismo id: lo que llegó a guardarse no se duplica", async () => {
+    const repositorio = repositorioFalso({ inscripciones: [INSCRIPCION] });
+    const original = repositorio.agregarMaterial.getMockImplementation();
+    repositorio.listarMateriales.mockResolvedValueOnce([]).mockResolvedValueOnce([]);
+    repositorio.agregarMaterial.mockImplementationOnce(async (nuevo) => {
+      await original?.(nuevo);
+      throw new Error("timeout");
+    });
+    await abrirSelector(repositorio);
+    elegirArchivo(respaldoNuevo([LINK("a")]));
+    fireEvent.click(await screen.findByRole("button", { name: "Guardar estos datos" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Reintentar los que fallaron" }));
+
+    await waitFor(() => expect(dato("Fallaron")).toBe("0"));
+    const [primero, segundo] = repositorio.agregarMaterial.mock.calls;
+    expect(segundo?.[0].id).toBe(primero?.[0].id);
+    expect(repositorio.base.materiales).toHaveLength(1);
+  });
+
+  it("un archivo que supera un límite explica qué pasó y no ofrece reintentar", async () => {
+    const repositorio = repositorioFalso({ inscripciones: [INSCRIPCION] });
+    repositorio.registrarDocumento.mockRejectedValueOnce(new LimiteDeDocumento("EQ002"));
+    await abrirSelector(repositorio);
+    const contenido = respaldoNuevo([
+      {
+        ...LINK("x"),
+        tipo: "archivo",
+        titulo: "apunte.pdf",
+        driveFileId: null,
+        documento: { id: "d", sha256: "A".repeat(64), mime: null, bytes: 1, paginas: null },
+      } as Material,
+    ]);
+    elegirArchivo(contenido);
+    fireEvent.click(await screen.findByRole("button", { name: "Guardar estos datos" }));
+
+    const alerta = await screen.findByRole("alert");
+    expect(alerta.textContent).toContain("apunte.pdf");
+    expect(alerta.textContent).toContain("límite de espacio de tu cuenta");
+    expect(dato("Fallaron")).toBe("0");
+    expect(dato("Rechazados por un límite")).toBe("1");
+    expect(screen.queryByRole("button", { name: /Reintentar/ })).toBeNull();
+  });
+
+  it("una nota o un link que supera un tope de la base también va al contador aparte", async () => {
+    const repositorio = repositorioFalso({ inscripciones: [INSCRIPCION] });
+    repositorio.agregarMaterial.mockRejectedValueOnce(
+      new LimiteDeDocumento("materiales_titulo_largo"),
+    );
+    await abrirSelector(repositorio);
+    elegirArchivo(respaldoNuevo([LINK("a")]));
+    fireEvent.click(await screen.findByRole("button", { name: "Guardar estos datos" }));
+
+    const alerta = await screen.findByRole("alert");
+    expect(alerta.textContent).toContain("título demasiado largo");
+    expect(dato("Rechazados por un límite")).toBe("1");
+    expect(dato("Fallaron")).toBe("0");
+    expect(screen.queryByRole("button", { name: /Reintentar/ })).toBeNull();
+  });
+
+  it("sin rechazados no muestra ese contador", async () => {
+    const repositorio = repositorioFalso({ inscripciones: [INSCRIPCION] });
+    await abrirSelector(repositorio);
+    elegirArchivo(respaldoNuevo([LINK("a")]));
+    fireEvent.click(await screen.findByRole("button", { name: "Guardar estos datos" }));
+    await screen.findByText("Agregados");
+    expect(screen.queryByText("Rechazados por un límite")).toBeNull();
   });
 
   it("si no puede ni leer los materiales: los datos quedan guardados, avisa y reintenta", async () => {

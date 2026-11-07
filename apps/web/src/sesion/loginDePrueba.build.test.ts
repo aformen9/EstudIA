@@ -50,6 +50,28 @@ describe("build de producción", () => {
     expect(js.some((a) => a.contenido.includes("Entrar con Google"))).toBe(true);
   });
 
+  it.each(["fonts.googleapis", "fonts.gstatic"])(
+    "no se conecta a Google por las fuentes: %s",
+    (host) => {
+      const conHost = archivos.filter((a) => a.contenido.includes(host));
+      expect(conHost.map((a) => a.nombre)).toEqual([]);
+    },
+  );
+
+  it("trae las fuentes que pide el CSS, y sus licencias", () => {
+    const css = archivos
+      .filter((a) => a.nombre.endsWith(".css"))
+      .map((a) => a.contenido)
+      .join("");
+    const pedidas = [...css.matchAll(/\/fonts\/([\w.-]+\.woff2)/g)].map((m) => m[1] as string);
+    expect(new Set(pedidas).size).toBe(2);
+    const nombres = archivos.map((a) => a.nombre);
+    for (const fuente of pedidas) {
+      expect(nombres.some((n) => n.endsWith(join("fonts", fuente)))).toBe(true);
+    }
+    expect(nombres.filter((n) => /fonts.+OFL-.+\.txt$/.test(n))).toHaveLength(2);
+  });
+
   it.each(Object.entries(MARCADORES))("no contiene el login de prueba: %s", (_nombre, marcador) => {
     const conMarcador = archivos.filter(
       (a) => a.nombre.includes(marcador) || a.contenido.includes(marcador),

@@ -1,4 +1,10 @@
-import { conteoPorEstado, promedio, type DatosAlumno, type Material } from "@estudia/core";
+import {
+  conteoPorEstado,
+  materialesDelPlan,
+  promedio,
+  type DatosAlumno,
+  type Material,
+} from "@estudia/core";
 import { useQuery } from "@tanstack/react-query";
 import {
   useEffect,
@@ -8,22 +14,35 @@ import {
   type Dispatch,
   type SetStateAction,
 } from "react";
-import { IndicadorGuardado } from "../guardado/IndicadorGuardado";
+import { IndicadorGuardado, useAvisoAlRecargar } from "../guardado/IndicadorGuardado";
 import { resolverVista } from "../navegacion/guardaOnboarding";
 import { VISTAS, type Vista } from "../navegacion/rutas";
 import { reemplazarVista, useVista } from "../navegacion/useVista";
-import { Onboarding } from "../onboarding/Onboarding";
+import { RegionAvisosPrincipal } from "../materiales/AvisosBorrado";
+import { ProveedorBorrados } from "../materiales/ProveedorBorrados";
+import { useMaterialesDelAlumno } from "../materiales/useMateriales";
 import { ProveedorAbrirMateria } from "../plan/abrirMateria";
 import { consultas, ErrorDeCarga, useDatosAlumno, useInscripcionActiva } from "../plan/planActivo";
 import { etiquetaPlan, formatoNota } from "../plan/presentacion";
-import { useConexion, useRepositorio, useSesion } from "../sesion/sesion";
+import { useCerrarSesion } from "../sesion/CerrarSesion";
+import { useRepositorio, useSesion } from "../sesion/sesion";
+import { Avatar, fotosDeUsuario } from "./Avatar";
+import { CargaDiferida, diferido } from "./CargaDiferida";
 import { Icono, type NombreIcono } from "./Iconos";
 import { useTema } from "./tema";
-import { VistaEnConstruccion } from "./VistaEnConstruccion";
+import { FILTROS_MATERIALES_INICIALES, FILTROS_MATERIAS_INICIALES } from "../vistas/filtros";
 import { Inicio } from "../vistas/Inicio";
-import { Aprobadas, Cursando, Finales, Pendientes } from "../vistas/ListasCarrera";
-import { FILTROS_MATERIAS_INICIALES, Materias } from "../vistas/Materias";
-import { Promedio } from "../vistas/Promedio";
+
+// Inicio va en el bundle inicial porque es a donde llega casi siempre el alumno.
+const Onboarding = diferido(async () => (await import("../onboarding/Onboarding")).Onboarding);
+const Ajustes = diferido(async () => (await import("../vistas/Ajustes")).Ajustes);
+const Promedio = diferido(async () => (await import("../vistas/Promedio")).Promedio);
+const Materiales = diferido(async () => (await import("../vistas/Materiales")).Materiales);
+const Materias = diferido(async () => (await import("../vistas/Materias")).Materias);
+const Aprobadas = diferido(async () => (await import("../vistas/ListasCarrera")).Aprobadas);
+const Cursando = diferido(async () => (await import("../vistas/ListasCarrera")).Cursando);
+const Finales = diferido(async () => (await import("../vistas/ListasCarrera")).Finales);
+const Pendientes = diferido(async () => (await import("../vistas/ListasCarrera")).Pendientes);
 
 const CLAVE_MENU_ACHICADO = "estudia.mini";
 
@@ -75,17 +94,22 @@ function contadores(
     finales: conteo.final,
     pendientes: conteo.pendiente,
     promedio: formatoNota(promedio(datos, false).promedio),
-    materiales: materiales?.length,
+    materiales: materiales && materialesDelPlan(materiales, datos.materias).length,
   };
 }
 
-/** Durante el onboarding no hay ajustes a los que ir: el botón directamente cierra la sesión. */
+/**
+ * Durante el onboarding no hay ajustes a los que ir: el botón cierra la sesión, y solo pregunta si hay
+ * archivos en este dispositivo.
+ */
 function MenuAjustes({ email, enOnboarding }: { email: string; enOnboarding: boolean }) {
-  const { cliente } = useConexion();
   const [abierto, setAbierto] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const contenedor = useRef<HTMLDivElement>(null);
   const boton = useRef<HTMLButtonElement>(null);
+  const { pedir, dialogo, error } = useCerrarSesion({
+    preguntarSoloConArchivos: enOnboarding,
+    devolverFocoA: boton,
+  });
 
   useEffect(() => {
     if (!abierto) return;
@@ -106,14 +130,6 @@ function MenuAjustes({ email, enOnboarding }: { email: string; enOnboarding: boo
     };
   }, [abierto]);
 
-  async function cerrarSesion() {
-    setAbierto(false);
-    setError(null);
-    // Solo este dispositivo (decisión de Agu): las otras sesiones del alumno siguen abiertas.
-    const { error: fallo } = await cliente.auth.signOut({ scope: "local" });
-    if (fallo) setError(`No pude cerrar la sesión: ${fallo.message}`);
-  }
-
   const mensajeDeError = error && (
     <div className="msg err" role="alert">
       {error}
@@ -123,11 +139,18 @@ function MenuAjustes({ email, enOnboarding }: { email: string; enOnboarding: boo
   if (enOnboarding) {
     return (
       <div className="menu" ref={contenedor}>
-        <button className="side-btn" type="button" title="Cerrar sesión" onClick={cerrarSesion}>
+        <button
+          className="side-btn"
+          type="button"
+          ref={boton}
+          title="Cerrar sesión"
+          onClick={() => void pedir()}
+        >
           <Icono nombre="logout" />
           <span>Cerrar sesión</span>
         </button>
         {mensajeDeError}
+        {dialogo}
       </div>
     );
   }
@@ -159,7 +182,13 @@ function MenuAjustes({ email, enOnboarding }: { email: string; enOnboarding: boo
             Ajustes
             <small>Nombre, carrera y respaldo</small>
           </button>
-          <button type="button" onClick={cerrarSesion}>
+          <button
+            type="button"
+            onClick={() => {
+              setAbierto(false);
+              void pedir();
+            }}
+          >
             <Icono nombre="logout" />
             Cerrar sesión
             <small>{email}</small>
@@ -167,12 +196,17 @@ function MenuAjustes({ email, enOnboarding }: { email: string; enOnboarding: boo
         </div>
       )}
       {mensajeDeError}
+      {dialogo}
     </div>
   );
 }
 
 /** Lo que el alumno eligió en las vistas: como en la referencia, sigue ahí si se va y vuelve. */
-const FILTROS_INICIALES = { materias: FILTROS_MATERIAS_INICIALES, conAplazos: false };
+const FILTROS_INICIALES = {
+  materias: FILTROS_MATERIAS_INICIALES,
+  materiales: FILTROS_MATERIALES_INICIALES,
+  conAplazos: false,
+};
 
 function ContenidoVista({
   vista,
@@ -214,13 +248,30 @@ function ContenidoVista({
           alCambiar={(conAplazos) => setFiltros((f) => ({ ...f, conAplazos }))}
         />
       );
-    default:
-      return <VistaEnConstruccion vista={vista} />;
+    case "materiales":
+      return (
+        <Materiales
+          filtros={filtros.materiales}
+          alCambiar={(cambios) =>
+            setFiltros((f) => ({ ...f, materiales: { ...f.materiales, ...cambios } }))
+          }
+        />
+      );
+    case "ajustes":
+      return <Ajustes />;
   }
 }
 
 /** Cascarón de la app: menú lateral (desplegable en el celular), barra superior y vista actual. */
 export function Shell() {
+  return (
+    <ProveedorBorrados>
+      <ContenidoShell />
+    </ProveedorBorrados>
+  );
+}
+
+function ContenidoShell() {
   const pedida = useVista();
   const inscripcion = useInscripcionActiva();
   // El alumno acaba de activar su plan y está en el último paso del onboarding.
@@ -241,10 +292,12 @@ export function Shell() {
   const [achicado, setAchicado] = useState(leerMenuAchicado);
 
   const perfil = useQuery(consultas.perfil(repositorio));
-  const materiales = useQuery({ ...consultas.materiales(repositorio), enabled: !sinPlan });
+  const materiales = useMaterialesDelAlumno({ enabled: !sinPlan });
   const cuentas = contadores(datos, materiales.data);
   const nombre = perfil.data?.nombre?.trim() || "EstudIA";
-  const email = sesion.estado === "activa" ? (sesion.sesion.user.email ?? "") : "";
+  const usuario = sesion.estado === "activa" ? sesion.sesion.user : null;
+  const email = usuario?.email ?? "";
+  useAvisoAlRecargar();
 
   const nav = useRef<HTMLElement>(null);
   const indicador = useRef<HTMLSpanElement>(null);
@@ -329,12 +382,10 @@ export function Shell() {
                 if (!bloqueado) window.location.hash = "inicio";
               }}
             >
-              <span className="avatar" aria-hidden="true">
-                {nombre.charAt(0).toUpperCase()}
-              </span>
+              <Avatar nombre={nombre} fotos={fotosDeUsuario(usuario?.user_metadata)} />
               <span className="brand-txt">
                 <b>{nombre}</b>
-                {datos && <small>{etiquetaPlan(datos)}</small>}
+                {datos && <small title={etiquetaPlan(datos)}>{etiquetaPlan(datos)}</small>}
               </span>
             </button>
             <button
@@ -419,13 +470,14 @@ export function Shell() {
           </header>
           <main className="main" ref={main} tabIndex={-1}>
             {vista ? (
-              <ContenidoVista
-                key={vista}
-                vista={vista}
-                filtros={filtros}
-                setFiltros={setFiltros}
-                alActivarPlan={() => setEnCurso(true)}
-              />
+              <CargaDiferida key={vista}>
+                <ContenidoVista
+                  vista={vista}
+                  filtros={filtros}
+                  setFiltros={setFiltros}
+                  alActivarPlan={() => setEnCurso(true)}
+                />
+              </CargaDiferida>
             ) : inscripcion.estado === "error" ? (
               <ErrorDeCarga
                 mensaje={inscripcion.error.message}
@@ -439,6 +491,7 @@ export function Shell() {
           </main>
         </div>
       </div>
+      <RegionAvisosPrincipal />
     </ProveedorAbrirMateria>
   );
 }

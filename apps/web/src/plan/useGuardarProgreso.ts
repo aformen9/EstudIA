@@ -1,8 +1,7 @@
-import type { ProgresoMateria } from "@estudia/core";
+import { progresoInicial, type ProgresoMateria } from "@estudia/core";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRef } from "react";
-import { useFalloVisible } from "../guardado/IndicadorGuardado";
-import { useRepositorio } from "../sesion/sesion";
+import { useGuardado, useRepositorio } from "../sesion/sesion";
 import { clavesPlan } from "./planActivo";
 
 export type CambiosProgreso = Partial<Omit<ProgresoMateria, "materiaId">>;
@@ -13,32 +12,22 @@ export interface EstadoGuardadoFila {
   fallo: boolean;
 }
 
-function progresoVacio(materiaId: string): ProgresoMateria {
-  return {
-    materiaId,
-    estado: "pendiente",
-    p1: null,
-    p2: null,
-    rec: null,
-    notaCursada: null,
-    notaFinalExamen: null,
-    nota: null,
-    aplazos: [],
-  };
-}
-
 /**
  * Guarda una materia conservando los demás campos de su fila. El cambio se ve al instante y, si falla,
  * vuelve a lo último confirmado por la base: lo que queda en pantalla nunca parece guardado sin estarlo.
- * Los guardados de una misma materia van en fila (`scope`), así uno viejo no pisa a uno nuevo.
- * `alCambiarEstado` avisa en el momento en que se pide guardar, sin esperar al próximo render.
+ * Los guardados de una misma materia van en fila (`scope`), así uno viejo no pisa a uno nuevo. El
+ * repositorio les pone un tiempo máximo (`conIndicador`): uno colgado falla y deja pasar al siguiente,
+ * y lo que responda después se ignora. `alCambiarEstado` avisa en el momento en que se pide guardar,
+ * sin esperar al próximo render. `materiaId` null: una materia que todavía no existe, y cada guardado
+ * dice cuál es.
  */
 export function useGuardarProgreso(
   planId: string,
-  materiaId: string,
+  materiaId: string | null,
   alCambiarEstado?: (estado: EstadoGuardadoFila) => void,
 ) {
   const repositorio = useRepositorio();
+  const almacen = useGuardado();
   const clienteQuery = useQueryClient();
   const clave = clavesPlan.progreso(planId);
   const enCamino = useRef(0);
@@ -46,34 +35,36 @@ export function useGuardarProgreso(
   const confirmada = useRef<ProgresoMateria | null>(null);
   const ultimosCambios = useRef<CambiosProgreso>({});
 
-  function filaActual(): ProgresoMateria | null {
+  function filaActual(id: string): ProgresoMateria | null {
     const filas = clienteQuery.getQueryData<ProgresoMateria[]>(clave) ?? [];
-    return filas.find((f) => f.materiaId === materiaId) ?? null;
+    return filas.find((f) => f.materiaId === id) ?? null;
   }
 
-  function ponerFila(fila: ProgresoMateria | null) {
+  function ponerFila(id: string, fila: ProgresoMateria | null) {
     clienteQuery.setQueryData<ProgresoMateria[]>(clave, (filas = []) => {
-      const otras = filas.filter((f) => f.materiaId !== materiaId);
+      const otras = filas.filter((f) => f.materiaId !== id);
       return fila ? [...otras, fila] : otras;
     });
   }
 
   const mutacion = useMutation({
-    scope: { id: `progreso:${materiaId}` },
+    scope: { id: `progreso:${materiaId ?? "nueva"}` },
     mutationFn: (fila: ProgresoMateria) => repositorio.guardarProgreso(fila),
     onMutate: async (fila) => {
-      if (enCamino.current === 0) confirmada.current = filaActual();
+      if (enCamino.current === 0) confirmada.current = filaActual(fila.materiaId);
       enCamino.current += 1;
       // Una lectura en camino traería el valor de antes del cambio.
       await clienteQuery.cancelQueries({ queryKey: clave });
-      ponerFila(fila);
+      ponerFila(fila.materiaId, fila);
     },
     onSuccess: (_resultado, fila) => {
       confirmada.current = fila;
-      if (enCamino.current === 1) ponerFila(fila);
+      almacen.resolverFilas([fila.materiaId]);
+      if (enCamino.current === 1) ponerFila(fila.materiaId, fila);
     },
-    onError: () => {
-      if (enCamino.current === 1) ponerFila(confirmada.current);
+    onError: (_error, fila) => {
+      almacen.marcarFilaFallida(fila.materiaId);
+      if (enCamino.current === 1) ponerFila(fila.materiaId, confirmada.current);
     },
     onSettled: (_resultado, error) => {
       enCamino.current -= 1;
@@ -82,17 +73,23 @@ export function useGuardarProgreso(
     },
   });
 
-  useFalloVisible(mutacion.isError);
-
-  function guardar(cambios: CambiosProgreso) {
+  function armarFila(cambios: CambiosProgreso, id: string): ProgresoMateria {
     ultimosCambios.current = cambios;
     pedidos.current += 1;
     alCambiarEstado?.({ guardando: true, fallo: false });
-    mutacion.mutate({ ...(filaActual() ?? progresoVacio(materiaId)), ...cambios, materiaId });
+    return { ...(filaActual(id) ?? progresoInicial(id)), ...cambios, materiaId: id };
+  }
+
+  function guardar(cambios: CambiosProgreso) {
+    if (materiaId !== null) mutacion.mutate(armarFila(cambios, materiaId));
   }
 
   return {
     guardar,
+    /** Para quien tiene que saber cómo terminó: rechaza si no se pudo guardar. */
+    guardarYEsperar: (cambios: CambiosProgreso, id: string) =>
+      mutacion.mutateAsync(armarFila(cambios, id)),
+    /** Vuelve a mandar los mismos valores: es un upsert, así que repetirlo no cambia nada. */
     reintentar: () => guardar(ultimosCambios.current),
     error: mutacion.error,
   };

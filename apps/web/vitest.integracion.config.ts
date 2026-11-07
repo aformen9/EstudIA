@@ -9,6 +9,8 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     environment: "node",
+    // jsdom no trae diálogos modales ni IndexedDB, y `flujo.integracion.tsx` usa los dos.
+    setupFiles: ["./src/pruebas/preparacion.ts"],
     include: ["src/**/*.integracion.{ts,tsx}"],
     testTimeout: 30_000,
   },

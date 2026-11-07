@@ -1,13 +1,14 @@
 import type { Inscripcion } from "@estudia/core";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
-import { ImportarRespaldo } from "../importacion/ImportarRespaldo";
+import { ImportarRespaldo } from "../importacion/ImportarRespaldoDiferido";
+import { CapaBrillo } from "../interfaz/Fondo";
 import { VISTAS } from "../navegacion/rutas";
 import { ConPlan, ErrorDeCarga, ponerInscripcionActiva } from "../plan/planActivo";
 import { useRepositorio } from "../sesion/sesion";
-import { GrillaRapida } from "./GrillaRapida";
+import { GrillaRapida } from "./GrillaRapidaDiferida";
 
-interface Opcion {
+export interface Opcion {
   id: string;
   titulo: string;
   detalle?: string | null;
@@ -19,7 +20,7 @@ interface ConsultaOpciones {
   refetch: () => unknown;
 }
 
-function PasoElegir({
+export function PasoElegir({
   consulta,
   nombre,
   vacio,
@@ -132,6 +133,7 @@ function ContenidoPaso({ paso, children }: { paso: Paso; children: ReactNode }) 
   const [numero, texto] = TITULOS[paso];
   return (
     <section className="card onboarding rise">
+      <CapaBrillo />
       <div className="eyebrow">Paso {numero} de 4</div>
       <h2 ref={titulo} tabIndex={-1}>
         {texto}

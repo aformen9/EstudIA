@@ -3,8 +3,9 @@ import type { Material, Repositorio } from "@estudia/core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Shell } from "../interfaz/Shell";
 import {
+  abrirVista,
   datosDelCasoDePrueba,
-  elegirArchivo,
+  elegirArchivoAlCargar,
   fila,
   INSCRIPCION,
   leerFixtureLegacy,
@@ -42,16 +43,8 @@ function conCasoDePrueba(extra: Parameters<typeof repositorioFalso>[0] = {}) {
   return repositorioFalso({ inscripciones: [INSCRIPCION], ...datosDelCasoDePrueba(), ...extra });
 }
 
-/** Muestra una vista y espera a que cargue el plan. */
-async function abrir(hash: string, repositorio: RepositorioFalso | Repositorio) {
-  window.location.hash = hash;
-  const resultado = renderConRepositorio(<Shell />, repositorio);
-  await waitFor(() => expect(screen.queryByText("Cargando tu plan…")).toBeNull());
-  await waitFor(() =>
-    expect(within(resultado.container.querySelector(".brand") as HTMLElement).getByText(/Plan/)),
-  );
-  return { ...resultado, main: within(screen.getByRole("main")) };
-}
+const abrir = (hash: string, repositorio: RepositorioFalso | Repositorio) =>
+  abrirVista(hash, <Shell />, repositorio);
 
 function sinValoresRotos() {
   const texto = screen.getByRole("main").textContent ?? "";
@@ -117,7 +110,7 @@ describe("Inicio con el caso de prueba", () => {
     expect(main.queryByRole("button", { name: /Cargar materias/ })).toBeNull();
   });
 
-  it("material reciente: los últimos 4, sin materia y de otro plan llevan a Materiales", async () => {
+  it("material reciente: los últimos 4 del plan, y sin materia lleva a Materiales", async () => {
     const m = materia("GMA0136");
     const { main } = await abrir(
       "inicio",
@@ -154,9 +147,11 @@ describe("Inicio con el caso de prueba", () => {
     expect(tarjeta.getByRole("link", { name: /suelta.*Sin materia/ }).getAttribute("href")).toBe(
       "#materiales",
     );
-    expect(tarjeta.getByRole("link", { name: /ajeno.*De otro plan/ })).toBeTruthy();
-    expect(tarjeta.queryByText("viejo")).toBeNull();
-    expect(tarjeta.getAllByRole("link", { name: /suelta|ajeno/ })).toHaveLength(2);
+    // El de otro plan no aparece ni ocupa lugar: entra el más viejo, que sí es de este plan.
+    expect(tarjeta.queryByText("ajeno")).toBeNull();
+    expect(tarjeta.queryByText(/De otro plan/)).toBeNull();
+    expect(tarjeta.getByText("viejo")).toBeTruthy();
+    expect(tarjeta.getAllByRole("link", { name: /suelta|viejo/ })).toHaveLength(2);
   });
 
   it("si no se puede leer el material lo dice y reintenta, sin tirar abajo Inicio", async () => {
@@ -191,7 +186,7 @@ describe("Inicio sin datos", () => {
     fireEvent.click(await main.findByRole("button", { name: /Cargar materias/ }));
     const titulo = main.getByRole("heading", { name: "Marcá cómo vas en cada materia" });
     expect(document.activeElement).toBe(titulo);
-    expect(main.getAllByRole("radiogroup")).toHaveLength(50);
+    expect(await main.findAllByRole("radiogroup")).toHaveLength(50);
     expect(window.location.hash).toBe("#inicio");
 
     fireEvent.click(main.getByRole("button", { name: "Volver" }));
@@ -243,7 +238,7 @@ describe("Inicio sin datos", () => {
     fireEvent.click(await main.findByRole("button", { name: /Importar respaldo/ }));
     expect(main.getByRole("heading", { name: "Importá tu respaldo" })).toBeTruthy();
 
-    elegirArchivo(leerFixtureLegacy());
+    await elegirArchivoAlCargar(leerFixtureLegacy());
     fireEvent.click(await main.findByRole("button", { name: "Guardar estos datos" }));
 
     expect(
@@ -368,13 +363,6 @@ describe("Materias", () => {
     expect(fila1.textContent).toContain("Anual");
     fireEvent.click(main.getByRole("button", { name: "2° cuatrimestre" }));
     expect(main.getByRole("button", { name: /Anual propia/ })).toBeTruthy();
-  });
-
-  it("abrir una materia es un botón que avisa que llega pronto", async () => {
-    const { main } = await abrir("materias", conCasoDePrueba());
-    fireEvent.click(await main.findByRole("button", { name: /^Cálculo Elemental/ }));
-    expect(screen.getByText(/Próximamente vas a poder abrir cada materia/)).toBeTruthy();
-    expect(screen.getByText(/Próximamente/).closest("[role=status]")).toBeTruthy();
   });
 });
 

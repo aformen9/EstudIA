@@ -8,6 +8,7 @@ import type {
   Repositorio,
 } from "@estudia/core";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { TIEMPO_MAXIMO_GUARDADO_MS } from "../guardado/almacenGuardado";
 import {
   COLUMNAS_CARRERA,
   COLUMNAS_CORRELATIVA_CON_PLAN,
@@ -21,6 +22,7 @@ import {
   COLUMNAS_PROGRESO_CON_PLAN,
   COLUMNAS_UNIVERSIDAD,
   borradorAFila,
+  borradorAParametros,
   carreraDesdeFila,
   correlativaAFila,
   correlativaDesdeFila,
@@ -49,10 +51,11 @@ import {
   type FilaProgreso,
   type FilaUniversidad,
 } from "./mapeos";
+import { errorDeLimite } from "./limites";
 
 interface Respuesta {
   data: unknown;
-  error: { message: string } | null;
+  error: { message: string; code?: string } | null;
 }
 
 function comprobar(contexto: string, { error }: Pick<Respuesta, "error">): void {
@@ -224,7 +227,9 @@ export function crearRepositorioSupabase(cliente: SupabaseClient): Repositorio {
         "No se pudo guardar el progreso",
         await cliente
           .from("progreso")
-          .upsert(progresoAFila(progreso), { onConflict: "user_id,materia_id" }),
+          .upsert(progresoAFila(progreso), { onConflict: "user_id,materia_id" })
+          // Corta el pedido de verdad: si no, uno colgado podría llegar después de uno más nuevo.
+          .abortSignal(AbortSignal.timeout(TIEMPO_MAXIMO_GUARDADO_MS)),
       );
     },
 
@@ -241,34 +246,15 @@ export function crearRepositorioSupabase(cliente: SupabaseClient): Repositorio {
 
     /* ---------- Materias propias ---------- */
 
-    async crearMateriaPropia(planId, borrador: BorradorMateriaPropia) {
+    async crearMateriaPropia(planId, borrador: BorradorMateriaPropia, id) {
       const contexto = "No se pudo crear la materia";
-      const ultima = await cliente
-        .from("materias")
-        .select("orden")
-        .eq("plan_id", planId)
-        .order("orden", { ascending: false })
-        .limit(1);
-      const [fila] = filas<{ orden: number }[]>(contexto, ultima);
       const creada = filas<FilaMateria>(
         contexto,
-        await cliente
-          .from("materias")
-          .insert({
-            ...borradorAFila(borrador),
-            plan_id: planId,
-            owner_id: await idDelAlumno(),
-            orden: (fila?.orden ?? 0) + 1,
-          })
-          .select(COLUMNAS_MATERIA)
-          .single(),
+        await cliente.rpc("crear_materia_propia", borradorAParametros(planId, borrador, id)),
       );
-      try {
-        await reemplazarCorrelativas(creada.id, borrador.correlativas);
-      } catch (error) {
-        // Una materia a medio crear confundiría al alumno: mejor que no quede nada.
-        await cliente.from("materias").delete().eq("id", creada.id);
-        throw error;
+      // Un reintento devuelve la fila que ya existía: podría haber nacido en otro plan.
+      if (creada.plan_id !== planId) {
+        throw new Error(`${contexto}: ese id ya se usó en otro plan.`);
       }
       return materiaDesdeFila(creada);
     },
@@ -315,10 +301,13 @@ export function crearRepositorioSupabase(cliente: SupabaseClient): Repositorio {
     },
 
     async registrarDocumento(documento: NuevoDocumento): Promise<Documento> {
-      const id = filas<string>(
-        "No se pudo registrar el archivo",
-        await cliente.rpc("registrar_documento", nuevoDocumentoAParametros(documento)),
+      const respuesta = await cliente.rpc(
+        "registrar_documento",
+        nuevoDocumentoAParametros(documento),
       );
+      const limite = errorDeLimite(respuesta.error);
+      if (limite) throw limite;
+      const id = filas<string>("No se pudo registrar el archivo", respuesta);
       // La fila todavía no se puede leer: se arma con los datos de entrada.
       return documentoDesdeFila({
         id,
@@ -331,15 +320,55 @@ export function crearRepositorioSupabase(cliente: SupabaseClient): Repositorio {
 
     async agregarMaterial(material: NuevoMaterial) {
       const contexto = "No se pudo guardar el material";
-      const { id } = filas<{ id: string }>(
-        contexto,
-        await cliente.from("materiales").insert(nuevoMaterialAFila(material)).select("id").single(),
-      );
-      // Se relee aparte: dentro del insert, la RLS todavía no deja ver el documento y el embed viene null.
+      const insercion = await cliente
+        .from("materiales")
+        .upsert(nuevoMaterialAFila(material), { onConflict: "id", ignoreDuplicates: true });
+      const limite = errorDeLimite(insercion.error);
+      if (limite) throw limite;
+      comprobar(contexto, insercion);
+      // Sin fila nueva no se sabe si fue un reintento propio o un id ajeno: lo dice esta lectura. Se
+      // filtra por el alumno porque a un admin la RLS le deja ver materiales ajenos. Además, dentro
+      // del insert la RLS todavía no deja ver el documento y el embed vendría null.
       const fila = filas<FilaMaterial>(
         contexto,
-        await cliente.from("materiales").select(COLUMNAS_MATERIAL).eq("id", id).single(),
+        await cliente
+          .from("materiales")
+          .select(COLUMNAS_MATERIAL)
+          .eq("id", material.id)
+          .eq("user_id", await idDelAlumno())
+          .maybeSingle(),
       );
+      return materialDesdeFila(fila);
+    },
+
+    async moverMaterial(materialId, materiaId) {
+      const contexto = "No se pudo mover el material";
+      const movidos = filas<FilaMaterial[]>(
+        contexto,
+        await cliente
+          .from("materiales")
+          .update({ materia_id: materiaId })
+          .eq("id", materialId)
+          .eq("user_id", await idDelAlumno())
+          .select(COLUMNAS_MATERIAL),
+      );
+      const [fila] = movidos;
+      if (!fila) throw new Error(`${contexto}: no existe o no es tuyo.`);
+      return materialDesdeFila(fila);
+    },
+
+    async actualizarMaterial(materialId, cambios) {
+      const contexto = "No se pudo corregir el material";
+      const respuesta = await cliente
+        .from("materiales")
+        .update(cambios)
+        .eq("id", materialId)
+        .eq("user_id", await idDelAlumno())
+        .select(COLUMNAS_MATERIAL);
+      const limite = errorDeLimite(respuesta.error);
+      if (limite) throw limite;
+      const [fila] = filas<FilaMaterial[]>(contexto, respuesta);
+      if (!fila) throw new Error(`${contexto}: no existe o no es tuyo.`);
       return materialDesdeFila(fila);
     },
 

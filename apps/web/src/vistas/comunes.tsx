@@ -1,24 +1,19 @@
 import {
-  estadoCorrelativas,
-  progresoDe,
+  agruparMaterias,
+  esAnual,
   estadoDe,
+  materialesDeMateria,
+  progresoDe,
+  situacionCorrelativas,
   type DatosAlumno,
   type Materia,
 } from "@estudia/core";
-import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { Icono, type NombreIcono } from "../interfaz/Iconos";
 import { prefiereMenosMovimiento } from "../interfaz/efectos";
+import { useMaterialesDelAlumno } from "../materiales/useMateriales";
 import { useAbrirMateria } from "../plan/abrirMateria";
-import { consultas } from "../plan/planActivo";
-import {
-  agruparMaterias,
-  cantidad,
-  ETIQUETAS_ESTADO,
-  formatoNota,
-  lugarMateria,
-} from "../plan/presentacion";
-import { useRepositorio } from "../sesion/sesion";
+import { cantidad, ETIQUETAS_ESTADO, formatoNota, lugarMateria } from "../plan/presentacion";
 
 const MAX_RETARDO = 14;
 const DURACION_CONTADOR_MS = 1100;
@@ -96,41 +91,31 @@ export function CajaVacia({
 }
 
 function EtiquetaCorrelativas({ datos, materia }: { datos: DatosAlumno; materia: Materia }) {
-  const estado = estadoDe(datos, materia.id);
-  if (estado === "pendiente") {
-    const cursar = estadoCorrelativas(datos, materia, "cursar");
-    if (cursar.vacio) return null;
-    return cursar.ok ? (
+  const situacion = situacionCorrelativas(datos, materia);
+  if (!situacion) return null;
+  const { para, ok, n } = situacion;
+  if (ok) {
+    return (
       <span className="tag can">
         <Icono nombre="spark" />
-        Podés cursarla
-      </span>
-    ) : (
-      <span className="tag lock">
-        <Icono nombre="lock" />
-        {cursar.n > 1 ? `Te faltan ${cursar.n} requisitos` : "Te falta 1 requisito"}
+        {para === "cursar" ? "Podés cursarla" : "Podés rendirla"}
       </span>
     );
   }
-  if (estado === "final" || estado === "cursando") {
-    const rendir = estadoCorrelativas(datos, materia, "rendir");
-    if (rendir.vacio) return null;
-    if (rendir.ok) {
-      return estado === "final" ? (
-        <span className="tag can">
-          <Icono nombre="spark" />
-          Podés rendirla
-        </span>
-      ) : null;
-    }
-    return (
-      <span className="tag lock">
-        <Icono nombre="lock" />
-        {rendir.n > 1 ? `Para rendir te faltan ${rendir.n}` : "Para rendir te falta 1"}
-      </span>
-    );
-  }
-  return null;
+  const texto =
+    para === "cursar"
+      ? n > 1
+        ? `Te faltan ${n} requisitos`
+        : "Te falta 1 requisito"
+      : n > 1
+        ? `Para rendir te faltan ${n}`
+        : "Para rendir te falta 1";
+  return (
+    <span className="tag lock">
+      <Icono nombre="lock" />
+      {texto}
+    </span>
+  );
 }
 
 /** Fila de una materia en las listas, como `rowHTML` de la referencia. */
@@ -145,17 +130,15 @@ export function FilaMateria({
   indice: number;
   conLugar?: boolean;
 }) {
-  const repositorio = useRepositorio();
   const abrirMateria = useAbrirMateria();
-  const { data: materiales } = useQuery(consultas.materiales(repositorio));
+  const { data: materiales } = useMaterialesDelAlumno();
   const estado = estadoDe(datos, materia.id);
   const progreso = progresoDe(datos, materia.id);
-  const cuantos = materiales?.filter((m) => m.materiaId === materia.id).length ?? 0;
-  const anual = materia.anio !== 0 && materia.cuatrimestre == null;
+  const cuantos = materialesDeMateria(materiales ?? [], materia.id).length;
 
   const meta: ReactNode[] = [];
   if (conLugar) meta.push(lugarMateria(materia));
-  else if (anual) meta.push("Anual");
+  else if (esAnual(materia)) meta.push("Anual");
   if (progreso?.notaCursada != null && estado !== "aprobada") {
     meta.push(`cursada ${formatoNota(progreso.notaCursada)}`);
   }
@@ -213,9 +196,13 @@ export function GruposDeMaterias({
   return (
     <>
       {agruparMaterias(materias).map((grupo) => (
-        <section className="grupo-materias" key={grupo.titulo} aria-label={grupo.titulo}>
+        <section
+          className="grupo-materias"
+          key={`${grupo.anio}-${grupo.cuatrimestre}`}
+          aria-label={lugarMateria(grupo)}
+        >
           <div className="group-t rise" style={retardo(i++)}>
-            <h3>{grupo.titulo}</h3>
+            <h3>{lugarMateria(grupo)}</h3>
             <span>{cantidad(grupo.materias.length, "materia", "materias")}</span>
           </div>
           <div className="list">

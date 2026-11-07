@@ -2,6 +2,7 @@
 import type { BorradorMateriaPropia } from "@estudia/core";
 import { describe, expect, it, vi } from "vitest";
 import { clienteConFetchFalso, ID_ALUMNO, type PedidoRegistrado } from "../pruebas/clienteFalso";
+import { errorDeLimite, LimiteDeDocumento } from "./limites";
 import { crearRepositorioSupabase } from "./repositorioSupabase";
 
 const FILA_NOTA = {
@@ -64,7 +65,7 @@ describe("crearRepositorioSupabase", () => {
         aplazos: [],
       }),
       repositorio.obtenerHistorial("p"),
-      repositorio.crearMateriaPropia("p", BORRADOR),
+      repositorio.crearMateriaPropia("p", BORRADOR, "id-nuevo"),
       repositorio.actualizarMateriaPropia("m", BORRADOR),
       repositorio.borrarMateriaPropia("m"),
       repositorio.listarMateriales(),
@@ -75,12 +76,19 @@ describe("crearRepositorioSupabase", () => {
         paginas: null,
         texto: null,
       }),
-      repositorio.agregarMaterial({ materiaId: null, titulo: "T", tipo: "nota", texto: "x" }),
+      repositorio.agregarMaterial({
+        id: "i",
+        materiaId: null,
+        titulo: "T",
+        tipo: "nota",
+        texto: "x",
+      }),
+      repositorio.moverMaterial("m", null),
       repositorio.borrarMaterial("m"),
       repositorio.reemplazarDatosDelPlan("p", { materiasPropias: [], progreso: [], historial: [] }),
     ];
     const resultados = await Promise.allSettled(llamadas);
-    expect(resultados).toHaveLength(19);
+    expect(resultados).toHaveLength(20);
     for (const resultado of resultados) {
       expect(resultado.status).toBe("rejected");
       if (resultado.status === "rejected") {
@@ -167,11 +175,12 @@ describe("crearRepositorioSupabase", () => {
     });
   });
 
-  it("agregarMaterial relee la fila aparte para traer el documento", async () => {
+  it("agregarMaterial no pisa si el id ya existe, y relee la fila propia para traer el documento", async () => {
     const { cliente, pedidos } = clienteConFetchFalso((p) => ({
-      cuerpo: p.metodo === "POST" ? { id: "m1" } : FILA_NOTA,
+      cuerpo: p.metodo === "POST" ? null : [FILA_NOTA],
     }));
     const material = await crearRepositorioSupabase(cliente).agregarMaterial({
+      id: "m1",
       materiaId: null,
       titulo: "T",
       tipo: "nota",
@@ -180,13 +189,76 @@ describe("crearRepositorioSupabase", () => {
       createdAt: "2025-03-01T00:00:00Z",
     });
     expect(pedidos.map((p) => p.metodo)).toEqual(["POST", "GET"]);
+    expect(pedidos[0]?.url.searchParams.get("on_conflict")).toBe("id");
+    expect(pedidos[0]?.cabeceras.get("Prefer")).toContain("resolution=ignore-duplicates");
     expect(pedidos[0]?.cuerpo).toMatchObject({
+      id: "m1",
       periodo: "2025-2C",
       created_at: "2025-03-01T00:00:00Z",
     });
     expect(pedidos[1]?.url.searchParams.get("id")).toBe("eq.m1");
+    expect(pedidos[1]?.url.searchParams.get("user_id")).toBe(`eq.${ID_ALUMNO}`);
     expect(pedidos[1]?.url.searchParams.get("select")).toContain("documentos(");
     expect(material.id).toBe("m1");
+  });
+
+  it("agregarMaterial rechaza si el id es de otro: no aparece entre los propios", async () => {
+    const { cliente } = clienteConFetchFalso((p) => ({ cuerpo: p.metodo === "POST" ? null : [] }));
+    await expect(
+      crearRepositorioSupabase(cliente).agregarMaterial({
+        id: "ajeno",
+        materiaId: null,
+        titulo: "T",
+        tipo: "nota",
+        texto: "x",
+      }),
+    ).rejects.toThrow("No se pudo guardar el material");
+  });
+
+  it("moverMaterial filtra por el alumno, manda null para sin materia y rechaza si no es suyo", async () => {
+    const { cliente, pedidos } = clienteConFetchFalso(() => ({ cuerpo: [FILA_NOTA] }));
+    const movido = await crearRepositorioSupabase(cliente).moverMaterial("m1", null);
+    expect(movido.id).toBe("m1");
+    expect(pedidos[0]?.metodo).toBe("PATCH");
+    expect(pedidos[0]?.cuerpo).toEqual({ materia_id: null });
+    expect(pedidos[0]?.url.searchParams.get("user_id")).toBe(`eq.${ID_ALUMNO}`);
+
+    const vacio = clienteConFetchFalso(() => ({ cuerpo: [] }));
+    await expect(
+      crearRepositorioSupabase(vacio.cliente).moverMaterial("ajeno", "ma"),
+    ).rejects.toThrow("no es tuyo");
+  });
+
+  it.each([
+    ["EQ001", "demasiado texto"],
+    ["EQ002", "límite de espacio de tu cuenta"],
+    ["EQ003", "más de 50 MB"],
+    ["EQ004", "tipo de archivo"],
+  ] as const)("registrarDocumento traduce %s y no habla de la conexión", async (codigo, texto) => {
+    const { cliente } = clienteConFetchFalso(() => ({
+      estado: 400,
+      cuerpo: { code: codigo, message: "texto interno", details: null, hint: null },
+    }));
+    const fallo = await crearRepositorioSupabase(cliente)
+      .registrarDocumento({ sha256: "h", mime: null, bytes: 1, paginas: null, texto: null })
+      .catch((error: unknown) => error);
+    expect(fallo).toBeInstanceOf(LimiteDeDocumento);
+    expect((fallo as LimiteDeDocumento).codigo).toBe(codigo);
+    expect((fallo as LimiteDeDocumento).message).toContain(texto);
+    expect((fallo as LimiteDeDocumento).message).not.toContain("texto interno");
+    expect((fallo as LimiteDeDocumento).message.toLowerCase()).not.toContain("conexión");
+  });
+
+  it("registrarDocumento: otro error sigue siendo un error común", async () => {
+    const { cliente } = clienteConFetchFalso(() => ({
+      estado: 500,
+      cuerpo: { code: "XX000", message: "se rompió", details: null, hint: null },
+    }));
+    const fallo = await crearRepositorioSupabase(cliente)
+      .registrarDocumento({ sha256: "h", mime: null, bytes: 1, paginas: null, texto: null })
+      .catch((error: unknown) => error);
+    expect(fallo).not.toBeInstanceOf(LimiteDeDocumento);
+    expect((fallo as Error).message).toContain("se rompió");
   });
 
   it("reemplazarDatosDelPlan manda los datos en camelCase y devuelve las claves", async () => {
@@ -198,38 +270,67 @@ describe("crearRepositorioSupabase", () => {
     expect(claves).toEqual({ X1: "uuid" });
   });
 
-  it("si fallan las correlativas de una materia nueva, no queda la materia", async () => {
-    const { cliente, pedidos } = clienteConFetchFalso((p) => {
-      if (esTabla(p, "correlativas")) return { estado: 403, cuerpo: { message: "no permitida" } };
-      if (p.metodo === "POST") {
-        return {
-          cuerpo: {
-            id: "nueva",
-            plan_id: "p",
-            codigo: null,
-            nombre: "N",
-            anio: 1,
-            cuatrimestre: null,
-            tipo: "Materia",
-            area: null,
-            requiere_anio_completo_para_cursar: null,
-            owner_id: ID_ALUMNO,
-            orden: 51,
-          },
-        };
-      }
-      return { cuerpo: p.metodo === "GET" ? [{ orden: 50 }] : [] };
-    });
-    await expect(
-      crearRepositorioSupabase(cliente).crearMateriaPropia("p", {
+  const FILA_MATERIA = {
+    id: "nueva",
+    plan_id: "p",
+    codigo: null,
+    nombre: "N",
+    anio: 1,
+    cuatrimestre: null,
+    tipo: "Materia",
+    area: null,
+    requiere_anio_completo_para_cursar: null,
+    owner_id: ID_ALUMNO,
+    orden: 51,
+  };
+
+  it("crearMateriaPropia usa la RPC, todo en un pedido y sin borrado compensatorio", async () => {
+    const { cliente, pedidos } = clienteConFetchFalso(() => ({ cuerpo: FILA_MATERIA }));
+    const creada = await crearRepositorioSupabase(cliente).crearMateriaPropia(
+      "p",
+      {
         ...BORRADOR,
         correlativas: [{ requiereId: "r", para: "cursar", condicion: "regular" }],
-      }),
-    ).rejects.toThrow("no permitida");
-    const insercion = pedidos.find((p) => p.metodo === "POST" && esTabla(p, "materias"));
-    expect(insercion?.cuerpo).toMatchObject({ orden: 51, owner_id: ID_ALUMNO, plan_id: "p" });
-    const borrado = pedidos.at(-1);
-    expect(borrado?.metodo).toBe("DELETE");
-    expect(borrado?.url.searchParams.get("id")).toBe("eq.nueva");
+      },
+      "nueva",
+    );
+    expect(creada.id).toBe("nueva");
+    expect(pedidos).toHaveLength(1);
+    expect(pedidos[0]?.url.pathname).toBe("/rest/v1/rpc/crear_materia_propia");
+    expect(pedidos[0]?.cuerpo).toMatchObject({
+      id: "nueva",
+      plan_id: "p",
+      materia: { nombre: "N", requiereAnioCompletoParaCursar: null },
+      correlativas: [{ requiere: "r", para: "cursar", condicion: "regular" }],
+    });
+  });
+
+  it("crearMateriaPropia rechaza si la fila que volvió es de otro plan", async () => {
+    const { cliente } = clienteConFetchFalso(() => ({
+      cuerpo: { ...FILA_MATERIA, plan_id: "otro" },
+    }));
+    await expect(
+      crearRepositorioSupabase(cliente).crearMateriaPropia("p", BORRADOR, "nueva"),
+    ).rejects.toThrow("otro plan");
+  });
+});
+
+describe("los topes de materiales", () => {
+  it.each([
+    ["materiales_titulo_largo", "título demasiado largo"],
+    ["materiales_url_largo", "link demasiado largo"],
+    ["materiales_texto_largo", "nota demasiado larga"],
+  ])("%s se explica al alumno", (restriccion, texto) => {
+    const limite = errorDeLimite({
+      code: "23514",
+      message: `new row for relation "materiales" violates check constraint "${restriccion}"`,
+    });
+    expect(limite?.message).toContain(texto);
+  });
+
+  it("otro CHECK no es un límite", () => {
+    expect(
+      errorDeLimite({ code: "23514", message: 'violates check constraint "otra"' }),
+    ).toBeNull();
   });
 });

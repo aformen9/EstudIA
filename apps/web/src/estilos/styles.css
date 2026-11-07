@@ -1,3 +1,26 @@
+/* Fuentes alojadas en el repo (licencia OFL en public/fonts): el navegador del alumno no se conecta a Google. */
+@font-face {
+  font-family: "Bricolage Grotesque";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 200 800;
+  font-stretch: 75% 100%;
+  src: url("/fonts/bricolage-grotesque-latin-standard-normal.woff2") format("woff2");
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 200 800;
+  src: url("/fonts/plus-jakarta-sans-latin-wght-normal.woff2") format("woff2");
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 /* Layout: menú lateral fijo (desplegable en el celular) + contenido en tarjetas sobre un fondo rosado con manchas que se mueven. */
 :root,
 :root[data-theme="light"] {
@@ -270,9 +293,8 @@ h3 {
 .brand-txt small {
   font-size: 11.5px;
   color: var(--ink-2);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  /* El nombre completo de la carrera, en las líneas que hagan falta. */
+  overflow-wrap: anywhere;
 }
 .icon-btn {
   border: 0;
@@ -1905,12 +1927,6 @@ details.edit[open] > div {
   color: var(--fin);
   background: var(--fin-bg);
 }
-.del.sure {
-  color: var(--fin);
-  font-size: 12px;
-  font-weight: 700;
-  padding: 3px 7px;
-}
 .mat-form {
   display: flex;
   flex-direction: column;
@@ -2835,4 +2851,312 @@ a.mini {
 }
 .grilla-aviso > span:first-child {
   font-weight: 700;
+}
+
+/* ================= panel de materia, materiales y ajustes ================= */
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+}
+dialog.centro {
+  border: 0;
+  padding: 0;
+  margin: auto;
+  width: min(440px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  border-radius: 20px;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-lg);
+}
+dialog.centro::backdrop {
+  background: rgba(40, 10, 30, 0.3);
+  backdrop-filter: blur(3px);
+}
+.dlg {
+  overflow-x: hidden;
+}
+.dlg-head h3 {
+  overflow-wrap: anywhere;
+}
+.dlg-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.dlg-foot .msg {
+  flex: 1 1 100%;
+  margin: 0;
+}
+.dlg-foot {
+  flex-wrap: wrap;
+}
+.hist-wrap {
+  overflow-x: auto;
+}
+.checks .muted {
+  color: var(--ink-3);
+  font-size: 12px;
+}
+.checks label {
+  overflow-wrap: anywhere;
+}
+.checks input {
+  flex-shrink: 0;
+}
+.grupo-checks {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.grupo-checks legend {
+  padding: 0;
+  font-size: 12.5px;
+  color: var(--ink-2);
+  font-weight: 700;
+}
+.mat-item {
+  flex-wrap: wrap;
+}
+.mat-item .t {
+  flex: 1 1 0;
+}
+.mat-nota,
+.mat-aviso {
+  flex: 1 1 100%;
+  margin: 0;
+  font-size: 12.5px;
+  overflow-wrap: anywhere;
+}
+.mat-nota {
+  white-space: pre-wrap;
+}
+.mat-aviso,
+.mcard .mat-aviso {
+  color: var(--ink-2);
+}
+.mat-botones {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+  flex-shrink: 0;
+}
+.mat-agregar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.drop-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+.drop-input:focus-visible + .btn {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.mcard .note-txt,
+.mcard .t small,
+.mat-item .t small {
+  overflow-wrap: anywhere;
+}
+.seg-materiales {
+  align-self: flex-start;
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+.seg button .muted {
+  color: var(--ink-3);
+  font-weight: 600;
+}
+.filtro-materia {
+  width: auto;
+  max-width: 100%;
+}
+.ajustes-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.ajustes-seccion {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ajustes-seccion h2:focus {
+  outline: none;
+}
+.msg.ok {
+  color: var(--ok);
+}
+.aviso-cerrar {
+  font-size: 13px;
+  color: var(--ink-2);
+  margin: 0;
+}
+.titulo-material {
+  font-family: var(--display);
+  font-size: 1.05rem;
+}
+
+/* Tarjetas largas: el brillo interior va en una capa aparte y el borde queda fijo, porque el brillo del
+   borde es un gradiente en el fondo de la tarjeta y moverlo la repintaría entera. Ver `efectos.ts`. */
+.card.onboarding {
+  position: relative;
+  isolation: isolate;
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+.brillo-recorte {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.brillo-capa {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 840px;
+  height: 840px;
+  opacity: 0;
+  will-change: transform;
+  background: radial-gradient(
+    420px circle at center,
+    color-mix(in srgb, var(--accent-2) 11%, transparent),
+    transparent 45%
+  );
+}
+@media (prefers-reduced-motion: reduce) {
+  .brillo-recorte {
+    display: none;
+  }
+}
+
+/* Un material en varias materias: en su propia línea, para no empujar a los botones a 390 px. */
+.mat-referencias {
+  flex: 1 1 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+  margin-left: -6px;
+}
+.mat-referencias .lnk {
+  font-size: 12px;
+  min-height: 28px;
+  text-align: left;
+}
+.mcard .mat-referencias {
+  border-top: 1px solid var(--line);
+  padding-top: 6px;
+  margin-left: -6px;
+}
+.eyebrow-material {
+  overflow-wrap: anywhere;
+}
+
+/* En el panel, lo que se guarda solo queda aparte de lo que guarda el botón Guardar. */
+.sec-material {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 14px;
+}
+.sec-material .mat-item {
+  background: var(--surface);
+}
+.nota-material {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+
+/* Avisos para deshacer un borrado. Con un modal abierto, la región va adentro del modal. */
+.avisos-borrado {
+  position: fixed;
+  left: 50%;
+  bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  width: min(420px, calc(100vw - 32px));
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+.avisos-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+dialog.sheet .avisos-borrado {
+  left: auto;
+  right: 16px;
+  transform: none;
+  bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+}
+.aviso-deshacer {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--ink);
+  color: var(--bg);
+  padding: 8px 8px 8px 16px;
+  border-radius: 14px;
+  font-size: 13.5px;
+  font-weight: 600;
+  box-shadow: var(--shadow-lg);
+  animation: aviso-deshacer 0.35s cubic-bezier(0.3, 1.3, 0.4, 1);
+}
+.aviso-texto {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.aviso-texto.largo {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.aviso-deshacer button {
+  flex-shrink: 0;
+  background: none;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  font-weight: 800;
+  text-decoration: underline;
+  min-height: 36px;
+  padding: 4px 10px;
+  border-radius: 9px;
+}
+.aviso-deshacer button:focus-visible {
+  outline: 2px solid var(--bg);
+  outline-offset: -2px;
+}
+@keyframes aviso-deshacer {
+  from {
+    transform: translateY(16px);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .aviso-deshacer {
+    animation: none;
+  }
 }

@@ -33,3 +33,24 @@ export function useFalloVisible(activo: boolean): void {
   const almacen = useGuardado();
   useEffect(() => (activo ? almacen.marcarFallo() : undefined), [activo, almacen]);
 }
+
+/**
+ * Con filas sin guardar, recargar o cerrar la pestaña muestra el aviso nativo, en cualquier vista.
+ * Sin filas fallidas no se registra: el listener solo, sin necesidad, le quita a la página el bfcache.
+ */
+export function useAvisoAlRecargar(): void {
+  const almacen = useGuardado();
+  const hayFallidas = useSyncExternalStore(
+    almacen.suscribir,
+    () => almacen.leer().filasFallidas.length > 0,
+  );
+  useEffect(() => {
+    if (!hayFallidas) return;
+    function alSalir(evento: BeforeUnloadEvent) {
+      evento.preventDefault();
+      evento.returnValue = "";
+    }
+    window.addEventListener("beforeunload", alSalir);
+    return () => window.removeEventListener("beforeunload", alSalir);
+  }, [hayFallidas]);
+}

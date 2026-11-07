@@ -24,6 +24,7 @@ export interface PedidoRegistrado {
   metodo: string;
   url: URL;
   cuerpo: unknown;
+  cabeceras: Headers;
 }
 
 type Responder = (pedido: PedidoRegistrado) => { estado?: number; cuerpo: unknown };
@@ -40,6 +41,7 @@ export function clienteConFetchFalso(responder: Responder): {
       metodo: opciones?.method ?? "GET",
       url: new URL(String(entrada)),
       cuerpo: texto ? JSON.parse(texto) : null,
+      cabeceras: new Headers(opciones?.headers),
     };
     pedidos.push(pedido);
     const { estado = 200, cuerpo } = responder(pedido);
