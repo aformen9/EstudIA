@@ -1,6 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { materia } from "../pruebas/auxiliares";
 import {
+  agregarOCorregirMaterial,
   copiaLocalEnUso,
   materiasParaAgregar,
   materiasParaMover,
@@ -9,6 +10,7 @@ import {
   type MaterialArchivo,
   type MaterialLink,
   type MaterialNota,
+  type Repositorio,
 } from "../index";
 
 const base = {
@@ -216,5 +218,91 @@ describe("copiaLocalEnUso", () => {
       nota("4", "B"),
     ];
     expect(copiaLocalEnUso("doc-1", materiales, "1")).toBe(false);
+  });
+});
+
+describe("agregarOCorregirMaterial", () => {
+  function repositorioCon(existente: Material) {
+    const agregarMaterial = vi.fn(async () => existente);
+    const moverMaterial = vi.fn(async () => existente);
+    const actualizarMaterial = vi.fn(async () => existente);
+    const repositorio = {
+      agregarMaterial,
+      moverMaterial,
+      actualizarMaterial,
+    } as unknown as Repositorio;
+    return { repositorio, moverMaterial, actualizarMaterial };
+  }
+  const nota: MaterialNota = {
+    ...base,
+    id: "n",
+    materiaId: "A",
+    tipo: "nota",
+    titulo: "Nota",
+    texto: "Primero",
+  };
+  const link: MaterialLink = {
+    ...base,
+    id: "l",
+    materiaId: "A",
+    tipo: "link",
+    titulo: "Link",
+    url: "https://a.test",
+    driveFileId: null,
+  } as MaterialLink;
+
+  it("si quedó igual no escribe nada más", async () => {
+    const { repositorio, moverMaterial, actualizarMaterial } = repositorioCon(nota);
+    const resultado = await agregarOCorregirMaterial(repositorio, {
+      id: "n",
+      tipo: "nota",
+      materiaId: "A",
+      titulo: "Nota",
+      texto: "Primero",
+    });
+    expect(resultado).toBe(nota);
+    expect(moverMaterial).not.toHaveBeenCalled();
+    expect(actualizarMaterial).not.toHaveBeenCalled();
+  });
+
+  it("aplica solo lo que cambió en una nota", async () => {
+    const { repositorio, actualizarMaterial } = repositorioCon(nota);
+    await agregarOCorregirMaterial(repositorio, {
+      id: "n",
+      tipo: "nota",
+      materiaId: "A",
+      titulo: "Nota",
+      texto: "Corregido",
+    });
+    expect(actualizarMaterial).toHaveBeenCalledWith("n", { texto: "Corregido" });
+  });
+
+  it("aplica título y url en un link", async () => {
+    const { repositorio, actualizarMaterial } = repositorioCon(link);
+    await agregarOCorregirMaterial(repositorio, {
+      id: "l",
+      tipo: "link",
+      materiaId: "A",
+      titulo: "Otro",
+      url: "https://b.test",
+    });
+    expect(actualizarMaterial).toHaveBeenCalledWith("l", {
+      titulo: "Otro",
+      url: "https://b.test",
+    });
+  });
+
+  it("si cambió la materia, lo mueve", async () => {
+    const { repositorio, moverMaterial, actualizarMaterial } = repositorioCon(nota);
+    moverMaterial.mockResolvedValueOnce({ ...nota, materiaId: "B" });
+    await agregarOCorregirMaterial(repositorio, {
+      id: "n",
+      tipo: "nota",
+      materiaId: "B",
+      titulo: "Nota",
+      texto: "Primero",
+    });
+    expect(moverMaterial).toHaveBeenCalledWith("n", "B");
+    expect(actualizarMaterial).not.toHaveBeenCalled();
   });
 });

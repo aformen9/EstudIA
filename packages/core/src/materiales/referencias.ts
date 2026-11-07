@@ -1,4 +1,4 @@
-import type { NuevoMaterial } from "../repositorio";
+import type { CambiosMaterial, NuevoMaterial, Repositorio } from "../repositorio";
 import type { Material, Materia } from "../tipos";
 
 /** Archivos: mismo documento. Links y notas: mismo título y misma url o texto. */
@@ -79,4 +79,33 @@ export function copiaLocalEnUso(
       material.tipo === "archivo" &&
       material.documento.id === documentoId,
   );
+}
+
+/** Los topes de la base (arquitectura §4.3): acá para avisar antes de mandar. */
+export const LIMITES_MATERIAL = { titulo: 200, url: 2048, notaBytes: 51200 } as const;
+
+/**
+ * Crea un material o, si el `id` ya existe, lo deja como `nuevo`. Es lo que necesita un reintento después
+ * de un timeout: si el primer intento llegó, `agregarMaterial` devuelve esa fila tal como quedó, y lo
+ * que el alumno haya corregido en el medio hay que aplicarlo. Sin cambios no escribe nada más.
+ */
+export async function agregarOCorregirMaterial(
+  repositorio: Repositorio,
+  nuevo: NuevoMaterial,
+): Promise<Material> {
+  let actual = await repositorio.agregarMaterial(nuevo);
+  if (actual.materiaId !== nuevo.materiaId) {
+    actual = await repositorio.moverMaterial(nuevo.id, nuevo.materiaId);
+  }
+  const cambios: CambiosMaterial = {};
+  if (actual.titulo !== nuevo.titulo) cambios.titulo = nuevo.titulo;
+  if (nuevo.tipo === "link" && actual.tipo === "link" && actual.url !== nuevo.url) {
+    cambios.url = nuevo.url;
+  }
+  if (nuevo.tipo === "nota" && actual.tipo === "nota" && actual.texto !== nuevo.texto) {
+    cambios.texto = nuevo.texto;
+  }
+  return Object.keys(cambios).length > 0
+    ? repositorio.actualizarMaterial(nuevo.id, cambios)
+    : actual;
 }

@@ -19,7 +19,6 @@ import {
   distribucionNotas,
   estadoCorrelativas,
   estadoDe,
-  importarLegacy,
   listaAplazos,
   materiasPorEstado,
   notasDeEscala,
@@ -34,6 +33,7 @@ import {
   promocionadas,
   sugerirEstado,
 } from "../index";
+import { importarLegacy } from "../importacion";
 
 function datosDelCaso() {
   const plan = planLcd();

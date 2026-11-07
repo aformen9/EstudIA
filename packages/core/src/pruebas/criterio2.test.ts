@@ -5,7 +5,6 @@ import {
   alertaAnioCompleto,
   datosAlumnoDesdeImportacion,
   estadoCorrelativas,
-  importarLegacy,
   listaAplazos,
   podesCursar,
   progresoCarrera,
@@ -16,6 +15,7 @@ import {
   type EstadoCorrelativas,
   type ParaCorrelativa,
 } from "../index";
+import { importarLegacy } from "../importacion";
 import { planLcd, redondear4 } from "./auxiliares";
 
 function datosDelCaso(): DatosAlumno {
