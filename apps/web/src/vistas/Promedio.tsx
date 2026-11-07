@@ -38,10 +38,10 @@ function ContenidoPromedio({ datos, conAplazos }: { datos: DatosAlumno; conAplaz
         className="card hero glass rise"
         style={{ ...retardo(1), gridTemplateColumns: "minmax(0, 1fr)" }}
       >
-        <div className="stat-row">
+        <div className="stat4">
           <div>
             <span>Promedio {conAplazos ? "con" : "sin"} aplazos</span>
-            <b className="big-num" style={{ fontSize: "3.6rem", color: "var(--accent)" }}>
+            <b className="big-num k-principal">
               <Contador valor={dosDecimales(promedio(datos, conAplazos).promedio)} decimales={2} />
             </b>
           </div>

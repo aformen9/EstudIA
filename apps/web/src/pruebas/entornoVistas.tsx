@@ -280,9 +280,8 @@ export async function pasarPasosDelCatalogo() {
   await screen.findByRole("radio", { name: /UCA/ });
   fireEvent.click(screen.getByRole("button", { name: "Seguir" }));
   await screen.findByRole("radio", { name: /Ciencias de Datos/ });
+  // LCD tiene un solo plan: se elige solo, sin pasar por ese paso.
   fireEvent.click(screen.getByRole("button", { name: "Seguir" }));
-  await screen.findByRole("radio", { name: /Plan 7023/ });
-  fireEvent.click(screen.getByRole("button", { name: "Elegir este plan" }));
   await screen.findByRole("heading", { name: "¿Cómo querés cargar tus materias?" });
 }
 

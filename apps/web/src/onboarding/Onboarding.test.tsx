@@ -41,7 +41,9 @@ describe("redirección obligatoria", () => {
     expect(screen.queryByRole("button", { name: "Respaldo y ajustes" })).toBeNull();
     expect(screen.getByRole("button", { name: "Modo oscuro" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /^Ajustes/ })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Cerrar sesión" }));
+    // El modal del onboarding tiene su propio "Cerrar sesión": lo de atrás queda inerte.
+    const modal = within(screen.getByRole("dialog"));
+    fireEvent.click(modal.getByRole("button", { name: "Cerrar sesión" }));
     await waitFor(() => expect(signOut).toHaveBeenCalledExactlyOnceWith({ scope: "local" }));
   });
 
@@ -148,7 +150,7 @@ describe("pasos del onboarding", () => {
     expect(document.activeElement).toBe(titulo);
   });
 
-  it("recorre universidad → carrera → plan, activa el plan y ofrece los dos caminos", async () => {
+  it("recorre universidad → carrera, con un solo plan lo activa solo y ofrece los tres caminos", async () => {
     const repositorio = repositorioFalso();
     renderConRepositorio(<Shell />, repositorio);
 
@@ -157,11 +159,19 @@ describe("pasos del onboarding", () => {
     expect(repositorio.activarPlan).toHaveBeenCalledExactlyOnceWith(ID_PLAN);
     // Ya tiene inscripción activa, pero no lo saca de este paso.
     expect(window.location.hash).toBe("#onboarding");
-    expect(screen.getByRole("button", { name: /Grilla rápida/ })).toBeTruthy();
-    expect(screen.getByRole("button", { name: /Importar respaldo/ })).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "¿Qué plan de estudios?" })).toBeNull();
+    expect(screen.getByRole("button", { name: /Cargar a mano/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Importar respaldo de EstudIA/ })).toBeTruthy();
+    expect(screen.getByText(/Próximamente/)).toBeTruthy();
+    expect(
+      screen.getByRole<HTMLButtonElement>("button", { name: "¿Cómo consigo el archivo?" }).disabled,
+    ).toBe(true);
+    expect(screen.getByText("Paso 3 de 3")).toBeTruthy();
     // El menú sigue oculto mientras dure el onboarding, y el botón sigue diciendo "Cerrar sesión".
     expect(screen.queryByRole("navigation")).toBeNull();
-    expect(screen.getByRole("button", { name: "Cerrar sesión" })).toBeTruthy();
+    expect(
+      within(screen.getByRole("dialog")).getByRole("button", { name: "Cerrar sesión" }),
+    ).toBeTruthy();
     // No está atrapado: con el plan activo, cualquier otra vista funciona y vuelve el menú normal.
     await irAHash("materias");
     expect(await screen.findByRole("heading", { name: "Materias" })).toBeTruthy();
@@ -182,7 +192,7 @@ describe("pasos del onboarding", () => {
     fireEvent.click(screen.getByRole("button", { name: "Seguir" }));
     await screen.findByRole("radio", { name: /Ciencias de Datos/ });
 
-    fireEvent.click(screen.getByRole("button", { name: "Volver" }));
+    fireEvent.click(screen.getByRole("button", { name: "Paso anterior" }));
     expect(screen.getByRole<HTMLInputElement>("radio", { name: /Uni B/ }).checked).toBe(true);
 
     fireEvent.click(screen.getByRole("radio", { name: /Uni A/ }));
@@ -199,15 +209,53 @@ describe("pasos del onboarding", () => {
     fireEvent.click(screen.getByRole("button", { name: "Seguir" }));
     await screen.findByRole("radio", { name: /Ciencias/ });
     fireEvent.click(screen.getByRole("button", { name: "Seguir" }));
-    await screen.findByRole("radio", { name: /Plan 7023/ });
-    fireEvent.click(screen.getByRole("button", { name: "Elegir este plan" }));
 
     expect((await screen.findByRole("alert")).textContent).toContain("No se pudo activar el plan");
-    expect(screen.getByRole("heading", { name: "¿Qué plan de estudios?" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "¿Qué carrera?" })).toBeTruthy();
     expect(screen.queryByRole("navigation")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Seguir" }));
+    await screen.findByRole("heading", { name: "¿Cómo querés cargar tus materias?" });
+  });
+
+  it("con varios planes preselecciona el vigente, con la ayuda del Guaraní", async () => {
+    const repositorio = repositorioFalso();
+    const [plan] = await repositorio.listarPlanes("c");
+    if (!plan) throw new Error("Falta el plan");
+    repositorio.listarPlanes.mockResolvedValue([
+      { ...plan, id: "viejo", version: "6041", creadoEn: "2020-01-01T00:00:00Z" },
+      plan,
+    ]);
+    renderConRepositorio(<Shell />, repositorio);
+
+    await screen.findByRole("radio", { name: /UCA/ });
+    fireEvent.click(screen.getByRole("button", { name: "Seguir" }));
+    await screen.findByRole("radio", { name: /Ciencias/ });
+    fireEvent.click(screen.getByRole("button", { name: "Seguir" }));
+
+    const vigente = await screen.findByRole<HTMLInputElement>("radio", { name: /Plan 7023/ });
+    expect(vigente.checked).toBe(true);
+    expect(screen.getByText("Vigente")).toBeTruthy();
+    expect(screen.getByText(/Figura en tu Historia Académica del Guaraní/)).toBeTruthy();
+    expect(screen.getByText("Paso 3 de 4")).toBeTruthy();
+    expect(repositorio.activarPlan).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole("button", { name: "Elegir este plan" }));
     await screen.findByRole("heading", { name: "¿Cómo querés cargar tus materias?" });
+    expect(repositorio.activarPlan).toHaveBeenCalledExactlyOnceWith(plan.id);
+  });
+
+  it("la línea de pasos vuelve a un paso anterior, y volver a confirmar no reactiva el mismo plan", async () => {
+    const repositorio = repositorioFalso();
+    renderConRepositorio(<Shell />, repositorio);
+    await pasarPasosDelCatalogo();
+
+    fireEvent.click(screen.getByRole("button", { name: "Volver a Carrera" }));
+    expect(await screen.findByRole("heading", { name: "¿Qué carrera?" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Volver a Tus materias" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Seguir" }));
+    await screen.findByRole("heading", { name: "¿Cómo querés cargar tus materias?" });
+    expect(repositorio.activarPlan).toHaveBeenCalledTimes(1);
   });
 
   it("sin nada en el catálogo avisa, y un error se puede reintentar", async () => {
@@ -232,7 +280,7 @@ describe("datos del cascarón", () => {
     );
     const nav = within(container.querySelector("nav") as HTMLElement);
     expect(nav.getByRole("link", { name: /^Materias\s*50$/ })).toBeTruthy();
-    expect(nav.getByRole("link", { name: /^Pendientes\s*50$/ })).toBeTruthy();
+    expect(nav.getByRole("link", { name: /^Por cursar\s*50$/ })).toBeTruthy();
     expect(nav.getByRole("link", { name: /^Aprobadas\s*0$/ })).toBeTruthy();
     expect(nav.getByRole("link", { name: /^Promedio\s*–$/ })).toBeTruthy();
     await waitFor(() => expect(nav.getByRole("link", { name: /^Materiales\s*0$/ })).toBeTruthy());

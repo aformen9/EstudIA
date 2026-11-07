@@ -38,7 +38,8 @@ export function Dialogo({
   children,
 }: {
   idTitulo: string;
-  clase?: "sheet" | "centro";
+  /** "sheet" y "centro" son modales centrados; "onb" es el del onboarding. */
+  clase?: string;
   alCerrar: () => void;
   devolverFocoA?: RefObject<HTMLElement | null>;
   children: ReactNode;
