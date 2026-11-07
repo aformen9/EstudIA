@@ -4,12 +4,12 @@
 
 ## Dónde quedó
 
-- **Fase 0, sin cerrar.** Están hechas `db`, `core`, el CI y las 4 tandas de `web`. Agu probó a mano en Safari y pidió cambios de diseño (`docs/decisiones.md`, 2026-11-07, y `docs/fases/fase-0.md` §0.6). Aprobó la primera versión de los mockups con ajustes y sumó la vista previa de archivos y un onboarding nuevo: **aprobados e implementándose en la rama `fase-0/cambios-de-diseno`**. Después sigue lo de "Próximos pasos": vincular el remoto, probar con Google real, deploy, documentación y revisión final.
+- **Fase 0, sin cerrar.** Están hechas `db`, `core`, el CI y las 4 tandas de `web`. Agu probó a mano en Safari y pidió cambios de diseño (`docs/decisiones.md`, 2026-11-07, y `docs/fases/fase-0.md` §0.6). Aprobó la primera versión de los mockups con ajustes y sumó la vista previa de archivos y un onboarding nuevo: **implementados en la rama `fase-0/cambios-de-diseno`, sin pushear y esperando la prueba de Agu**. Después sigue lo de "Próximos pasos": vincular el remoto, probar con Google real, deploy, documentación y revisión final.
 - **El repo está en `/Users/aformen9/Dev/EstudIA`.** Abrir la sesión nueva desde esa carpeta: desde ahí se cargan los agentes de `.claude/agents/`.
 - **`main` está pusheado.** Resultado del CI: ver "Última verificación".
 - **Supabase remoto:** proyecto y login con Google creados por Agu, **sin vincular y sin migraciones**. Ver el paso 1.
 - **Migraciones:** se editaron en el lugar porque nunca se aplicaron en remoto. Desde que se suban, cualquier cambio va en una migración nueva.
-- **Entorno local:** `pnpm dev` está frenado. Supabase local y Docker quedaron corriendo, con la base recién reseteada y sin usuarios. Para probar:
+- **Entorno local:** el 2026-11-07 se reseteó la base local para aplicar `nota_paso` (se borraron los datos de prueba que hubiera). El usuario de prueba quedó con el plan activo, Cálculo Elemental aprobada con 9 y 5 archivos de muestra. Para probar:
   - Docker abierto, `supabase start` y `pnpm dev` desde la carpeta del repo.
   - Abrir `http://localhost:5173` y tocar "Entrar con el usuario de prueba".
   - Importar `fixtures/caso-prueba-legacy.json` (alumno inventado): Inicio da 26 de 50 y promedio 7,73.
@@ -38,9 +38,13 @@ En Chrome headless, con mouse simulado:
 
 Funcionan bien: brillo, guardar y recargar, confeti, PDFs, Deshacer, modo oscuro y la vista Promedio.
 
-## Dudas abiertas de los cambios de diseño
+## Cambios de diseño (rama `fase-0/cambios-de-diseno`)
 
-- Slider de nota: falta que Agu cuente cómo le resultó en el celular. Se implementa como está en el mockup.
+- **Hecho:** todo lo de `docs/fases/fase-0.md` §0.6, en 6 commits sobre `main`. Solo el último deja todo en verde: los intermedios de `core` y de `web` no compilan por separado.
+- **Verificado en local:** lint, typecheck, `core` 276 tests, `web` 461 tests, `supabase test db` 784 y `pnpm build`. PDF.js queda en un chunk aparte (148 kB con gzip, más el worker), fuera de la carga inicial.
+- **Visto en Chrome (local, 1280 y 390 px):** subir con el selector nuevo, vista previa de un PDF real, de una imagen y de texto, tarjeta con dos materias, aviso de borrado, slider con arrastre de mouse y escribiendo, celebración y Promedio.
+- **No visto en la app real:** el onboarding nuevo, porque el usuario de prueba ya tenía plan y no se pudo desactivar desde acá. Está cubierto por tests y por el mockup.
+- **Falta:** que Agu lo pruebe en Safari, en especial el blur, el slider con el dedo y la miniatura de HEIC. Agu no contó cómo le fue con el slider en el mockup.
 
 ## Sin probar
 
