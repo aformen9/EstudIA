@@ -102,7 +102,7 @@ describe("Repositorio contra Supabase local", () => {
     const p7023 = planes.find((p) => p.version === "7023");
     if (!p7023) throw new Error("Falta el plan 7023");
     plan = p7023;
-    expect(plan).toMatchObject({ notaMin: 1, notaMax: 10, notaAprobacion: 4 });
+    expect(plan).toMatchObject({ notaMin: 1, notaMax: 10, notaAprobacion: 4, notaPaso: 0.1 });
     expect(plan.cierreCuatrimestres).toHaveLength(2);
   });
 

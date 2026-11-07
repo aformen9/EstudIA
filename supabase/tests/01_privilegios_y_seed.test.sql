@@ -1,7 +1,7 @@
 -- anon sin acceso, funciones cerradas, RLS activada y catálogo sembrado.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(53);
+select plan(54);
 
 create function pg_temp.como_anon() returns void language plpgsql as $$
 begin
@@ -109,6 +109,7 @@ select is((select count(*)::int from public.planes where version = '7023' and es
 select is((select nota_min from public.planes where version = '7023'), 1::numeric, 'escala: nota mínima');
 select is((select nota_max from public.planes where version = '7023'), 10::numeric, 'escala: nota máxima');
 select is((select nota_aprobacion from public.planes where version = '7023'), 4::numeric, 'escala: nota de aprobación');
+select is((select nota_paso from public.planes where version = '7023'), 0.1::numeric, 'escala: paso de nota');
 select is((select cuatrimestres_por_anio from public.planes where version = '7023'), 2, 'dos cuatrimestres por año');
 select is((select cierre_cuatrimestres from public.planes where version = '7023'),
   '[{"cuatrimestre":1,"mes":7},{"cuatrimestre":2,"mes":12}]'::jsonb, 'cierre de cuatrimestres de la arquitectura');

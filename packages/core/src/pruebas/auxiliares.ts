@@ -18,6 +18,8 @@ export function planBase(cambios: Partial<Plan> = {}): Plan {
     notaMin: 1,
     notaMax: 10,
     notaAprobacion: 4,
+    notaPaso: 0.1,
+    creadoEn: "2026-01-01T00:00:00Z",
     cuatrimestresPorAnio: 2,
     cierreCuatrimestres: [],
     ...cambios,
@@ -31,6 +33,8 @@ export function planLcd(entorno = 0): PlanCompleto {
     notaMin: catalogoLcd.plan.escala.min,
     notaMax: catalogoLcd.plan.escala.max,
     notaAprobacion: catalogoLcd.plan.escala.aprobacion,
+    notaPaso: catalogoLcd.plan.escala.paso,
+    creadoEn: "2026-01-01T00:00:00Z",
   });
   const uuid = (i: number) =>
     `${String(entorno).padStart(8, "0")}-0000-4000-8000-${String(i).padStart(12, "0")}`;

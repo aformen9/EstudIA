@@ -3,6 +3,7 @@ import type {
   EventoHistorial,
   Material,
   Materia,
+  Plan,
   PlanCompleto,
   ResultadoHistorial,
 } from "../tipos";
@@ -159,4 +160,24 @@ export function resumenFinal(historial: EventoHistorial[], materiaId: string): R
       .filter((h) => h.tipo === "Examen")
       .map(({ nota, resultado }) => ({ nota, resultado })),
   };
+}
+
+/**
+ * El plan que se ofrece primero en una carrera: el último cargado y, si empatan, la versión más alta.
+ * Null si la carrera no tiene planes.
+ */
+export function planVigente<P extends Pick<Plan, "version" | "creadoEn">>(
+  planes: readonly P[],
+): P | null {
+  let vigente: P | null = null;
+  for (const plan of planes) {
+    if (!vigente) {
+      vigente = plan;
+      continue;
+    }
+    const porFecha = Date.parse(plan.creadoEn) - Date.parse(vigente.creadoEn);
+    const porVersion = plan.version.localeCompare(vigente.version, "es", { numeric: true });
+    if (porFecha > 0 || (porFecha === 0 && porVersion > 0)) vigente = plan;
+  }
+  return vigente;
 }

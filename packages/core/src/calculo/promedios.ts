@@ -151,12 +151,15 @@ export function promedioEnElTiempo(
   });
 }
 
-/** Cantidad de notas por cada valor entero de la escala del plan; redondea las no enteras. */
+/**
+ * Cantidad de notas por cada valor entero de la escala del plan. Agrupa por la parte entera: un 3,5
+ * va en la barra del 3 y no en la del 4, que aprueba.
+ */
 export function distribucionNotas(datos: DatosAlumno, conAplazos: boolean): BarraDistribucion[] {
   const notas = notasDe(datos, conAplazos);
   return notasDeEscala(datos.plan).map((nota) => ({
     nota,
-    cantidad: notas.filter((n) => Math.round(n) === nota).length,
+    cantidad: notas.filter((n) => Math.floor(n) === nota).length,
     desaprobada: nota < datos.plan.notaAprobacion,
   }));
 }

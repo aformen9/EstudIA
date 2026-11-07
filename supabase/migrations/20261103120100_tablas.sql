@@ -35,6 +35,7 @@ create table public.planes (
   nota_min numeric not null default 1,
   nota_max numeric not null default 10,
   nota_aprobacion numeric not null default 4,
+  nota_paso numeric not null default 0.1 check (nota_paso > 0),
   cuatrimestres_por_anio integer not null default 2 check (cuatrimestres_por_anio > 0),
   cierre_cuatrimestres jsonb not null default '[]' check (jsonb_typeof(cierre_cuatrimestres) = 'array'),
   created_at timestamptz not null default now(),

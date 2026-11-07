@@ -16,13 +16,14 @@ on conflict (id) do update set
   sigla = excluded.sigla,
   estado = excluded.estado;
 
-insert into public.planes (id, carrera_id, version, estado, creado_por, nota_min, nota_max, nota_aprobacion, cuatrimestres_por_anio, cierre_cuatrimestres) values
-  ('da7372a5-c79d-534b-9585-bf2081c8a1bd', '7d44c12c-5563-50dc-8532-35601ff5e406', '7023', 'publicado', null, 1, 10, 4, 2, '[{"cuatrimestre":1,"mes":7},{"cuatrimestre":2,"mes":12}]'::jsonb)
+insert into public.planes (id, carrera_id, version, estado, creado_por, nota_min, nota_max, nota_aprobacion, nota_paso, cuatrimestres_por_anio, cierre_cuatrimestres) values
+  ('da7372a5-c79d-534b-9585-bf2081c8a1bd', '7d44c12c-5563-50dc-8532-35601ff5e406', '7023', 'publicado', null, 1, 10, 4, 0.1, 2, '[{"cuatrimestre":1,"mes":7},{"cuatrimestre":2,"mes":12}]'::jsonb)
 on conflict (id) do update set
   estado = excluded.estado,
   nota_min = excluded.nota_min,
   nota_max = excluded.nota_max,
   nota_aprobacion = excluded.nota_aprobacion,
+  nota_paso = excluded.nota_paso,
   cuatrimestres_por_anio = excluded.cuatrimestres_por_anio,
   cierre_cuatrimestres = excluded.cierre_cuatrimestres;
 

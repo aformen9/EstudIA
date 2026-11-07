@@ -255,7 +255,7 @@ describe("vistas Promedio y Aprobadas", () => {
     expect(con.filter((b) => b.desaprobada).map((b) => b.nota)).toEqual([1, 2, 3]);
   });
 
-  it("redondea las notas no enteras en la distribución", () => {
+  it("agrupa las notas no enteras por su parte entera en la distribución", () => {
     const datos = datosDe({
       materias: [materia("A"), materia("B")],
       progreso: [
@@ -264,8 +264,17 @@ describe("vistas Promedio y Aprobadas", () => {
       ],
     });
     const barras = distribucionNotas(datos, false);
-    expect(barras.find((b) => b.nota === 7)?.cantidad).toBe(1);
-    expect(barras.find((b) => b.nota === 8)?.cantidad).toBe(1);
+    expect(barras.find((b) => b.nota === 7)?.cantidad).toBe(2);
+    expect(barras.find((b) => b.nota === 8)?.cantidad).toBe(0);
+  });
+
+  it("un 3,5 no cae en la barra de una nota que aprueba", () => {
+    const datos = datosDe({
+      materias: [materia("A")],
+      progreso: [fila("A", { estado: "final", aplazos: [3.5] })],
+    });
+    const barra = distribucionNotas(datos, true).find((b) => b.cantidad === 1);
+    expect(barra).toMatchObject({ nota: 3, desaprobada: true });
   });
 
   it("lista aplazos con la nota con la que después se aprobó", () => {

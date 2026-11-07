@@ -30,6 +30,8 @@ const filaPlan: FilaPlanConSiglas = {
   nota_min: 1,
   nota_max: 10,
   nota_aprobacion: 4,
+  nota_paso: 0.1,
+  created_at: "2026-01-01T00:00:00Z",
   cuatrimestres_por_anio: 2,
   cierre_cuatrimestres: [{ cuatrimestre: 1, mes: 7 }],
   carreras: { sigla: "LCD", nombre: "Ciencias de Datos", universidades: { sigla: "UCA" } },
@@ -84,8 +86,10 @@ describe("catálogo", () => {
       notaMin: 1,
       notaMax: 10,
       notaAprobacion: 4,
+      notaPaso: 0.1,
       cuatrimestresPorAnio: 2,
       cierreCuatrimestres: [{ cuatrimestre: 1, mes: 7 }],
+      creadoEn: "2026-01-01T00:00:00Z",
     });
   });
 

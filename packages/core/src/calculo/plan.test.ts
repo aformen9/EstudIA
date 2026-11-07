@@ -7,6 +7,7 @@ import { borradorDeMateria, CONDICION_PREDETERMINADA, normalizarBorrador } from 
 import {
   agruparMaterias,
   aniosDelPlan,
+  planVigente,
   buscarMaterias,
   cuatrimestresDelAnio,
   esAnual,
@@ -407,5 +408,23 @@ describe("editar materias propias", () => {
     expect(ids(opcionesDeCorrelativa(lista, "p"))).toEqual(["1-2", "2-1", "extra"]);
     expect(ids(opcionesDeCorrelativa(lista, null))).toEqual(["p", "1-2", "2-1", "extra"]);
     expect(lista[0]?.id).toBe("extra");
+  });
+});
+
+describe("plan vigente", () => {
+  const plan = (version: string, creadoEn: string) => ({ version, creadoEn });
+
+  it("elige el último cargado", () => {
+    const nuevo = plan("100", "2026-02-01T00:00:00Z");
+    expect(planVigente([plan("900", "2026-01-01T00:00:00Z"), nuevo])).toBe(nuevo);
+  });
+
+  it("si empatan, elige la versión más alta, comparando como números", () => {
+    const alta = plan("7023", "2026-01-01T00:00:00Z");
+    expect(planVigente([plan("999", "2026-01-01T00:00:00Z"), alta])).toBe(alta);
+  });
+
+  it("sin planes no hay vigente", () => {
+    expect(planVigente([])).toBeNull();
   });
 });

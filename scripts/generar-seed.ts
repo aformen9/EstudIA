@@ -28,7 +28,7 @@ interface Catalogo {
   carrera: { nombre: string; sigla: string };
   plan: {
     version: string;
-    escala: { min: number; max: number; aprobacion: number };
+    escala: { min: number; max: number; aprobacion: number; paso: number };
     cuatrimestresPorAnio: number;
   };
   materias: MateriaCatalogo[];
@@ -127,7 +127,7 @@ on conflict (id) do update set
   sigla = excluded.sigla,
   estado = excluded.estado;
 
-insert into public.planes (id, carrera_id, version, estado, creado_por, nota_min, nota_max, nota_aprobacion, cuatrimestres_por_anio, cierre_cuatrimestres) values
+insert into public.planes (id, carrera_id, version, estado, creado_por, nota_min, nota_max, nota_aprobacion, nota_paso, cuatrimestres_por_anio, cierre_cuatrimestres) values
   (${[
     sql(planId),
     sql(carreraId),
@@ -137,6 +137,7 @@ insert into public.planes (id, carrera_id, version, estado, creado_por, nota_min
     sql(plan.escala.min),
     sql(plan.escala.max),
     sql(plan.escala.aprobacion),
+    sql(plan.escala.paso),
     sql(plan.cuatrimestresPorAnio),
     `${sql(JSON.stringify(CIERRE_CUATRIMESTRES))}::jsonb`,
   ].join(", ")})
@@ -145,6 +146,7 @@ on conflict (id) do update set
   nota_min = excluded.nota_min,
   nota_max = excluded.nota_max,
   nota_aprobacion = excluded.nota_aprobacion,
+  nota_paso = excluded.nota_paso,
   cuatrimestres_por_anio = excluded.cuatrimestres_por_anio,
   cierre_cuatrimestres = excluded.cierre_cuatrimestres;
 

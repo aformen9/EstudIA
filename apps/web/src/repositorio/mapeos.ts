@@ -73,7 +73,7 @@ export function carreraDesdeFila(fila: FilaCarrera): Carrera {
 }
 
 export const COLUMNAS_PLAN =
-  "id, carrera_id, version, estado, nota_min, nota_max, nota_aprobacion, cuatrimestres_por_anio, cierre_cuatrimestres";
+  "id, carrera_id, version, estado, nota_min, nota_max, nota_aprobacion, nota_paso, cuatrimestres_por_anio, cierre_cuatrimestres, created_at";
 
 export interface FilaPlan {
   id: string;
@@ -83,8 +83,10 @@ export interface FilaPlan {
   nota_min: number;
   nota_max: number;
   nota_aprobacion: number;
+  nota_paso: number;
   cuatrimestres_por_anio: number;
   cierre_cuatrimestres: CierreCuatrimestre[];
+  created_at: string;
 }
 
 export function planDesdeFila(fila: FilaPlan): Plan {
@@ -96,8 +98,10 @@ export function planDesdeFila(fila: FilaPlan): Plan {
     notaMin: fila.nota_min,
     notaMax: fila.nota_max,
     notaAprobacion: fila.nota_aprobacion,
+    notaPaso: fila.nota_paso,
     cuatrimestresPorAnio: fila.cuatrimestres_por_anio,
     cierreCuatrimestres: fila.cierre_cuatrimestres,
+    creadoEn: fila.created_at,
   };
 }
 

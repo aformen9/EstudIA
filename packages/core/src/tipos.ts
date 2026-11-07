@@ -48,8 +48,12 @@ export interface Plan {
   notaMin: number;
   notaMax: number;
   notaAprobacion: number;
+  /** De a cuánto se mueve una nota al cargarla: 0,1 en la UCA. */
+  notaPaso: number;
   cuatrimestresPorAnio: number;
   cierreCuatrimestres: CierreCuatrimestre[];
+  /** Cuándo se cargó: decide cuál es el plan vigente de una carrera. */
+  creadoEn: string;
 }
 
 export interface Materia {

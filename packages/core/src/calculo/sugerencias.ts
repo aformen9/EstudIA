@@ -1,4 +1,5 @@
 import type { EstadoMateria, Plan, ProgresoMateria } from "../tipos";
+import { notaConComa } from "./notas";
 
 type Escala = Pick<Plan, "notaMin" | "notaMax">;
 type Aprobacion = Pick<Plan, "notaAprobacion">;
@@ -31,7 +32,7 @@ export function sugerirEstado(valores: ValoresEdicion, plan: Aprobacion): Sugere
     return {
       estado: "aprobada",
       motivo: "nota-final",
-      mensaje: `Con nota final ${nota}, ¿la pasás a Aprobada?`,
+      mensaje: `Con nota final ${notaConComa(nota)}, ¿la pasás a Aprobada?`,
     };
   }
   if (nota == null && estado === "cursando" && aprueba(p1, plan)) {
@@ -39,7 +40,7 @@ export function sugerirEstado(valores: ValoresEdicion, plan: Aprobacion): Sugere
       return {
         estado: "final",
         motivo: "parciales",
-        mensaje: "Aprobaste los parciales: podés pasarla a Final pendiente.",
+        mensaje: "Aprobaste los parciales: podés pasarla a Falta final.",
       };
     }
   }
