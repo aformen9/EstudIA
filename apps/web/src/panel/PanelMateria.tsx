@@ -1,27 +1,24 @@
 import {
   aniosDelPlan,
   borradorDeMateria,
-  alEditarNota,
-  camposNotaVisibles,
-  type CampoNota,
   cicloDeCorrelativas,
   CONDICION_PREDETERMINADA,
   cuatrimestresDelAnio,
   esMateriaPropia,
   ESTADOS_MATERIA,
   estadoCorrelativas,
-  historialDeMateria,
   materialesDeMateria,
   normalizarBorrador,
   opcionesDeCorrelativa,
-  parsearAplazos,
   progresoDe,
   progresoInicial,
-  sugerirEstado,
+  resumirMateria,
+  sugerirAprobada,
+  ordenarInstancias,
   type BorradorMateriaPropia,
   type DatosAlumno,
   type EstadoMateria,
-  type EventoHistorial,
+  type ProgresoMateria,
   type Materia,
   type ParaCorrelativa,
 } from "@estudia/core";
@@ -35,32 +32,15 @@ import { Segmentado } from "../interfaz/Segmentado";
 import { SeccionMaterial } from "../materiales/ComponentesMaterial";
 import { useMaterialesDelAlumno } from "../materiales/useMateriales";
 import { clavesPlan, invalidarDatosDelPlan } from "../plan/planActivo";
-import {
-  enumerar,
-  ETIQUETAS_ESTADO,
-  ICONO_ESTADO,
-  formatoFecha,
-  formatoNota,
-  lugarMateria,
-} from "../plan/presentacion";
+import { enumerar, ETIQUETAS_ESTADO, ICONO_ESTADO, lugarMateria } from "../plan/presentacion";
 import { useGuardarProgreso, type CambiosProgreso } from "../plan/useGuardarProgreso";
-import { SliderNota } from "./SliderNota";
+import { Instancias } from "./Instancias";
 
 const ETIQUETA_CONDICION = { regular: "regularizada", aprobada: "aprobada" } as const;
 const ETIQUETA_PARA: Record<ParaCorrelativa, string> = {
   cursar: "Para cursar",
   rendir: "Para rendir",
 };
-
-const ETIQUETAS_NOTA: Record<CampoNota, string> = {
-  p1: "Parcial 1",
-  p2: "Parcial 2",
-  rec: "Recuperatorio",
-  notaCursada: "Nota de cursada",
-  notaFinalExamen: "Final",
-  nota: "Nota final",
-};
-const CAMPOS_NOTA = Object.keys(ETIQUETAS_NOTA) as CampoNota[];
 
 function mensajeDe(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -101,40 +81,6 @@ function BloqueCorrelativas({
   );
 }
 
-function TablaHistorial({ eventos }: { eventos: EventoHistorial[] }) {
-  const tipo = (t: EventoHistorial["tipo"]) =>
-    t === "Regularidad" ? "Cursada" : t === "Promocion" ? "Promoción" : t;
-  const clase = (r: EventoHistorial["resultado"]) =>
-    r === "Aprobado" || r === "Promocionado" ? "r-ok" : r === "Reprobado" ? "r-no" : "r-aus";
-  return (
-    <div className="sec">
-      <b>Historial</b>
-      <div className="hist-wrap">
-        <table className="hist">
-          <thead>
-            <tr>
-              <th>Fecha</th>
-              <th>Tipo</th>
-              <th>Nota</th>
-              <th>Resultado</th>
-            </tr>
-          </thead>
-          <tbody>
-            {eventos.map((h, i) => (
-              <tr key={i}>
-                <td>{formatoFecha(h.fecha)}</td>
-                <td>{tipo(h.tipo)}</td>
-                <td>{formatoNota(h.nota)}</td>
-                <td className={clase(h.resultado)}>{h.resultado}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
 function claveDeCorrelativas(correlativas: BorradorMateriaPropia["correlativas"]): string[] {
   return correlativas.map((c) => `${c.para}|${c.requiereId}|${c.condicion}`).sort();
 }
@@ -143,12 +89,15 @@ function claveCorrelativas(borrador: BorradorMateriaPropia): string {
   return JSON.stringify({ ...borrador, correlativas: claveDeCorrelativas(borrador.correlativas) });
 }
 
-function mismosValores(a: CambiosProgreso, b: CambiosProgreso): boolean {
-  const campos = ["estado", ...CAMPOS_NOTA] as const;
-  return (
-    campos.every((campo) => a[campo] === b[campo]) &&
-    JSON.stringify(a.aplazos) === JSON.stringify(b.aplazos)
+/** Lo que importa de las instancias para saber si cambiaron: sin ids, en orden de fecha. */
+function claveDeInstancias(progreso: Pick<ProgresoMateria, "instancias">): string {
+  return JSON.stringify(
+    ordenarInstancias(progreso.instancias).map(({ tipo, fecha, nota }) => [tipo, fecha, nota]),
   );
+}
+
+function mismosValores(a: Required<CambiosProgreso>, b: ProgresoMateria): boolean {
+  return a.estado === b.estado && claveDeInstancias(a) === claveDeInstancias(b);
 }
 
 function materiaNueva(lugar: LugarInicial): BorradorMateriaPropia {
@@ -195,7 +144,6 @@ export function PanelMateria({
   const idTitulo = useId();
   const idFormulario = useId();
   const idEstado = useId();
-  const idAplazos = useId();
   const idNombre = useId();
   const idAnio = useId();
   const idCuatrimestre = useId();
@@ -210,8 +158,6 @@ export function PanelMateria({
     () => (materia && progresoDe(datos, materia.id)) ?? progresoInicial(materia?.id ?? ""),
   );
   const [valores, setValores] = useState(guardada);
-  const [textoInicial] = useState(() => guardada.aplazos.join(", "));
-  const [textoAplazos, setTextoAplazos] = useState(textoInicial);
   const [borradorInicial] = useState(() =>
     materia ? borradorDeMateria(datos, materia) : materiaNueva(lugarInicial),
   );
@@ -228,24 +174,6 @@ export function PanelMateria({
   const materiales = useMaterialesDelAlumno();
   const todos = materiales.data ?? [];
   const delaMateria = materia ? materialesDeMateria(todos, materia.id) : [];
-  const sugerencia = sugerirEstado(valores, plan);
-  const [todasLasNotas, setTodasLasNotas] = useState(false);
-  const notasVisibles = camposNotaVisibles(valores.estado, [guardada, valores], todasLasNotas);
-  const idNotas = useId();
-
-  /** En vivo, mientras se desliza: todavía no cambia el estado. */
-  function cambiarNota(campo: CampoNota, valor: number | null) {
-    setValores((actuales) => ({ ...actuales, [campo]: valor }));
-  }
-
-  /**
-   * Al soltar el slider, con cada tecla o al escribir: si no, pasar por un 4 en pleno arrastre pasaría
-   * la materia a Aprobada.
-   */
-  function confirmarNota(campo: CampoNota) {
-    if (campo !== "nota" && campo !== "notaFinalExamen") return;
-    setValores((actuales) => ({ ...actuales, ...alEditarNota(campo, actuales, plan) }));
-  }
 
   function alternarCorrelativa(requiereId: string, para: ParaCorrelativa, marcada: boolean) {
     setBorrador((actual) => {
@@ -276,16 +204,9 @@ export function PanelMateria({
   async function guardar() {
     setError(null);
     setAviso(null);
-    const cambios: CambiosProgreso = {
+    const cambios: Required<CambiosProgreso> = {
       estado: valores.estado,
-      p1: valores.p1,
-      p2: valores.p2,
-      rec: valores.rec,
-      notaCursada: valores.notaCursada,
-      notaFinalExamen: valores.notaFinalExamen,
-      nota: valores.nota,
-      aplazos:
-        textoAplazos === textoInicial ? guardada.aplazos : parsearAplazos(textoAplazos, plan),
+      instancias: valores.instancias,
     };
     const id = materia?.id ?? idCreada.current;
     const normalizado = editable ? normalizarBorrador(borrador, id) : null;
@@ -371,7 +292,7 @@ export function PanelMateria({
     }
     alCerrar();
     if (aprobo) {
-      festejar({ materia: nombre, nota: cambios.nota ?? null });
+      festejar({ materia: nombre, nota: resumirMateria(cambios, plan).nota });
     } else {
       avisar("Guardado");
     }
@@ -410,7 +331,6 @@ export function PanelMateria({
     ? new Set(datos.correlativas.filter((c) => c.requiereId === materia.id).map((c) => c.materiaId))
         .size
     : 0;
-  const historial = materia ? historialDeMateria(datos.historial, materia.id) : [];
 
   return (
     <Dialogo idTitulo={idTitulo} alCerrar={alCerrar}>
@@ -445,10 +365,7 @@ export function PanelMateria({
               idEtiqueta={idEstado}
               columnasCelular={2}
               valor={valores.estado}
-              alCambiar={(estado) => {
-                setValores((v) => ({ ...v, estado }));
-                setTodasLasNotas(false);
-              }}
+              alCambiar={(estado) => setValores((v) => ({ ...v, estado }))}
               opciones={ESTADOS_MATERIA.map((estado) => ({
                 valor: estado,
                 texto: ETIQUETAS_ESTADO[estado],
@@ -456,49 +373,16 @@ export function PanelMateria({
                 clase: `e-${estado}`,
               }))}
             />
-            <span className="hint" role="status">
-              {sugerencia?.mensaje}
-            </span>
           </div>
-          <div className="field" role="group" aria-labelledby={idNotas}>
-            <span className="etiqueta" id={idNotas}>
-              Notas
-            </span>
-            {notasVisibles.length ? (
-              <div className="nts">
-                {notasVisibles.map((campo) => (
-                  <SliderNota
-                    key={campo}
-                    etiqueta={ETIQUETAS_NOTA[campo]}
-                    valor={valores[campo]}
-                    plan={plan}
-                    alCambiar={(valor) => cambiarNota(campo, valor)}
-                    alConfirmar={() => confirmarNota(campo)}
-                  />
-                ))}
-              </div>
-            ) : (
-              <p className="nts-vacio">Todavía no hay notas para cargar en esta materia.</p>
-            )}
-            {notasVisibles.length < CAMPOS_NOTA.length && (
-              <button className="btn-sin" type="button" onClick={() => setTodasLasNotas(true)}>
-                Ver todas las notas
-              </button>
-            )}
-          </div>
-          <div className="field">
-            <label htmlFor={idAplazos}>Aplazos (notas de finales desaprobados)</label>
-            <input
-              id={idAplazos}
-              inputMode="decimal"
-              placeholder="Ej.: 2, 3"
-              value={textoAplazos}
-              onChange={(e) => setTextoAplazos(e.target.value)}
-            />
-          </div>
+          <Instancias
+            estado={valores.estado}
+            instancias={valores.instancias}
+            plan={plan}
+            alCambiar={(instancias) => setValores((v) => ({ ...v, instancias }))}
+            sugerirAprobada={sugerirAprobada(valores.estado, valores.instancias, plan)}
+            alPasarAAprobada={() => setValores((v) => ({ ...v, estado: "aprobada" }))}
+          />
         </form>
-
-        {historial.length > 0 && <TablaHistorial eventos={historial} />}
 
         {editable && (
           <div className="sec">

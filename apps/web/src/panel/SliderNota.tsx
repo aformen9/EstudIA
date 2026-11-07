@@ -6,7 +6,14 @@ import {
   posicionDeNota,
   type Plan,
 } from "@estudia/core";
-import { useId, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
+import {
+  useId,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type PointerEvent,
+  type ReactNode,
+} from "react";
 import { formatoNota } from "../plan/presentacion";
 
 type EscalaDelPlan = Pick<Plan, "notaMin" | "notaMax" | "notaPaso" | "notaAprobacion">;
@@ -41,8 +48,14 @@ export function SliderNota({
   plan,
   alCambiar,
   alConfirmar,
+  detalle,
+  acciones,
 }: {
   etiqueta: string;
+  /** Al lado del nombre, por ejemplo "Aprobado" o "Programada". */
+  detalle?: ReactNode;
+  /** Antes de "Sin nota", por ejemplo la fecha; y después, por ejemplo "Quitar". */
+  acciones?: { antes?: ReactNode; despues?: ReactNode };
   valor: number | null;
   plan: EscalaDelPlan;
   alCambiar: (valor: number | null) => void;
@@ -178,7 +191,11 @@ export function SliderNota({
   return (
     <div className={vacia ? "nt vacia" : "nt"}>
       <div className="nt-h">
-        <span id={idEtiqueta}>{etiqueta}</span>
+        <span className="nt-t">
+          <span id={idEtiqueta}>{etiqueta}</span>
+          {detalle}
+        </span>
+        {acciones?.antes}
         <button
           type="button"
           className="nt-sin"
@@ -188,6 +205,7 @@ export function SliderNota({
         >
           Sin nota
         </button>
+        {acciones?.despues}
       </div>
       {editando ? (
         <>

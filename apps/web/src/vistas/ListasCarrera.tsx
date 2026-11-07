@@ -8,13 +8,20 @@ import {
   promedio,
   promocionadas,
   resumenFinal,
+  resumirMateria,
   type DatosAlumno,
   type Materia,
 } from "@estudia/core";
 import { Icono } from "../interfaz/Iconos";
 import { useAbrirMateria } from "../plan/abrirMateria";
 import { ConPlan } from "../plan/planActivo";
-import { cantidad, formatoFecha, formatoNota, lugarMateria } from "../plan/presentacion";
+import {
+  cantidad,
+  fechaDeHoy,
+  formatoFecha,
+  formatoNota,
+  lugarMateria,
+} from "../plan/presentacion";
 import {
   CajaVacia,
   Contador,
@@ -125,10 +132,13 @@ function TarjetaFinal({
 }) {
   const abrirMateria = useAbrirMateria();
   const rendir = estadoCorrelativas(datos, materia, "rendir");
-  const notaCursada = progresoDe(datos, materia.id)?.notaCursada;
-  const { cursadaAprobada, intentos } = resumenFinal(datos.historial, materia.id);
-  const textoIntentos = intentos.map(({ nota, resultado }) =>
-    nota != null ? formatoNota(nota) : resultado.toLowerCase(),
+  const progreso = progresoDe(datos, materia.id);
+  const notaCursada = progreso
+    ? (resumirMateria(progreso, datos.plan).cursadaVigente?.nota ?? null)
+    : null;
+  const { cursadaVigente, intentos } = resumenFinal(progreso, datos.plan, fechaDeHoy());
+  const textoIntentos = intentos.map(({ nota, situacion }) =>
+    nota != null ? formatoNota(nota) : situacion === "programada" ? "programado" : "ausente",
   );
   return (
     <section className="card rise" style={retardo(indice)}>
@@ -140,7 +150,7 @@ function TarjetaFinal({
         {notaCursada != null && <span className="nota-cursada">{formatoNota(notaCursada)}</span>}
       </div>
       <p className="sub">
-        Cursada aprobada{cursadaAprobada ? ` el ${formatoFecha(cursadaAprobada)}` : ""}
+        Cursada aprobada{cursadaVigente ? ` el ${formatoFecha(cursadaVigente)}` : ""}
         {intentos.length > 0 &&
           ` · ${cantidad(intentos.length, "intento", "intentos")} de final (${textoIntentos.join(", ")})`}
       </p>

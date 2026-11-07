@@ -69,3 +69,9 @@ export function formatoPeso(bytes: number | null): string {
   if (bytes < 1048576) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
   return `${(bytes / 1048576).toLocaleString("es-AR", { maximumFractionDigits: 1 })} MB`;
 }
+
+/** La fecha de hoy en este dispositivo, "AAAA-MM-DD": decide qué instancia está programada. */
+export function fechaDeHoy(ahora = new Date()): string {
+  const dos = (n: number) => String(n).padStart(2, "0");
+  return `${ahora.getFullYear()}-${dos(ahora.getMonth() + 1)}-${dos(ahora.getDate())}`;
+}

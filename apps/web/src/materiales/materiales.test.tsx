@@ -586,7 +586,7 @@ describe("material en el panel", () => {
 describe("restaurar materiales de un respaldo, de punta a punta", () => {
   function respaldoCon(materiales: Material[]) {
     const { respaldo } = crearRespaldo(
-      { ...PLAN, progreso: [], historial: [] },
+      { ...PLAN, progreso: [] },
       materiales,
       "2026-03-01T00:00:00Z",
     );

@@ -4,6 +4,7 @@ import {
   estadoDe,
   materialesDeMateria,
   progresoDe,
+  resumirMateria,
   situacionCorrelativas,
   type DatosAlumno,
   type Materia,
@@ -134,13 +135,15 @@ export function FilaMateria({
   const { data: materiales } = useMaterialesDelAlumno();
   const estado = estadoDe(datos, materia.id);
   const progreso = progresoDe(datos, materia.id);
+  const resumen = progreso ? resumirMateria(progreso, datos.plan) : null;
+  const notaCursada = resumen?.cursadaVigente?.nota ?? null;
   const cuantos = materialesDeMateria(materiales ?? [], materia.id).length;
 
   const meta: ReactNode[] = [];
   if (conLugar) meta.push(lugarMateria(materia));
   else if (esAnual(materia)) meta.push("Anual");
-  if (progreso?.notaCursada != null && estado !== "aprobada") {
-    meta.push(`cursada ${formatoNota(progreso.notaCursada)}`);
+  if (notaCursada != null && estado !== "aprobada") {
+    meta.push(`cursada ${formatoNota(notaCursada)}`);
   }
   if (cuantos > 0) {
     meta.push(
@@ -173,8 +176,8 @@ export function FilaMateria({
         )}
       </span>
       <EtiquetaCorrelativas datos={datos} materia={materia} />
-      {estado === "aprobada" && progreso?.nota != null ? (
-        <span className="grade">{formatoNota(progreso.nota)}</span>
+      {estado === "aprobada" && resumen?.nota != null ? (
+        <span className="grade">{formatoNota(resumen.nota)}</span>
       ) : (
         <span className={`pill p-${estado}`}>{ETIQUETAS_ESTADO[estado]}</span>
       )}

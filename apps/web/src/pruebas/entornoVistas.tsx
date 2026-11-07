@@ -1,7 +1,7 @@
 import {
-  type EventoHistorial,
   type Materia,
   type Inscripcion,
+  type Instancia,
   type Material,
   type NuevoMaterial,
   type PlanCompleto,
@@ -39,22 +39,36 @@ export function datosDelCasoDePrueba() {
   if (!parseado.ok) throw new Error(parseado.error);
   const leido = importarArchivo(parseado.json, PLAN);
   if (!leido.ok) throw new Error(leido.error);
-  return { progreso: leido.datos.progreso, historial: leido.datos.historial };
+  return { progreso: leido.datos.progreso };
 }
 
 export function fila(materiaId: string, cambios: Partial<ProgresoMateria> = {}): ProgresoMateria {
   return {
     materiaId,
     estado: "pendiente",
-    p1: null,
-    p2: null,
-    rec: null,
-    notaCursada: null,
-    notaFinalExamen: null,
-    nota: null,
-    aplazos: [],
+    instancias: [],
     ...cambios,
   };
+}
+
+let ordenDeInstancia = 0;
+
+/** Una instancia para los tests. */
+export function inst(tipo: Instancia["tipo"], fecha: string, nota: number | null): Instancia {
+  const orden = ordenDeInstancia++;
+  return { id: `inst-${orden}`, tipo, fecha, nota, orden, fuente: "manual" };
+}
+
+/** Una fila con la nota de la materia y sus aplazos como finales: los aplazos, antes. */
+export function filaConNotas(
+  materiaId: string,
+  estado: ProgresoMateria["estado"],
+  nota: number | null,
+  aplazos: number[] = [],
+): ProgresoMateria {
+  const instancias = aplazos.map((n, i) => inst("final", `2023-0${i + 1}-01`, n));
+  if (nota != null) instancias.push(inst("final", "2024-01-01", nota));
+  return { materiaId, estado, instancias };
 }
 
 export function materialDesde(nuevo: NuevoMaterial, id = nuevo.id): Material {
@@ -89,7 +103,6 @@ interface Inicial {
   plan?: PlanCompleto;
   inscripciones?: Inscripcion[];
   progreso?: ProgresoMateria[];
-  historial?: EventoHistorial[];
   materiales?: Material[];
 }
 
@@ -104,7 +117,6 @@ export function repositorioFalso(inicial: Inicial = {}): RepositorioFalso {
     plan: inicial.plan ?? PLAN,
     inscripciones: inicial.inscripciones ?? [],
     progreso: inicial.progreso ?? [],
-    historial: inicial.historial ?? [],
     materiales: inicial.materiales ?? [],
   };
   const repositorio: Repositorio = {
@@ -142,7 +154,6 @@ export function repositorioFalso(inicial: Inicial = {}): RepositorioFalso {
         progreso,
       ];
     },
-    obtenerHistorial: async () => base.historial,
     // Idempotente por id, como la base: el reintento devuelve lo que hay, sin pisarlo.
     crearMateriaPropia: async (planId, { correlativas, ...datos }, id) => {
       const existente = base.plan.materias.find((m) => m.id === id);
@@ -177,7 +188,7 @@ export function repositorioFalso(inicial: Inicial = {}): RepositorioFalso {
       };
       return materia;
     },
-    // Igual que la base: cascada en correlativas, progreso e historial; el material queda sin materia.
+    // Igual que la base: cascada en correlativas y progreso (con sus instancias); el material queda sin materia.
     borrarMateriaPropia: async (materiaId) => {
       base.plan = {
         ...base.plan,
@@ -187,7 +198,6 @@ export function repositorioFalso(inicial: Inicial = {}): RepositorioFalso {
         ),
       };
       base.progreso = base.progreso.filter((f) => f.materiaId !== materiaId);
-      base.historial = base.historial.filter((h) => h.materiaId !== materiaId);
       base.materiales = base.materiales.map((m) =>
         m.materiaId === materiaId ? { ...m, materiaId: null, visibilidad: "privado" } : m,
       );
@@ -224,7 +234,6 @@ export function repositorioFalso(inicial: Inicial = {}): RepositorioFalso {
     },
     reemplazarDatosDelPlan: async (_planId, datos) => {
       base.progreso = datos.progreso;
-      base.historial = datos.historial;
       return Object.fromEntries(datos.materiasPropias.map((m) => [m.clave, `uuid-${m.clave}`]));
     },
   };

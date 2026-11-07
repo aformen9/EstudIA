@@ -7,6 +7,8 @@ import {
   datosDelCasoDePrueba,
   elegirArchivoAlCargar,
   fila,
+  inst,
+  filaConNotas,
   INSCRIPCION,
   leerFixtureLegacy,
   PLAN,
@@ -428,24 +430,11 @@ describe("Finales pendientes", () => {
       "finales",
       repositorioFalso({
         inscripciones: [INSCRIPCION],
-        progreso: [fila(m.id, { estado: "final", aplazos: [2] })],
-        historial: [
-          {
-            materiaId: m.id,
-            fecha: "2025-02-01",
-            tipo: "Examen",
-            nota: 2,
-            resultado: "Reprobado",
-            fuente: "manual",
-          },
-          {
-            materiaId: m.id,
-            fecha: "2025-03-01",
-            tipo: "Examen",
-            nota: null,
-            resultado: "Ausente",
-            fuente: "manual",
-          },
+        progreso: [
+          fila(m.id, {
+            estado: "final",
+            instancias: [inst("final", "2025-02-01", 2), inst("final", "2025-03-01", null)],
+          }),
         ],
       }),
     );
@@ -475,7 +464,7 @@ describe("Pendientes", () => {
   it("sin pendientes muestra la caja vacía", async () => {
     const repositorio = repositorioFalso({
       inscripciones: [INSCRIPCION],
-      progreso: PLAN.materias.map((m) => fila(m.id, { estado: "aprobada", nota: 8 })),
+      progreso: PLAN.materias.map((m) => filaConNotas(m.id, "aprobada", 8)),
     });
     const { main } = await abrir("pendientes", repositorio);
     expect(
@@ -629,13 +618,13 @@ describe("Promedio", () => {
     sinValoresRotos();
   });
 
-  it("con notas pero sin historial no rompe", async () => {
+  it("con una sola nota no rompe", async () => {
     const m = materia("GMA0136");
     const { main } = await abrir(
       "promedio",
       repositorioFalso({
         inscripciones: [INSCRIPCION],
-        progreso: [fila(m.id, { estado: "aprobada", nota: 8 })],
+        progreso: [filaConNotas(m.id, "aprobada", 8)],
       }),
     );
     expect(await main.findByText("Todavía no hay suficientes notas.")).toBeTruthy();
@@ -643,25 +632,13 @@ describe("Promedio", () => {
     sinValoresRotos();
   });
 
-  it("con historial de la misma fecha y una sola nota por cuatrimestre no rompe", async () => {
+  it("con dos finales de la misma fecha y una sola nota por cuatrimestre no rompe", async () => {
     const [a, b] = [materia("GMA0136"), materia("GMA1234")];
-    const evento = (materiaId: string, nota: number) => ({
-      materiaId,
-      fecha: "2025-01-01",
-      tipo: "Examen" as const,
-      nota,
-      resultado: "Aprobado" as const,
-      fuente: "manual" as const,
-    });
     const { main } = await abrir(
       "promedio",
       repositorioFalso({
         inscripciones: [INSCRIPCION],
-        progreso: [
-          fila(a.id, { estado: "aprobada", nota: 10 }),
-          fila(b.id, { estado: "aprobada", nota: 10 }),
-        ],
-        historial: [evento(a.id, 10), evento(b.id, 10)],
+        progreso: [filaConNotas(a.id, "aprobada", 10), filaConNotas(b.id, "aprobada", 10)],
       }),
     );
     await main.findByRole("group", { name: "Promedio acumulado en el tiempo" });
@@ -700,7 +677,7 @@ describe("vistas sin datos de una materia", () => {
       const consola = vi.spyOn(console, "error");
       window.location.hash = hash;
       renderConRepositorio(<Shell />, repositorio);
-      await waitFor(() => expect(repositorio.obtenerHistorial).toHaveBeenCalled());
+      await waitFor(() => expect(repositorio.obtenerProgreso).toHaveBeenCalled());
       await act(async () => {});
       await waitFor(() => expect(screen.queryByText("Cargando tu plan…")).toBeNull());
       sinValoresRotos();

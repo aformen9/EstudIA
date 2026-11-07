@@ -6,6 +6,7 @@ import { IndicadorGuardado } from "../guardado/IndicadorGuardado";
 import { ConPlan } from "../plan/planActivo";
 import {
   fila,
+  inst,
   ID_PLAN,
   INSCRIPCION,
   PLAN,
@@ -99,13 +100,7 @@ describe("GrillaRapida", () => {
   it("conserva los demás campos de una fila que ya existe", async () => {
     const existente = fila(M1.id, {
       estado: "final",
-      p1: 7,
-      p2: 8,
-      rec: 6,
-      notaCursada: 7.5,
-      notaFinalExamen: 2,
-      nota: null,
-      aplazos: [2, 3],
+      instancias: [inst("parcial", "2025-04-01", 7), inst("final", "2025-07-01", 2)],
     });
     const repositorio = repositorioFalso({
       inscripciones: [INSCRIPCION],
@@ -244,7 +239,7 @@ describe("GrillaRapida", () => {
     montar(repositorio, alTerminar);
     await screen.findByRole("radiogroup", { name: M1.nombre });
 
-    const conteo = conteoPorEstado({ ...PLAN, progreso: repositorio.base.progreso, historial: [] });
+    const conteo = conteoPorEstado({ ...PLAN, progreso: repositorio.base.progreso });
     expect(screen.getByText(new RegExp(`Aprobada: ${conteo.aprobada}`))).toBeTruthy();
     expect(screen.getByText(new RegExp(`Por cursar: ${conteo.pendiente}`))).toBeTruthy();
 

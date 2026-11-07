@@ -7,6 +7,7 @@
  */
 import {
   conteoPorEstado,
+  resumirMateria,
   restaurarMateriales,
   type DatosAlumno,
   type Repositorio,
@@ -33,7 +34,6 @@ async function datosDe(repositorio: Repositorio): Promise<DatosAlumno> {
   return {
     ...(await repositorio.obtenerPlanCompleto(planId)),
     progreso: await repositorio.obtenerProgreso(planId),
-    historial: await repositorio.obtenerHistorial(planId),
   };
 }
 
@@ -87,9 +87,8 @@ describe("Criterio 5: importar el caso de prueba por la interfaz", () => {
     fireEvent.click(await screen.findByRole("radio", { name: /UCA/ }, ESPERA));
     fireEvent.click(screen.getByRole("button", { name: "Seguir" }));
     fireEvent.click(await screen.findByRole("radio", { name: /Ciencias de Datos/ }, ESPERA));
+    // LCD tiene un solo plan: se elige solo.
     fireEvent.click(screen.getByRole("button", { name: "Seguir" }));
-    fireEvent.click(await screen.findByRole("radio", { name: /Plan 7023/ }, ESPERA));
-    fireEvent.click(screen.getByRole("button", { name: "Elegir este plan" }));
 
     fireEvent.click(await screen.findByRole("button", { name: /Importar respaldo/ }, ESPERA));
 
@@ -121,7 +120,6 @@ describe("Criterio 5: importar el caso de prueba por la interfaz", () => {
     const datos: DatosAlumno = {
       ...(await repositorio.obtenerPlanCompleto(planId)),
       progreso: await repositorio.obtenerProgreso(planId),
-      historial: await repositorio.obtenerHistorial(planId),
     };
     expect(datos.materias).toHaveLength(50);
     expect(conteoPorEstado(datos)).toEqual({
@@ -134,17 +132,22 @@ describe("Criterio 5: importar el caso de prueba por la interfaz", () => {
 
   it("cambiar una nota persiste al recargar", async () => {
     const panel = await abrirPanel(/^Cálculo Elemental/);
-    fireEvent.change(panel.getByLabelText("Nota final"), { target: { value: "7" } });
+    // El final importado del fixture: 9. Se escribe 7.
+    fireEvent.click(panel.getByRole("button", { name: /^Escribir Final:/ }));
+    const campo = panel.getByRole("textbox", { name: "Escribir Final" });
+    fireEvent.change(campo, { target: { value: "7" } });
+    fireEvent.keyDown(campo, { key: "Enter" });
     fireEvent.click(panel.getByRole("button", { name: "Guardar" }));
     await panelCerrado();
 
     const repositorio = crearRepositorioSupabase(conexion.cliente);
     const datos = await datosDe(repositorio);
     const materia = datos.materias.find((m) => m.nombre === "Cálculo Elemental");
-    expect(datos.progreso.find((f) => f.materiaId === materia?.id)?.nota).toBe(7);
+    const progreso = datos.progreso.find((f) => f.materiaId === materia?.id);
+    expect(progreso && resumirMateria(progreso, datos.plan).nota).toBe(7);
 
     const otraVez = await abrirPanel(/^Cálculo Elemental/);
-    expect((otraVez.getByLabelText("Nota final") as HTMLSelectElement).value).toBe("7");
+    expect(otraVez.getByRole("slider", { name: "Final" }).getAttribute("aria-valuetext")).toBe("7");
   });
 
   it("crear y borrar una materia propia: su material queda sin materia y privado", async () => {
