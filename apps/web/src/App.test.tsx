@@ -1,5 +1,5 @@
 import type { AuthChangeEvent, Session, SupabaseClient } from "@supabase/supabase-js";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "./App";
 import { VISTAS, type Vista } from "./navegacion/rutas";
@@ -153,6 +153,9 @@ describe("App", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Respaldo y ajustes" }));
     fireEvent.click(screen.getByRole("button", { name: /Cerrar sesión/ }));
+    const dialogo = within(await screen.findByRole("dialog", { name: "Cerrar sesión" }));
+    expect(salir).not.toHaveBeenCalled();
+    fireEvent.click(dialogo.getByRole("button", { name: "Cerrar sesión" }));
     await waitFor(() => expect(salir).toHaveBeenCalledOnce());
     expect(salir).toHaveBeenCalledWith({ scope: "local" });
 

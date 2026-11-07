@@ -9,8 +9,35 @@ export function prefiereMenosMovimiento(): boolean {
 }
 
 const CON_BRILLO = ".card, .kpi, .subj, .mcard, .mini";
+/**
+ * Tarjetas que pueden tener listas largas. Escribir `--mx` y `--my` en ellas recalcula a todos sus
+ * descendientes (las heredan) y repinta el fondo entero. El brillo va en una capa hija (`CapaBrillo`)
+ * que se mueve solo con `transform`.
+ */
+const CON_CAPA = ".card.onboarding";
+/** La mitad del lado de `.brillo-capa`: para centrarla en el puntero. */
+const RADIO_CAPA = 420;
+
+function capaDe(tarjeta: HTMLElement): HTMLElement | null {
+  return tarjeta.querySelector<HTMLElement>(":scope > .brillo-recorte > .brillo-capa");
+}
+
+function moverCapa(tarjeta: HTMLElement, clientX: number, clientY: number) {
+  const capa = capaDe(tarjeta);
+  if (!capa) return;
+  const r = tarjeta.getBoundingClientRect();
+  const x = clientX - r.left - tarjeta.clientLeft - RADIO_CAPA;
+  const y = clientY - r.top - tarjeta.clientTop - RADIO_CAPA;
+  capa.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+  capa.style.opacity = "1";
+}
 
 function limpiarBrillo(el: HTMLElement) {
+  if (el.matches(CON_CAPA)) {
+    const capa = capaDe(el);
+    if (capa) capa.style.opacity = "0";
+    return;
+  }
   el.style.setProperty("--mx", "-500px");
   el.style.setProperty("--my", "-500px");
   el.style.removeProperty("--rx");
@@ -33,7 +60,9 @@ export function iniciarEfectosDePuntero(): () => void {
     const el = objetivo.closest<HTMLElement>(CON_BRILLO);
     if (ultimo && ultimo !== el) limpiarBrillo(ultimo);
     ultimo = el;
-    if (el) {
+    if (el?.matches(CON_CAPA)) {
+      moverCapa(el, clientX, clientY);
+    } else if (el) {
       const r = el.getBoundingClientRect();
       const x = clientX - r.left;
       const y = clientY - r.top;

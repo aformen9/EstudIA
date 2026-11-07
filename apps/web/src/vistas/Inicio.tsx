@@ -2,31 +2,34 @@ import {
   alertaAnioCompleto,
   conteoPorEstado,
   estadoCorrelativas,
+  materialesDelPlan,
+  materialesRecientes,
   materiasPorEstado,
   podesCursar,
   progresoCarrera,
   promedio,
+  sinDatosCargados,
   type DatosAlumno,
   type Material,
 } from "@estudia/core";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ImportarRespaldo } from "../importacion/ImportarRespaldo";
+import { ImportarRespaldo } from "../importacion/ImportarRespaldoDiferido";
+import { CapaBrillo } from "../interfaz/Fondo";
 import { Icono, type NombreIcono } from "../interfaz/Iconos";
+import { IconoMaterial } from "../materiales/IconoMaterial";
+import { useMaterialesDelAlumno } from "../materiales/useMateriales";
 import { prefiereMenosMovimiento } from "../interfaz/efectos";
 import { VISTAS, type Vista } from "../navegacion/rutas";
-import { GrillaRapida } from "../onboarding/GrillaRapida";
+import { GrillaRapida } from "../onboarding/GrillaRapidaDiferida";
 import { useAbrirMateria } from "../plan/abrirMateria";
 import { ConPlan, consultas } from "../plan/planActivo";
 import {
   enumerar,
   etiquetaPlan,
-  extensionDeArchivo,
   formatoNota,
   lugarMateria,
-  materialesRecientes,
   saludoDeHora,
-  sinDatosCargados,
 } from "../plan/presentacion";
 import { useRepositorio } from "../sesion/sesion";
 import { Contador, Mini, retardo } from "./comunes";
@@ -233,18 +236,6 @@ function Tarjeta({
   );
 }
 
-function IconoMaterial({ material }: { material: Material }) {
-  return (
-    <span className={`ftype ${material.tipo}`}>
-      {material.tipo === "archivo" ? (
-        extensionDeArchivo(material.titulo)
-      ) : (
-        <Icono nombre={material.tipo === "link" ? "link" : "note"} />
-      )}
-    </span>
-  );
-}
-
 function FilaMaterial({ datos, material }: { datos: DatosAlumno; material: Material }) {
   const abrirMateria = useAbrirMateria();
   const materia = datos.materias.find((m) => m.id === material.materiaId);
@@ -253,13 +244,11 @@ function FilaMaterial({ datos, material }: { datos: DatosAlumno; material: Mater
       <IconoMaterial material={material} />
       <span className="nm">
         {material.titulo}
-        <small>
-          {materia?.nombre ?? (material.materiaId === null ? "Sin materia" : "De otro plan")}
-        </small>
+        <small>{materia?.nombre ?? "Sin materia"}</small>
       </span>
     </>
   );
-  // Sin una materia de este plan para abrir, lleva a la lista de materiales.
+  // Sin materia para abrir, lleva a la lista de materiales.
   if (!materia) {
     return (
       <a className="mini" href="#materiales">
@@ -275,8 +264,7 @@ function FilaMaterial({ datos, material }: { datos: DatosAlumno; material: Mater
 }
 
 function MaterialReciente({ datos }: { datos: DatosAlumno }) {
-  const repositorio = useRepositorio();
-  const consulta = useQuery(consultas.materiales(repositorio));
+  const consulta = useMaterialesDelAlumno();
   if (!consulta.data) {
     if (consulta.error) {
       return (
@@ -294,7 +282,10 @@ function MaterialReciente({ datos }: { datos: DatosAlumno }) {
     }
     return <p className="sub">Cargando…</p>;
   }
-  const recientes = materialesRecientes(consulta.data, CANTIDAD_MATERIAL);
+  const recientes = materialesRecientes(
+    materialesDelPlan(consulta.data, datos.materias),
+    CANTIDAD_MATERIAL,
+  );
   if (!recientes.length) {
     return (
       <p className="sub">Subí apuntes, links o notas desde cada materia o desde Materiales.</p>
@@ -394,6 +385,7 @@ interface AccionesCarga {
 function AccesosDeCarga({ alCargar, alImportar }: AccionesCarga) {
   return (
     <section className="card onboarding rise">
+      <CapaBrillo />
       <h2>Todavía no cargaste tus materias</h2>
       <div className="caminos">
         <button className="camino" type="button" onClick={alCargar}>
@@ -429,6 +421,7 @@ function CargaDeDatos({
   useEffect(() => titulo.current?.focus(), []);
   return (
     <section className="card onboarding rise">
+      <CapaBrillo />
       <h2 ref={titulo} tabIndex={-1}>
         {TITULOS_SUBVISTA[subvista]}
       </h2>

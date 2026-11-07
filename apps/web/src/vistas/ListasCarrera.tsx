@@ -1,24 +1,20 @@
 import {
   dieces,
   estadoCorrelativas,
+  materiasBloqueadas,
   materiasPorEstado,
   podesCursar,
   progresoDe,
   promedio,
   promocionadas,
+  resumenFinal,
   type DatosAlumno,
   type Materia,
 } from "@estudia/core";
 import { Icono } from "../interfaz/Iconos";
 import { useAbrirMateria } from "../plan/abrirMateria";
 import { ConPlan } from "../plan/planActivo";
-import {
-  cantidad,
-  formatoFecha,
-  formatoNota,
-  lugarMateria,
-  resumenFinal,
-} from "../plan/presentacion";
+import { cantidad, formatoFecha, formatoNota, lugarMateria } from "../plan/presentacion";
 import {
   CajaVacia,
   Contador,
@@ -131,6 +127,9 @@ function TarjetaFinal({
   const rendir = estadoCorrelativas(datos, materia, "rendir");
   const notaCursada = progresoDe(datos, materia.id)?.notaCursada;
   const { cursadaAprobada, intentos } = resumenFinal(datos.historial, materia.id);
+  const textoIntentos = intentos.map(({ nota, resultado }) =>
+    nota != null ? formatoNota(nota) : resultado.toLowerCase(),
+  );
   return (
     <section className="card rise" style={retardo(indice)}>
       <div className="card-h">
@@ -143,7 +142,7 @@ function TarjetaFinal({
       <p className="sub">
         Cursada aprobada{cursadaAprobada ? ` el ${formatoFecha(cursadaAprobada)}` : ""}
         {intentos.length > 0 &&
-          ` · ${cantidad(intentos.length, "intento", "intentos")} de final (${intentos.join(", ")})`}
+          ` · ${cantidad(intentos.length, "intento", "intentos")} de final (${textoIntentos.join(", ")})`}
       </p>
       {rendir.ok ? (
         <span className="tag can">
@@ -203,8 +202,7 @@ function ContenidoPendientes({ datos }: { datos: DatosAlumno }) {
     );
   }
   const disponibles = podesCursar(datos);
-  const idsDisponibles = new Set(disponibles.map((m) => m.id));
-  const bloqueadas = pendientes.filter((m) => !idsDisponibles.has(m.id));
+  const bloqueadas = materiasBloqueadas(datos);
   let i = 1;
   return (
     <>

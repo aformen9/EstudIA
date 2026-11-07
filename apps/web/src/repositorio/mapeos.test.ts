@@ -9,6 +9,7 @@ import {
   inscripcionDesdeFila,
   materiaDesdeFila,
   materialDesdeFila,
+  borradorAParametros,
   nuevoDocumentoAParametros,
   nuevoMaterialAFila,
   perfilDesdeFila,
@@ -288,8 +289,9 @@ describe("material", () => {
   });
 
   it("material nuevo: cada tipo lleva solo su contenido", () => {
-    const comun = { materiaId: null, titulo: "T" };
+    const comun = { id: "i", materiaId: null, titulo: "T" };
     expect(nuevoMaterialAFila({ ...comun, tipo: "archivo", documentoId: "d" })).toEqual({
+      id: "i",
       materia_id: null,
       tipo: "archivo",
       titulo: "T",
@@ -297,6 +299,7 @@ describe("material", () => {
       documento_id: "d",
     });
     expect(nuevoMaterialAFila({ ...comun, tipo: "link", url: "u" })).toEqual({
+      id: "i",
       materia_id: null,
       tipo: "link",
       titulo: "T",
@@ -304,6 +307,7 @@ describe("material", () => {
       url: "u",
     });
     expect(nuevoMaterialAFila({ ...comun, tipo: "nota", texto: "x" })).toEqual({
+      id: "i",
       materia_id: null,
       tipo: "nota",
       titulo: "T",
@@ -314,6 +318,7 @@ describe("material", () => {
 
   it("material nuevo: respeta `periodo` y `createdAt`, y sin fecha la pone la base", () => {
     const fila = nuevoMaterialAFila({
+      id: "i",
       materiaId: "ma",
       titulo: "T",
       tipo: "nota",
@@ -323,8 +328,39 @@ describe("material", () => {
     });
     expect(fila).toMatchObject({ periodo: "2025-2C", created_at: "2025-03-01T00:00:00Z" });
     expect(
-      nuevoMaterialAFila({ materiaId: "ma", titulo: "T", tipo: "nota", texto: "x" }),
+      nuevoMaterialAFila({ id: "i", materiaId: "ma", titulo: "T", tipo: "nota", texto: "x" }),
     ).not.toHaveProperty("created_at");
+  });
+
+  it("materia nueva: los parámetros de la RPC", () => {
+    const parametros = borradorAParametros(
+      "p",
+      {
+        codigo: null,
+        nombre: "N",
+        anio: 1,
+        cuatrimestre: 2,
+        tipo: "Materia",
+        area: "A",
+        requiereAnioCompletoParaCursar: 3,
+        correlativas: [{ requiereId: "r", para: "cursar", condicion: "regular" }],
+      },
+      "i",
+    );
+    expect(parametros).toEqual({
+      id: "i",
+      plan_id: "p",
+      materia: {
+        codigo: null,
+        nombre: "N",
+        anio: 1,
+        cuatrimestre: 2,
+        tipo: "Materia",
+        area: "A",
+        requiereAnioCompletoParaCursar: 3,
+      },
+      correlativas: [{ requiere: "r", para: "cursar", condicion: "regular" }],
+    });
   });
 
   it("documento nuevo: los parámetros de la RPC", () => {

@@ -17,7 +17,11 @@ import { GrillaRapida } from "./GrillaRapida";
 
 const [M1, M2] = PLAN.materias as [(typeof PLAN.materias)[0], (typeof PLAN.materias)[0]];
 
-function montar(repositorio: RepositorioFalso, alTerminar = () => {}) {
+function montar(
+  repositorio: RepositorioFalso,
+  alTerminar = () => {},
+  opciones?: { tiempoGuardadoMs?: number },
+) {
   return renderConRepositorio(
     <>
       <IndicadorGuardado />
@@ -26,6 +30,7 @@ function montar(repositorio: RepositorioFalso, alTerminar = () => {}) {
       </ConPlan>
     </>,
     repositorio,
+    opciones,
   );
 }
 
@@ -246,6 +251,105 @@ describe("GrillaRapida", () => {
     fireEvent.click(screen.getByRole("button", { name: "Listo, ir a Inicio" }));
     expect(alTerminar).toHaveBeenCalled();
     expect(repositorio.obtenerProgreso).toHaveBeenCalledWith(ID_PLAN);
+  });
+});
+
+describe("guardado colgado en la grilla", () => {
+  const TIEMPO = { tiempoGuardadoMs: 20 };
+
+  it("nunca queda en Terminando de guardar: pasa a No se pudo guardar y se puede reintentar", async () => {
+    const repositorio = repositorioFalso({ inscripciones: [INSCRIPCION] });
+    repositorio.guardarProgreso.mockImplementationOnce(() => new Promise(() => {}));
+    const alTerminar = vi.fn();
+    montar(repositorio, alTerminar, TIEMPO);
+    await screen.findByRole("radiogroup", { name: M1.nombre });
+
+    fireEvent.click(opcion(M1.nombre, "Aprobada"));
+    fireEvent.click(screen.getByRole("button", { name: "Listo, ir a Inicio" }));
+    expect(screen.getByText("Terminando de guardar…")).toBeTruthy();
+
+    expect(await screen.findByText("1 materia no se guardó")).toBeTruthy();
+    expect(screen.queryByText("Terminando de guardar…")).toBeNull();
+    expect(alTerminar).not.toHaveBeenCalled();
+    expect(opcion(M1.nombre, "Pendiente").checked).toBe(true);
+    expect(indicador()).toBe("No se pudo guardar");
+
+    fireEvent.click(
+      within(
+        screen.getByText("1 materia no se guardó").closest(".grilla-aviso") as HTMLElement,
+      ).getByRole("button", { name: "Reintentar" }),
+    );
+    await waitFor(() => expect(alTerminar).toHaveBeenCalledOnce());
+    expect(repositorio.base.progreso).toEqual([fila(M1.id, { estado: "aprobada" })]);
+  });
+
+  it("una respuesta tardía no pisa un valor más nuevo", async () => {
+    const repositorio = repositorioFalso({ inscripciones: [INSCRIPCION] });
+    let responderTarde = () => {};
+    repositorio.guardarProgreso.mockImplementationOnce(
+      () => new Promise<void>((r) => (responderTarde = r)),
+    );
+    const { clienteQuery } = montar(repositorio, () => {}, TIEMPO);
+    await screen.findByRole("radiogroup", { name: M1.nombre });
+
+    fireEvent.click(opcion(M1.nombre, "En curso"));
+    await screen.findByRole("alert");
+    fireEvent.click(opcion(M1.nombre, "Aprobada"));
+    await waitFor(() => expect(indicador()).toBe("Guardado en la nube"));
+    expect(repositorio.base.progreso).toEqual([fila(M1.id, { estado: "aprobada" })]);
+
+    await act(async () => {
+      responderTarde();
+      await new Promise((r) => setTimeout(r));
+    });
+
+    expect(opcion(M1.nombre, "Aprobada").checked).toBe(true);
+    expect(clienteQuery.getQueryData(["progreso", ID_PLAN])).toEqual([
+      fila(M1.id, { estado: "aprobada" }),
+    ]);
+  });
+
+  it("una respuesta tardía de un guardado vencido no marca Guardado", async () => {
+    const repositorio = repositorioFalso({ inscripciones: [INSCRIPCION] });
+    let responderTarde = () => {};
+    repositorio.guardarProgreso.mockImplementationOnce(
+      () => new Promise<void>((r) => (responderTarde = r)),
+    );
+    montar(repositorio, () => {}, TIEMPO);
+    await screen.findByRole("radiogroup", { name: M1.nombre });
+
+    fireEvent.click(opcion(M1.nombre, "Aprobada"));
+    await screen.findByRole("alert");
+    await act(async () => {
+      responderTarde();
+      await new Promise((r) => setTimeout(r));
+    });
+
+    expect(indicador()).toBe("No se pudo guardar");
+    expect(screen.getByRole("alert")).toBeTruthy();
+    expect(opcion(M1.nombre, "Pendiente").checked).toBe(true);
+  });
+
+  it("reintentar es idempotente: si el primero llegó a la base, queda una sola fila igual", async () => {
+    const repositorio = repositorioFalso({ inscripciones: [INSCRIPCION] });
+    repositorio.guardarProgreso.mockImplementationOnce((f) => {
+      repositorio.base.progreso = [f];
+      return new Promise(() => {});
+    });
+    montar(repositorio, () => {}, TIEMPO);
+    await screen.findByRole("radiogroup", { name: M1.nombre });
+
+    fireEvent.click(opcion(M1.nombre, "Aprobada"));
+    const alerta = await screen.findByRole("alert");
+    fireEvent.click(within(alerta).getByRole("button", { name: "Reintentar" }));
+
+    await waitFor(() => expect(indicador()).toBe("Guardado en la nube"));
+    expect(repositorio.guardarProgreso).toHaveBeenCalledTimes(2);
+    expect(repositorio.guardarProgreso.mock.calls[0]).toEqual(
+      repositorio.guardarProgreso.mock.calls[1],
+    );
+    expect(repositorio.base.progreso).toEqual([fila(M1.id, { estado: "aprobada" })]);
+    expect(opcion(M1.nombre, "Aprobada").checked).toBe(true);
   });
 });
 

@@ -1,6 +1,15 @@
 import { useEffect, useRef } from "react";
 import { iniciarConstelacion, iniciarEfectosDePuntero } from "./efectos";
 
+/** Brillo que sigue al puntero en las tarjetas largas: ver `CON_CAPA` en `efectos.ts`. */
+export function CapaBrillo() {
+  return (
+    <span className="brillo-recorte" aria-hidden="true">
+      <span className="brillo-capa"></span>
+    </span>
+  );
+}
+
 /** Fondo animado (manchas, grilla, constelación), confeti y efectos de puntero de toda la app. */
 export function Fondo() {
   const estrellas = useRef<HTMLCanvasElement>(null);

@@ -1,24 +1,28 @@
 import {
   datosAlumnoDesdeImportacion,
-  importarArchivo,
-  parsearArchivo,
   progresoCarrera,
   promedio,
   restaurarMateriales,
+  sinDatosCargados,
   type DatosAlumno,
   type MaterialImportado,
   type RespaldoLeido,
 } from "@estudia/core";
+import { importarArchivo, parsearArchivo } from "@estudia/core/importacion";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useId, useRef, useState, type ChangeEvent } from "react";
+import { TiempoDeGuardadoAgotado } from "../guardado/almacenGuardado";
 import { useFalloVisible } from "../guardado/IndicadorGuardado";
 import { consultas, invalidarDatosDelPlan } from "../plan/planActivo";
 import { ETIQUETAS_ESTADO, formatoNota } from "../plan/presentacion";
+import { useBorrados } from "../materiales/borradosPendientes";
+import { LimiteDeDocumento } from "../repositorio/limites";
 import { useRepositorio } from "../sesion/sesion";
 
 interface Existentes {
   progreso: number;
   historial: number;
+  hayDatos: boolean;
 }
 
 type Fase =
@@ -36,6 +40,8 @@ type Fase =
       claves: Record<string, string>;
       /** Los que faltan: todos antes del primer intento, después solo los fallidos. */
       pendientes: MaterialImportado[];
+      /** Superaron un límite de la base: reintentar no cambiaría nada, así que no se reintentan. */
+      rechazados: { titulo: string; motivo: string }[];
       agregados: number;
       omitidos: number;
       restaurando: boolean;
@@ -126,6 +132,7 @@ export function ImportarRespaldo({
   alTerminar?: () => void;
 }) {
   const repositorio = useRepositorio();
+  const borrados = useBorrados();
   const clienteQuery = useQueryClient();
   const idArchivo = useId();
   const planId = datos.plan.id;
@@ -143,7 +150,7 @@ export function ImportarRespaldo({
   useFalloVisible(
     estado.fase === "materiales" &&
       !estado.restaurando &&
-      (estado.error !== null || estado.pendientes.length > 0),
+      (estado.error !== null || estado.pendientes.length > 0 || estado.rechazados.length > 0),
   );
 
   async function irAInicio() {
@@ -179,7 +186,11 @@ export function ImportarRespaldo({
         fase: "previa",
         archivo: archivo.name,
         leido,
-        existentes: { progreso: progreso.length, historial: historial.length },
+        existentes: {
+          progreso: progreso.length,
+          historial: historial.length,
+          hayDatos: !sinDatosCargados({ progreso, historial }),
+        },
         guardando: false,
         error: null,
       });
@@ -195,16 +206,60 @@ export function ImportarRespaldo({
   async function restaurar(
     claves: Record<string, string>,
     pendientes: MaterialImportado[],
+    rechazados: { titulo: string; motivo: string }[],
     agregados: number,
     omitidos: number,
   ) {
-    const base = { fase: "materiales" as const, claves, pendientes, agregados, omitidos };
+    const base = {
+      fase: "materiales" as const,
+      claves,
+      pendientes,
+      rechazados,
+      agregados,
+      omitidos,
+    };
     setEstado({ ...base, restaurando: true, error: null });
+    // `core` devuelve los fallidos sin el motivo: esto recuerda cuáles fueron por un límite.
+    const limites = new Map<string, LimiteDeDocumento>();
+    const limitesDeMaterial = new Map<string, LimiteDeDocumento>();
+    const conLimites: typeof repositorio = {
+      ...repositorio,
+      async registrarDocumento(documento) {
+        try {
+          return await repositorio.registrarDocumento(documento);
+        } catch (error) {
+          if (error instanceof LimiteDeDocumento) limites.set(documento.sha256, error);
+          throw error;
+        }
+      },
+      async agregarMaterial(material) {
+        try {
+          return await repositorio.agregarMaterial(material);
+        } catch (error) {
+          if (error instanceof LimiteDeDocumento) limitesDeMaterial.set(material.id, error);
+          throw error;
+        }
+      },
+    };
+    const limiteDe = (material: MaterialImportado) =>
+      (material.id ? limitesDeMaterial.get(material.id) : undefined) ??
+      (material.tipo === "archivo" ? limites.get(material.sha256.toLowerCase()) : undefined);
     try {
-      const resultado = await restaurarMateriales(repositorio, pendientes, claves);
+      // Antes de mirar qué existe: lo que está por borrarse no puede contar como que ya está.
+      await borrados?.ejecutarPendientes();
+      const resultado = await restaurarMateriales(conLimites, pendientes, claves, () =>
+        crypto.randomUUID(),
+      );
       setEstado({
         ...base,
-        pendientes: resultado.fallidos,
+        pendientes: resultado.fallidos.filter((m) => !limiteDe(m)),
+        rechazados: [
+          ...rechazados,
+          ...resultado.fallidos.flatMap((m) => {
+            const limite = limiteDe(m);
+            return limite ? [{ titulo: m.titulo, motivo: limite.message }] : [];
+          }),
+        ],
         agregados: agregados + resultado.agregados,
         omitidos: omitidos + resultado.omitidos,
         restaurando: false,
@@ -227,7 +282,11 @@ export function ImportarRespaldo({
       setEstado({
         ...estado,
         guardando: false,
-        error: `No se guardó nada. ${mensajeDe(error)}`,
+        // Pasado el tiempo máximo no se sabe qué pasó: decir "no se guardó nada" podría ser falso.
+        error:
+          error instanceof TiempoDeGuardadoAgotado
+            ? `${error.message} Mirá Inicio antes de volver a intentar.`
+            : `No se guardó nada. ${mensajeDe(error)}`,
       });
       return;
     }
@@ -236,11 +295,11 @@ export function ImportarRespaldo({
       return;
     }
     void invalidarDatosDelPlan(clienteQuery, planId);
-    await restaurar(claves, leido.materiales, 0, 0);
+    await restaurar(claves, leido.materiales, [], 0, 0);
   }
 
   if (estado.fase === "materiales") {
-    const { claves, pendientes, agregados, omitidos, restaurando, error } = estado;
+    const { claves, pendientes, rechazados, agregados, omitidos, restaurando, error } = estado;
     const terminado = !restaurando && error === null;
     return (
       <div className="importar" ref={contenedor} tabIndex={-1}>
@@ -262,6 +321,9 @@ export function ImportarRespaldo({
               <Dato nombre="Agregados" valor={agregados} />
               <Dato nombre="Omitidos (ya estaban)" valor={omitidos} />
               <Dato nombre="Fallaron" valor={pendientes.length} />
+              {rechazados.length > 0 && (
+                <Dato nombre="Rechazados por un límite" valor={rechazados.length} />
+              )}
             </dl>
           </div>
         )}
@@ -275,12 +337,24 @@ export function ImportarRespaldo({
             </ul>
           </div>
         )}
+        {terminado && rechazados.length > 0 && (
+          <div role="alert">
+            <p className="msg err">Estos no entraron, y reintentar no cambiaría nada:</p>
+            <ul className="fallidos">
+              {rechazados.map((rechazado, i) => (
+                <li key={i}>
+                  “{rechazado.titulo}” {rechazado.motivo}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         <div className="acciones">
           {!restaurando && (error !== null || pendientes.length > 0) && (
             <button
               className="btn"
               type="button"
-              onClick={() => void restaurar(claves, pendientes, agregados, omitidos)}
+              onClick={() => void restaurar(claves, pendientes, rechazados, agregados, omitidos)}
             >
               {error !== null ? "Reintentar" : "Reintentar los que fallaron"}
             </button>
@@ -300,7 +374,7 @@ export function ImportarRespaldo({
 
   if (estado.fase === "previa") {
     const { leido, existentes, guardando, error, archivo } = estado;
-    const hayDatos = existentes.progreso > 0 || existentes.historial > 0;
+    const { hayDatos } = existentes;
     return (
       <div className="importar" ref={contenedor} tabIndex={-1}>
         <p className="sub importar-archivo">{archivo}</p>

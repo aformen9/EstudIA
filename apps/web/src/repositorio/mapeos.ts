@@ -171,6 +171,28 @@ export function borradorAFila(borrador: BorradorMateriaPropia) {
   };
 }
 
+/** Los parámetros de la RPC `crear_materia_propia`, con las claves camelCase que lee `materia`. */
+export function borradorAParametros(planId: string, borrador: BorradorMateriaPropia, id: string) {
+  return {
+    id,
+    plan_id: planId,
+    materia: {
+      codigo: borrador.codigo,
+      nombre: borrador.nombre,
+      anio: borrador.anio,
+      cuatrimestre: borrador.cuatrimestre,
+      tipo: borrador.tipo,
+      area: borrador.area,
+      requiereAnioCompletoParaCursar: borrador.requiereAnioCompletoParaCursar,
+    },
+    correlativas: borrador.correlativas.map(({ requiereId, para, condicion }) => ({
+      requiere: requiereId,
+      para,
+      condicion,
+    })),
+  };
+}
+
 const COLUMNAS_CORRELATIVA = "materia_id, requiere_id, para, condicion";
 
 /** Correlativas con el plan de su materia, para filtrar por plan (la tabla no tiene `plan_id`). */
@@ -378,6 +400,7 @@ export function materialDesdeFila(fila: FilaMaterial): Material {
 }
 
 export interface FilaNuevoMaterial {
+  id: string;
   materia_id: string | null;
   tipo: TipoMaterial;
   titulo: string;
@@ -391,6 +414,7 @@ export interface FilaNuevoMaterial {
 /** Sin `created_at` si no viene: lo pone la base. `periodo` y `createdAt` llegan al restaurar. */
 export function nuevoMaterialAFila(material: NuevoMaterial): FilaNuevoMaterial {
   const base = {
+    id: material.id,
     materia_id: material.materiaId,
     tipo: material.tipo,
     titulo: material.titulo,

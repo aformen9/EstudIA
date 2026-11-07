@@ -1,10 +1,22 @@
 import { act, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { renderConRepositorio, repositorioFalso } from "../pruebas/entornoVistas";
-import { conIndicador, crearAlmacenGuardado, textoGuardado } from "./almacenGuardado";
-import { IndicadorGuardado } from "./IndicadorGuardado";
+import { fila, renderConRepositorio, repositorioFalso } from "../pruebas/entornoVistas";
+import {
+  conIndicador,
+  crearAlmacenGuardado,
+  TIEMPO_MAXIMO_GUARDADO_MS,
+  TiempoDeGuardadoAgotado,
+  textoGuardado,
+  type EstadoGuardado,
+} from "./almacenGuardado";
+import { IndicadorGuardado, useAvisoAlRecargar } from "./IndicadorGuardado";
 
-const INICIO = { pendientes: 0, ultimo: "ninguno", fallosVisibles: 0 } as const;
+const INICIO: EstadoGuardado = {
+  pendientes: 0,
+  ultimo: "ninguno",
+  fallosVisibles: 0,
+  filasFallidas: [],
+};
 
 describe("textoGuardado", () => {
   it("antes de la primera escritura no afirma haber guardado", () => {
@@ -28,6 +40,75 @@ describe("textoGuardado", () => {
   });
 });
 
+describe("tiempo máximo de una escritura", () => {
+  it("el límite es finito y una escritura colgada falla al vencer", async () => {
+    expect(TIEMPO_MAXIMO_GUARDADO_MS).toBe(20_000);
+    const almacen = crearAlmacenGuardado();
+    const repositorio = repositorioFalso();
+    repositorio.guardarProgreso.mockReturnValue(new Promise(() => {}));
+    const conLimite = conIndicador(repositorio, almacen, 5);
+
+    const escritura = conLimite.guardarProgreso({ ...fila("m") });
+    expect(textoGuardado(almacen.leer(), true).texto).toBe("Guardando…");
+    await expect(escritura).rejects.toBeInstanceOf(TiempoDeGuardadoAgotado);
+    expect(textoGuardado(almacen.leer(), true).texto).toBe("No se pudo guardar");
+  });
+
+  it("una respuesta tardía no marca Guardado", async () => {
+    const almacen = crearAlmacenGuardado();
+    const repositorio = repositorioFalso();
+    let responder = () => {};
+    repositorio.guardarProgreso.mockReturnValue(new Promise<void>((r) => (responder = r)));
+    const conLimite = conIndicador(repositorio, almacen, 5);
+
+    await expect(conLimite.guardarProgreso(fila("m"))).rejects.toBeInstanceOf(
+      TiempoDeGuardadoAgotado,
+    );
+    responder();
+    await new Promise((r) => setTimeout(r));
+    expect(almacen.leer().ultimo).toBe("error");
+    expect(almacen.leer().pendientes).toBe(0);
+  });
+});
+
+describe("aviso al recargar con filas sin guardar", () => {
+  function Aviso() {
+    useAvisoAlRecargar();
+    return null;
+  }
+
+  function recargar() {
+    const evento = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(evento);
+    return evento.defaultPrevented;
+  }
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("sin filas fallidas no se registra", () => {
+    const registrar = vi.spyOn(window, "addEventListener");
+    renderConRepositorio(<Aviso />, repositorioFalso());
+    expect(registrar.mock.calls.map(([tipo]) => tipo)).not.toContain("beforeunload");
+    expect(recargar()).toBe(false);
+  });
+
+  it("con una fila fallida avisa, y deja de avisar cuando se resuelve", () => {
+    const { guardado } = renderConRepositorio(<Aviso />, repositorioFalso());
+    act(() => guardado.marcarFilaFallida("m"));
+    expect(recargar()).toBe(true);
+    act(() => guardado.resolverFilas(["m"]));
+    expect(recargar()).toBe(false);
+  });
+
+  it("una fila fallida dice que no se pudo guardar aunque otra escritura salga bien", () => {
+    expect(textoGuardado({ ...INICIO, ultimo: "ok", filasFallidas: ["m"] }, true).texto).toBe(
+      "No se pudo guardar",
+    );
+  });
+});
+
 describe("almacén de guardado", () => {
   it("sigue una escritura que sale bien y una que falla, sin tragarse el error", async () => {
     const almacen = crearAlmacenGuardado();
@@ -36,7 +117,7 @@ describe("almacén de guardado", () => {
     expect(almacen.leer().pendientes).toBe(1);
     terminar();
     await escritura;
-    expect(almacen.leer()).toEqual({ pendientes: 0, ultimo: "ok", fallosVisibles: 0 });
+    expect(almacen.leer()).toEqual({ ...INICIO, ultimo: "ok" });
 
     await expect(almacen.seguir(() => Promise.reject(new Error("mal")))).rejects.toThrow("mal");
     expect(almacen.leer().ultimo).toBe("error");
