@@ -9,7 +9,7 @@
 - **`main` está pusheado.** Resultado del CI: ver "Última verificación".
 - **Supabase remoto:** proyecto y login con Google creados por Agu, **sin vincular y sin migraciones**. Ver el paso 1.
 - **Migraciones:** se editaron en el lugar porque nunca se aplicaron en remoto. Desde que se suban, cualquier cambio va en una migración nueva.
-- **Entorno local:** el 2026-11-07 se reseteó la base local para aplicar `nota_paso` (se borraron los datos de prueba que hubiera). El usuario de prueba quedó con el plan activo, Cálculo Elemental aprobada con 9 y 5 archivos de muestra. Para probar:
+- **Entorno local:** la base local se reseteó el 2026-11-07 para aplicar `instancias`. El usuario de prueba quedó con el plan 7023 activo y el fixture importado (26 de 50, promedio 7,73), listo para probar. Para probar:
   - Docker abierto, `supabase start` y `pnpm dev` desde la carpeta del repo.
   - Abrir `http://localhost:5173` y tocar "Entrar con el usuario de prueba".
   - Importar `fixtures/caso-prueba-legacy.json` (alumno inventado): Inicio da 26 de 50 y promedio 7,73.
@@ -44,7 +44,9 @@ Funcionan bien: brillo, guardar y recargar, confeti, PDFs, Deshacer, modo oscuro
 - **Verificado en local:** lint, typecheck, `core` 276 tests, `web` 461 tests, `supabase test db` 784 y `pnpm build`. PDF.js queda en un chunk aparte (148 kB con gzip, más el worker), fuera de la carga inicial.
 - **Visto en Chrome (local, 1280 y 390 px):** subir con el selector nuevo, vista previa de un PDF real, de una imagen y de texto, tarjeta con dos materias, aviso de borrado, slider con arrastre de mouse y escribiendo, celebración y Promedio.
 - **No visto en la app real:** el onboarding nuevo, porque el usuario de prueba ya tenía plan y no se pudo desactivar desde acá. Está cubierto por tests y por el mockup.
-- **Falta:** que Agu lo pruebe en Safari, en especial el blur, el slider con el dedo y la miniatura de HEIC. Agu no contó cómo le fue con el slider en el mockup.
+- **Panel por instancias (pedido después):** hecho. `historial` y las notas fijas de `progreso` se reemplazaron por la tabla `instancias` y la RPC `guardar_materia`. El fixture y los resultados esperados no cambiaron: el criterio 2 pasa igual, y el criterio 5 por la interfaz da 26 de 50 y 7,73.
+- **Verificado (2026-11-07):** lint, typecheck, `core` 282, `web` 467, integración 22, `supabase test db` 796 y build. En Chrome, a 1280 y 390 px: onboarding real (con el plan elegido solo), importar el fixture, el panel de Cálculo Avanzado (recursada: nota 7, cursada vigente 8), Probabilidad (6 con aplazo 2), agregar instancias, agrupar y Falta final.
+- **Falta:** que Agu lo pruebe en Safari antes del merge, en especial el blur, el slider con el dedo, el selector de fecha y la miniatura de HEIC. Agu no contó cómo le fue con el slider en el mockup.
 
 ## Sin probar
 

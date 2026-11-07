@@ -204,3 +204,21 @@ Agu aprobó las 9 decisiones de los mockups con dos ajustes y sumó pedidos. Sig
 - HEIC sin librería nueva: miniatura donde el navegador lo sepa leer; en los demás, ícono y descarga.
 - `pdfjs-dist` aprobada (Apache-2.0), con carga diferida: se baja solo si en Materiales falta generar la vista previa de algún PDF.
 - Abrir PDF, imágenes y texto sigue siendo en una pestaña nueva, sin visor nuevo. El texto se abre siempre como texto plano. SVG va con ícono y descarga. La vista previa va solo en las tarjetas de Materiales.
+
+## 2026-11-07 (panel de materia por instancias de evaluación)
+
+- El panel deja de tener notas fijas ("Nota final", parciales, recuperatorio, cursada). La materia arranca sin instancias y se agregan con "+ Agregar instancia": Parcial, Recuperatorio, Cursada, Final o Promoción. Cada una tiene solo nota y fecha (hoy al crearla, editable), con su slider y un botón para quitarla, ordenadas por fecha.
+- Hasta 6 parciales y 6 recuperatorios, nunca más recuperatorios que parciales. Numeración por fecha: uno solo es "Parcial"; con dos o más, "Parcial 1", "Parcial 2"; igual con recuperatorios. Finales y cursadas, varias. Promoción, una sola.
+- Las instancias no tienen estado: el estado es de la materia y lo elige el alumno. Se deduce:
+  - Aprobada: el último final con nota es el aprobado y su nota es la de la materia; los anteriores con nota son aplazos. Con promoción, la nota es la de la promoción y los finales con nota son aplazos.
+  - No aprobada: todos los finales con nota son aplazos.
+  - Final sin nota con fecha pasada: ausente, no cuenta como aplazo. Sin nota con fecha de hoy o futura: "Programada", preparada para "Próximos exámenes".
+  - Cursadas: la última por fecha es la vigente; las anteriores, desaprobadas.
+  - Último final de una materia Aprobada con nota menor a la de aprobación: se toma igual como aprobado, con un aviso suave.
+- En "Falta final", un final con nota que aprueba sugiere "¿La aprobaste? Pasar a Aprobada"; decide el alumno. Se sacan el cambio automático a Aprobada y la sugerencia de parciales aprobados.
+- "En vivo": en el panel, lo calculado cambia al mover cada nota; el resto de la app se actualiza al Guardar.
+- Fecha con el control nativo del navegador, estilado como el resto de la app.
+- Base: tabla `instancias` (reemplaza a `historial`) y `progreso` queda solo con el estado. Se editan las migraciones originales y se resetea la base local. Promoción única en la base; los topes los controlan `core` y la pantalla.
+- Importador legacy y respaldo v1: el historial pasa a instancias (Regularidad → cursada, Examen → final, Ausente → final sin nota, Promoción → promoción; "En curso" se descarta) y las notas sin evento se crean con la fecha del respaldo. Respaldo nuevo v2 con instancias. El fixture y los resultados esperados no cambian.
+- Numeración también para cursadas y finales: con más de una del mismo tipo se llaman "Cursada 1", "Cursada 2", "Final 1", "Final 2", por fecha. La promoción, única, no lleva número.
+- Arriba de las instancias, botones para ver Todas, Cursadas, Parciales (con los recuperatorios) o Finales (con la promoción).
