@@ -298,7 +298,7 @@ describe("borrar un material con Deshacer", () => {
       } as Partial<Material>),
     ]);
     const { main } = await abrir(repositorio);
-    fireEvent.click(await main.findByRole("button", { name: "Borrar apunte.pdf" }));
+    fireEvent.click(await main.findByRole("button", { name: "Borrar archivo apunte.pdf" }));
     fireEvent.click(main.getByRole("button", { name: "Subir material" }));
     const dialogo = within(await screen.findByRole("dialog", { name: "Subir material" }));
     fireEvent.change(dialogo.getByLabelText("¿De qué materia es?"), {
@@ -318,7 +318,7 @@ describe("la copia local al vencer", () => {
     await guardarCopia();
     const repositorio = conMateriales([archivo("a.pdf")]);
     const { main } = await abrir(repositorio);
-    fireEvent.click(await main.findByRole("button", { name: "Borrar a.pdf" }));
+    fireEvent.click(await main.findByRole("button", { name: "Borrar archivo a.pdf" }));
     expect(await MIOS.contar()).toBe(1);
 
     await reloj.vencerTodos();
@@ -336,7 +336,7 @@ describe("la copia local al vencer", () => {
     // La de otro plan no se ve ni se cuenta en esta vista.
     expect(main.queryByText("otro-plan.pdf")).toBeNull();
 
-    fireEvent.click(main.getByRole("button", { name: "Borrar a.pdf" }));
+    fireEvent.click(main.getByRole("button", { name: "Borrar archivo a.pdf" }));
     await reloj.vencerTodos();
 
     await waitFor(() => expect(repositorio.borrarMaterial).toHaveBeenCalledWith("a.pdf"));
@@ -347,23 +347,43 @@ describe("la copia local al vencer", () => {
     expect(await MIOS.contar()).toBe(1);
   });
 
-  it("dos referencias borradas seguidas: la copia se va con la última", async () => {
+  it("un archivo en dos materias es una tarjeta: Borrar archivo saca las dos y la copia se va con la última", async () => {
     const reloj = capturarPlazos();
     await guardarCopia();
     const repositorio = conMateriales([
       archivo("a.pdf"),
-      archivo("b.pdf", { materiaId: PLAN.materias[1]?.id ?? null }),
+      archivo("a.pdf", { materiaId: PLAN.materias[1]?.id ?? null }),
     ]);
     const { main } = await abrir(repositorio);
-    fireEvent.click(await main.findByRole("button", { name: "Borrar a.pdf" }));
-    fireEvent.click(main.getByRole("button", { name: "Borrar b.pdf" }));
+    const botones = await main.findAllByRole("button", { name: "Borrar archivo a.pdf" });
+    expect(botones).toHaveLength(1);
+    expect(
+      main.getByRole("button", { name: `Quitar de ${PLAN.materias[1]?.nombre}` }),
+    ).toBeTruthy();
+    fireEvent.click(botones[0] as HTMLElement);
+    expect((await screen.findByText(/Borrado de 2 materias/)).textContent).toContain(
+      "Borrado de 2",
+    );
+    expect(main.queryByText("a.pdf")).toBeNull();
 
     await reloj.vencerElPrimero();
-    await waitFor(() => expect(repositorio.base.materiales).toHaveLength(1));
-    expect(await MIOS.contar()).toBe(1);
-
-    await reloj.vencerElPrimero();
+    await waitFor(() => expect(repositorio.base.materiales).toHaveLength(0));
     await waitFor(async () => expect(await MIOS.contar()).toBe(0));
+  });
+
+  it("Deshacer de Borrar archivo trae de vuelta las dos materias", async () => {
+    capturarPlazos();
+    const repositorio = conMateriales([
+      archivo("a.pdf"),
+      archivo("a.pdf", { materiaId: PLAN.materias[1]?.id ?? null }),
+    ]);
+    const { main } = await abrir(repositorio);
+    fireEvent.click(await main.findByRole("button", { name: "Borrar archivo a.pdf" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Deshacer: volver a traer a.pdf" }));
+    expect(
+      await main.findByRole("button", { name: `Quitar de ${PLAN.materias[1]?.nombre}` }),
+    ).toBeTruthy();
+    expect(repositorio.borrarMaterial).not.toHaveBeenCalled();
   });
 
   it("si no puede saber si otro la usa, no la borra", async () => {
@@ -371,7 +391,7 @@ describe("la copia local al vencer", () => {
     await guardarCopia();
     const repositorio = conMateriales([archivo("a.pdf")]);
     const { main } = await abrir(repositorio);
-    fireEvent.click(await main.findByRole("button", { name: "Borrar a.pdf" }));
+    fireEvent.click(await main.findByRole("button", { name: "Borrar archivo a.pdf" }));
     repositorio.listarMateriales.mockRejectedValueOnce(new Error("sin red"));
 
     await reloj.vencerTodos();
@@ -388,7 +408,7 @@ describe("la copia local al vencer", () => {
     await guardarCopia();
     const repositorio = conMateriales([archivo("a.pdf")]);
     const { main } = await abrir(repositorio);
-    fireEvent.click(await main.findByRole("button", { name: "Borrar a.pdf" }));
+    fireEvent.click(await main.findByRole("button", { name: "Borrar archivo a.pdf" }));
     hacerFallarIndexedDb("delete");
 
     await reloj.vencerTodos();

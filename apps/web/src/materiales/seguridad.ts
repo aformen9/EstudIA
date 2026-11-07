@@ -22,6 +22,8 @@ export function normalizarUrlIngresada(texto: string): string | null {
   return urlSegura(tieneProtocolo ? limpio : `https://${limpio}`);
 }
 
+import { clasificarArchivo, extensionDe } from "@estudia/core";
+
 const TIPOS_QUE_SE_ABREN = new Set([
   "application/pdf",
   "image/png",
@@ -40,4 +42,31 @@ const TIPOS_QUE_SE_ABREN = new Set([
 export function tipoQueSePuedeAbrir(mime: string | null): string | null {
   const tipo = mime?.split(";")[0]?.trim().toLowerCase() ?? "";
   return TIPOS_QUE_SE_ABREN.has(tipo) ? tipo : null;
+}
+
+const IMAGEN_POR_EXTENSION: Record<string, string> = {
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  gif: "image/gif",
+  webp: "image/webp",
+  avif: "image/avif",
+  bmp: "image/bmp",
+};
+
+/**
+ * Con qué tipo se abre un archivo en una pestaña, o null si se descarga. Solo PDF, imágenes y texto se
+ * abren adentro: el texto siempre como texto plano, así un `.txt` con HTML adentro no se ejecuta.
+ */
+export function tipoParaAbrir(nombre: string, mime: string | null): string | null {
+  switch (clasificarArchivo(nombre, mime)) {
+    case "pdf":
+      return "application/pdf";
+    case "imagen":
+      return tipoQueSePuedeAbrir(mime) ?? IMAGEN_POR_EXTENSION[extensionDe(nombre)] ?? null;
+    case "texto":
+      return "text/plain;charset=utf-8";
+    default:
+      return null;
+  }
 }
