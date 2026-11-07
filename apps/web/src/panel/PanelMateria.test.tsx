@@ -63,11 +63,57 @@ async function abrirPanel(
 const guardar = (panel: ReturnType<typeof within>) =>
   fireEvent.click(panel.getByRole("button", { name: "Guardar" }));
 
-const elegir = (panel: ReturnType<typeof within>, etiqueta: string, valor: string) =>
-  fireEvent.change(panel.getByLabelText(etiqueta), { target: { value: valor } });
+const ESTADOS: Record<string, string> = {
+  pendiente: "Por cursar",
+  cursando: "En curso",
+  final: "Falta final",
+  aprobada: "Aprobada",
+};
+const SEGMENTADOS = new Set(["Estado", "Año", "Cuatrimestre"]);
 
-const valorDe = (panel: ReturnType<typeof within>, etiqueta: string) =>
-  (panel.getByLabelText(etiqueta) as HTMLSelectElement).value;
+/** El texto de la opción de un control segmentado para un valor. */
+function textoDeOpcion(etiqueta: string, valor: string): string {
+  if (etiqueta === "Estado") return ESTADOS[valor] ?? valor;
+  if (etiqueta === "Año") return valor === "0" ? "Extras" : `${valor}°`;
+  return valor === "" ? "Anual" : `${valor}°`;
+}
+
+/** Elige como lo haría el alumno: un botón de opción, o escribiendo la nota en su slider. */
+function elegir(panel: ReturnType<typeof within>, etiqueta: string, valor: string) {
+  if (SEGMENTADOS.has(etiqueta)) {
+    const grupo = panel.getByRole("radiogroup", { name: etiqueta });
+    fireEvent.click(within(grupo).getByRole("radio", { name: textoDeOpcion(etiqueta, valor) }));
+    return;
+  }
+  // Una nota que no es del estado se ve con "Ver todas las notas".
+  if (!panel.queryByRole("slider", { name: etiqueta })) {
+    fireEvent.click(panel.getByRole("button", { name: "Ver todas las notas" }));
+  }
+  if (valor === "") {
+    fireEvent.click(panel.getByRole("button", { name: `${etiqueta}: sin nota` }));
+    return;
+  }
+  fireEvent.click(panel.getByRole("button", { name: new RegExp(`^Escribir ${etiqueta}:`) }));
+  const campo = panel.getByRole("textbox", { name: `Escribir ${etiqueta}` });
+  fireEvent.change(campo, { target: { value: valor } });
+  fireEvent.keyDown(campo, { key: "Enter" });
+}
+
+/** El valor como lo daba el `<select>`: "" sin nota, "7.5" con punto. */
+function valorDe(panel: ReturnType<typeof within>, etiqueta: string): string {
+  if (SEGMENTADOS.has(etiqueta)) {
+    const grupo = panel.getByRole("radiogroup", { name: etiqueta });
+    const marcado = within(grupo).getByRole("radio", { checked: true }).textContent ?? "";
+    if (etiqueta === "Estado") {
+      return Object.keys(ESTADOS).find((k) => ESTADOS[k] === marcado) ?? marcado;
+    }
+    return marcado;
+  }
+  const slider = panel.getByRole("slider", { name: etiqueta });
+  return slider.getAttribute("aria-valuetext") === "Sin nota"
+    ? ""
+    : (slider.getAttribute("aria-valuenow") ?? "");
+}
 
 const cerrado = () => waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
 
@@ -151,25 +197,62 @@ describe("correlativas e historial", () => {
 });
 
 describe("notas", () => {
-  it("ofrece los enteros de la escala del plan", async () => {
-    const { panel } = await abrirPanel(conInscripcion(), CALCULO.nombre);
-    const opciones = within(panel.getByLabelText("Parcial 1")).getAllByRole("option");
-    expect(opciones.map((o) => o.textContent)).toEqual([
-      "–",
-      ...Array.from({ length: 10 }, (_, i) => String(i + 1)),
-    ]);
+  it("el slider usa la escala y el paso del plan, con flechas de a un paso y Shift de a 1", async () => {
+    const repositorio = conInscripcion({ progreso: [fila(CALCULO.id, { estado: "cursando" })] });
+    const { panel } = await abrirPanel(repositorio, CALCULO.nombre);
+    const slider = panel.getByRole("slider", { name: "Parcial 1" });
+    expect(slider.getAttribute("aria-valuemin")).toBe("1");
+    expect(slider.getAttribute("aria-valuemax")).toBe("10");
+    expect(slider.getAttribute("aria-valuetext")).toBe("Sin nota");
+    fireEvent.keyDown(slider, { key: "ArrowRight" });
+    expect(slider.getAttribute("aria-valuetext")).toBe("4");
+    fireEvent.keyDown(slider, { key: "ArrowRight" });
+    expect(slider.getAttribute("aria-valuetext")).toBe("4,1");
+    fireEvent.keyDown(slider, { key: "ArrowRight", shiftKey: true });
+    expect(slider.getAttribute("aria-valuetext")).toBe("5,1");
+    fireEvent.click(panel.getByRole("button", { name: "Bajar Parcial 1" }));
+    expect(slider.getAttribute("aria-valuetext")).toBe("5");
+    fireEvent.click(panel.getByRole("button", { name: "Parcial 1: sin nota" }));
+    expect(slider.getAttribute("aria-valuetext")).toBe("Sin nota");
   });
 
-  it("una nota con decimales aparece como opción extra", async () => {
-    const repositorio = conInscripcion({ progreso: [fila(CALCULO.id, { p1: 7.5 })] });
+  it("solo muestra las notas del estado, más las cargadas, y Ver todas muestra el resto", async () => {
+    const repositorio = conInscripcion({
+      progreso: [fila(CALCULO.id, { estado: "cursando", notaCursada: 7.25 })],
+    });
     const { panel } = await abrirPanel(repositorio, CALCULO.nombre);
-    expect(valorDe(panel, "Parcial 1")).toBe("7.5");
-    expect(
-      within(panel.getByLabelText("Parcial 1")).getByRole("option", { name: "7,5" }),
-    ).toBeTruthy();
-    expect(
-      within(panel.getByLabelText("Parcial 2")).queryByRole("option", { name: "7,5" }),
-    ).toBeNull();
+    expect(panel.getAllByRole("slider")).toHaveLength(4);
+    expect(valorDe(panel, "Nota de cursada")).toBe("7.25");
+    elegir(panel, "Estado", "pendiente");
+    expect(panel.getAllByRole("slider")).toHaveLength(1);
+    fireEvent.click(panel.getByRole("button", { name: "Ver todas las notas" }));
+    expect(panel.getAllByRole("slider")).toHaveLength(6);
+  });
+
+  it("escribir la nota acepta coma, redondea al paso y rechaza lo que está fuera de escala", async () => {
+    const repositorio = conInscripcion({ progreso: [fila(CALCULO.id, { estado: "cursando" })] });
+    const { panel } = await abrirPanel(repositorio, CALCULO.nombre);
+    elegir(panel, "Parcial 1", "8,57");
+    expect(valorDe(panel, "Parcial 1")).toBe("8.6");
+    fireEvent.click(panel.getByRole("button", { name: /^Escribir Parcial 1:/ }));
+    const campo = panel.getByRole("textbox", { name: "Escribir Parcial 1" });
+    fireEvent.change(campo, { target: { value: "11" } });
+    fireEvent.keyDown(campo, { key: "Enter" });
+    expect(panel.getByRole("alert").textContent).toContain("entre 1 y 10");
+    fireEvent.keyDown(campo, { key: "Escape" });
+    expect(valorDe(panel, "Parcial 1")).toBe("8.6");
+    expect(screen.getAllByRole("dialog")).toHaveLength(1);
+  });
+
+  it("una nota con decimales fuera del paso se conserva hasta que se la mueve", async () => {
+    const repositorio = conInscripcion({ progreso: [fila(CALCULO.id, { p1: 7.25 })] });
+    const { panel } = await abrirPanel(repositorio, CALCULO.nombre);
+    expect(valorDe(panel, "Parcial 1")).toBe("7.25");
+    expect(panel.getByRole("slider", { name: "Parcial 1" }).getAttribute("aria-valuetext")).toBe(
+      "7,25",
+    );
+    fireEvent.keyDown(panel.getByRole("slider", { name: "Parcial 1" }), { key: "ArrowRight" });
+    expect(valorDe(panel, "Parcial 1")).toBe("7.3");
   });
 
   it("abrir y guardar sin tocar nada no la cambia ni escribe", async () => {
@@ -226,7 +309,7 @@ describe("notas", () => {
     expect(valorDe(panel, "Nota final")).toBe("8");
   });
 
-  it("sugiere pasar a Final pendiente con los parciales aprobados", async () => {
+  it("sugiere pasar a Falta final con los parciales aprobados", async () => {
     const { panel } = await abrirPanel(
       conInscripcion({ progreso: [fila(CALCULO.id, { estado: "cursando" })] }),
       CALCULO.nombre,
@@ -238,7 +321,7 @@ describe("notas", () => {
 });
 
 describe("guardar", () => {
-  it("al aprobar lanza el confeti y felicita", async () => {
+  it("al aprobar festeja a pantalla completa, con la nota, y se cierra al tocar", async () => {
     const confeti = vi.spyOn(efectos, "lanzarConfeti");
     const repositorio = conInscripcion();
     const { panel } = await abrirPanel(repositorio, CALCULO.nombre);
@@ -247,8 +330,12 @@ describe("guardar", () => {
     guardar(panel);
 
     await cerrado();
+    const festejo = await screen.findByText("¡Felicitaciones!");
     expect(confeti).toHaveBeenCalledOnce();
-    expect(screen.getByText(`¡Aprobaste ${CALCULO.nombre}! 🎉`)).toBeTruthy();
+    expect(screen.getByText(CALCULO.nombre, { selector: "strong" })).toBeTruthy();
+    expect(screen.getByText("9", { selector: ".fn b" })).toBeTruthy();
+    fireEvent.click(festejo);
+    await waitFor(() => expect(screen.queryByText("¡Felicitaciones!")).toBeNull());
     expect(repositorio.base.progreso[0]).toMatchObject({ estado: "aprobada", nota: 9 });
   });
 
@@ -464,7 +551,7 @@ describe("materia propia", () => {
     const repositorio = conInscripcion({ plan: planConCicloImportado() });
     const { panel } = await abrirPanel(repositorio, "Optativa");
 
-    fireEvent.change(panel.getByLabelText("Nota final"), { target: { value: "7" } });
+    elegir(panel, "Nota final", "7");
     fireEvent.change(panel.getByLabelText("Nombre"), { target: { value: "Otro nombre" } });
     guardar(panel);
 
@@ -502,7 +589,7 @@ describe("materia propia", () => {
       .filter((c) => c.materiaId === propia?.id)
       .map(({ requiereId, para, condicion }) => ({ requiereId, para, condicion }));
 
-    fireEvent.change(panel.getByLabelText("Nota de cursada"), { target: { value: "7" } });
+    elegir(panel, "Nota de cursada", "7");
     fireEvent.change(panel.getByLabelText("Nombre"), { target: { value: "Optativa nueva" } });
     const cursar = within(panel.getByRole("group", { name: /Para cursar/ }));
     fireEvent.click(cursar.getByRole("checkbox", { name: new RegExp(`^${TERCERA.nombre}`) }));

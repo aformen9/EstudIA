@@ -2,6 +2,8 @@ import {
   aniosDelPlan,
   borradorDeMateria,
   alEditarNota,
+  camposNotaVisibles,
+  type CampoNota,
   cicloDeCorrelativas,
   CONDICION_PREDETERMINADA,
   cuatrimestresDelAnio,
@@ -11,7 +13,6 @@ import {
   historialDeMateria,
   materialesDeMateria,
   normalizarBorrador,
-  notasDeEscala,
   opcionesDeCorrelativa,
   parsearAplazos,
   progresoDe,
@@ -27,20 +28,23 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { useId, useRef, useState, type FormEvent } from "react";
 import { useGuardado, useRepositorio } from "../sesion/sesion";
-import { lanzarConfeti } from "../interfaz/efectos";
 import { Dialogo } from "../interfaz/Dialogo";
+import { festejar } from "../interfaz/Festejo";
 import { Icono } from "../interfaz/Iconos";
+import { Segmentado } from "../interfaz/Segmentado";
 import { SeccionMaterial } from "../materiales/ComponentesMaterial";
 import { useMaterialesDelAlumno } from "../materiales/useMateriales";
 import { clavesPlan, invalidarDatosDelPlan } from "../plan/planActivo";
 import {
   enumerar,
   ETIQUETAS_ESTADO,
+  ICONO_ESTADO,
   formatoFecha,
   formatoNota,
   lugarMateria,
 } from "../plan/presentacion";
 import { useGuardarProgreso, type CambiosProgreso } from "../plan/useGuardarProgreso";
+import { SliderNota } from "./SliderNota";
 
 const ETIQUETA_CONDICION = { regular: "regularizada", aprobada: "aprobada" } as const;
 const ETIQUETA_PARA: Record<ParaCorrelativa, string> = {
@@ -48,16 +52,15 @@ const ETIQUETA_PARA: Record<ParaCorrelativa, string> = {
   rendir: "Para rendir",
 };
 
-type CampoNota = "p1" | "p2" | "rec" | "notaCursada" | "notaFinalExamen" | "nota";
-
-const CAMPOS_NOTA: [CampoNota, string][] = [
-  ["p1", "Parcial 1"],
-  ["p2", "Parcial 2"],
-  ["rec", "Recuperatorio"],
-  ["notaCursada", "Nota de cursada"],
-  ["notaFinalExamen", "Final"],
-  ["nota", "Nota final"],
-];
+const ETIQUETAS_NOTA: Record<CampoNota, string> = {
+  p1: "Parcial 1",
+  p2: "Parcial 2",
+  rec: "Recuperatorio",
+  notaCursada: "Nota de cursada",
+  notaFinalExamen: "Final",
+  nota: "Nota final",
+};
+const CAMPOS_NOTA = Object.keys(ETIQUETAS_NOTA) as CampoNota[];
 
 function mensajeDe(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -94,44 +97,6 @@ function BloqueCorrelativas({
           )}
         </div>
       )}
-    </div>
-  );
-}
-
-function SelectorNota({
-  etiqueta,
-  valor,
-  guardada,
-  escala,
-  alCambiar,
-}: {
-  etiqueta: string;
-  valor: number | null;
-  /** Lo que tenía al abrir: si no está en la escala de enteros, se ofrece como opción extra. */
-  guardada: number | null;
-  escala: number[];
-  alCambiar: (valor: number | null) => void;
-}) {
-  const id = useId();
-  const opciones =
-    guardada != null && !escala.includes(guardada)
-      ? [...escala, guardada].sort((a, b) => a - b)
-      : escala;
-  return (
-    <div className="field">
-      <label htmlFor={id}>{etiqueta}</label>
-      <select
-        id={id}
-        value={valor == null ? "" : String(valor)}
-        onChange={(e) => alCambiar(e.target.value === "" ? null : Number(e.target.value))}
-      >
-        <option value="">–</option>
-        {opciones.map((nota) => (
-          <option key={nota} value={String(nota)}>
-            {formatoNota(nota)}
-          </option>
-        ))}
-      </select>
     </div>
   );
 }
@@ -179,7 +144,7 @@ function claveCorrelativas(borrador: BorradorMateriaPropia): string {
 }
 
 function mismosValores(a: CambiosProgreso, b: CambiosProgreso): boolean {
-  const campos = ["estado", ...CAMPOS_NOTA.map(([campo]) => campo)] as const;
+  const campos = ["estado", ...CAMPOS_NOTA] as const;
   return (
     campos.every((campo) => a[campo] === b[campo]) &&
     JSON.stringify(a.aplazos) === JSON.stringify(b.aplazos)
@@ -263,15 +228,23 @@ export function PanelMateria({
   const materiales = useMaterialesDelAlumno();
   const todos = materiales.data ?? [];
   const delaMateria = materia ? materialesDeMateria(todos, materia.id) : [];
-  const escala = notasDeEscala(plan);
   const sugerencia = sugerirEstado(valores, plan);
+  const [todasLasNotas, setTodasLasNotas] = useState(false);
+  const notasVisibles = camposNotaVisibles(valores.estado, [guardada, valores], todasLasNotas);
+  const idNotas = useId();
 
+  /** En vivo, mientras se desliza: todavía no cambia el estado. */
   function cambiarNota(campo: CampoNota, valor: number | null) {
-    setValores((actuales) => {
-      const siguientes = { ...actuales, [campo]: valor };
-      if (campo !== "nota" && campo !== "notaFinalExamen") return siguientes;
-      return { ...siguientes, ...alEditarNota(campo, siguientes, plan) };
-    });
+    setValores((actuales) => ({ ...actuales, [campo]: valor }));
+  }
+
+  /**
+   * Al soltar el slider, con cada tecla o al escribir: si no, pasar por un 4 en pleno arrastre pasaría
+   * la materia a Aprobada.
+   */
+  function confirmarNota(campo: CampoNota) {
+    if (campo !== "nota" && campo !== "notaFinalExamen") return;
+    setValores((actuales) => ({ ...actuales, ...alEditarNota(campo, actuales, plan) }));
   }
 
   function alternarCorrelativa(requiereId: string, para: ParaCorrelativa, marcada: boolean) {
@@ -389,7 +362,6 @@ export function PanelMateria({
     }
     const nombre = aGuardar?.nombre ?? materia?.nombre ?? "";
     const aprobo = cambios.estado === "aprobada" && actual.estado !== "aprobada";
-    if (aprobo) lanzarConfeti();
     if (ciclo) {
       // El panel sigue abierto: el alumno tiene que ver qué no se guardó y puede corregirlo.
       setGuardando(false);
@@ -399,7 +371,7 @@ export function PanelMateria({
     }
     alCerrar();
     if (aprobo) {
-      avisar(`¡Aprobaste ${nombre}! 🎉`);
+      festejar({ materia: nombre, nota: cambios.nota ?? null });
     } else {
       avisar("Guardado");
     }
@@ -466,35 +438,53 @@ export function PanelMateria({
 
         <form className="dlg-form" id={idFormulario} onSubmit={alEnviar}>
           <div className="field">
-            <label htmlFor={idEstado}>Estado</label>
-            <select
-              id={idEstado}
-              value={valores.estado}
-              onChange={(e) =>
-                setValores((v) => ({ ...v, estado: e.target.value as EstadoMateria }))
-              }
-            >
-              {ESTADOS_MATERIA.map((estado) => (
-                <option key={estado} value={estado}>
-                  {ETIQUETAS_ESTADO[estado]}
-                </option>
-              ))}
-            </select>
+            <span className="etiqueta" id={idEstado}>
+              Estado
+            </span>
+            <Segmentado<EstadoMateria>
+              idEtiqueta={idEstado}
+              columnasCelular={2}
+              valor={valores.estado}
+              alCambiar={(estado) => {
+                setValores((v) => ({ ...v, estado }));
+                setTodasLasNotas(false);
+              }}
+              opciones={ESTADOS_MATERIA.map((estado) => ({
+                valor: estado,
+                texto: ETIQUETAS_ESTADO[estado],
+                icono: ICONO_ESTADO[estado],
+                clase: `e-${estado}`,
+              }))}
+            />
             <span className="hint" role="status">
               {sugerencia?.mensaje}
             </span>
           </div>
-          <div className="fgrid">
-            {CAMPOS_NOTA.map(([campo, etiqueta]) => (
-              <SelectorNota
-                key={campo}
-                etiqueta={etiqueta}
-                valor={valores[campo]}
-                guardada={guardada[campo]}
-                escala={escala}
-                alCambiar={(valor) => cambiarNota(campo, valor)}
-              />
-            ))}
+          <div className="field" role="group" aria-labelledby={idNotas}>
+            <span className="etiqueta" id={idNotas}>
+              Notas
+            </span>
+            {notasVisibles.length ? (
+              <div className="nts">
+                {notasVisibles.map((campo) => (
+                  <SliderNota
+                    key={campo}
+                    etiqueta={ETIQUETAS_NOTA[campo]}
+                    valor={valores[campo]}
+                    plan={plan}
+                    alCambiar={(valor) => cambiarNota(campo, valor)}
+                    alConfirmar={() => confirmarNota(campo)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className="nts-vacio">Todavía no hay notas para cargar en esta materia.</p>
+            )}
+            {notasVisibles.length < CAMPOS_NOTA.length && (
+              <button className="btn-sin" type="button" onClick={() => setTodasLasNotas(true)}>
+                Ver todas las notas
+              </button>
+            )}
           </div>
           <div className="field">
             <label htmlFor={idAplazos}>Aplazos (notas de finales desaprobados)</label>
@@ -533,39 +523,37 @@ export function PanelMateria({
                 </div>
                 <div className="fgrid">
                   <div className="field">
-                    <label htmlFor={idAnio}>Año</label>
-                    <select
-                      id={idAnio}
-                      value={borrador.anio}
-                      onChange={(e) => setBorrador((b) => ({ ...b, anio: Number(e.target.value) }))}
-                    >
-                      {anios.map((anio) => (
-                        <option key={anio} value={anio}>
-                          {anio === 0 ? "Extras" : `${anio}° año`}
-                        </option>
-                      ))}
-                    </select>
+                    <span className="etiqueta" id={idAnio}>
+                      Año
+                    </span>
+                    <Segmentado<number>
+                      idEtiqueta={idAnio}
+                      valor={borrador.anio}
+                      alCambiar={(anio) => setBorrador((b) => ({ ...b, anio }))}
+                      opciones={[...anios]
+                        .sort((a, b) => (a || 99) - (b || 99))
+                        .map((anio) => ({
+                          valor: anio,
+                          texto: anio === 0 ? "Extras" : `${anio}°`,
+                        }))}
+                    />
                   </div>
                   <div className="field">
-                    <label htmlFor={idCuatrimestre}>Cuatrimestre</label>
-                    <select
-                      id={idCuatrimestre}
-                      disabled={borrador.anio === 0}
-                      value={borrador.cuatrimestre ?? ""}
-                      onChange={(e) =>
-                        setBorrador((b) => ({
-                          ...b,
-                          cuatrimestre: e.target.value === "" ? null : Number(e.target.value),
-                        }))
-                      }
-                    >
-                      <option value="">Anual</option>
-                      {cuatrimestres.map((c) => (
-                        <option key={c} value={c}>
-                          {c}° cuatrimestre
-                        </option>
-                      ))}
-                    </select>
+                    <span className="etiqueta" id={idCuatrimestre}>
+                      Cuatrimestre
+                    </span>
+                    <Segmentado<number | null>
+                      idEtiqueta={idCuatrimestre}
+                      deshabilitado={borrador.anio === 0}
+                      valor={borrador.cuatrimestre}
+                      alCambiar={(cuatrimestre) => setBorrador((b) => ({ ...b, cuatrimestre }))}
+                      opciones={[
+                        { valor: null, texto: "Anual" },
+                        ...cuatrimestres
+                          .sort((a, b) => a - b)
+                          .map((c) => ({ valor: c, texto: `${c}°` })),
+                      ]}
+                    />
                   </div>
                 </div>
                 {(["cursar", "rendir"] as const).map((para) => (
@@ -659,7 +647,8 @@ export function PanelMateria({
               materiaId={materia.id}
               materiales={delaMateria}
               todos={todos}
-              materias={datos.materias}
+              datos={datos}
+              compacta
               nota="Se guarda solo, al instante. El botón Guardar es para el estado, las notas y los datos de la materia."
             />
           </section>

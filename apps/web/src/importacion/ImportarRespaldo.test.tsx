@@ -129,8 +129,8 @@ describe("vista previa", () => {
     expect(dato("Materias")).toBe("50");
     expect(dato("Aprobada")).toBe("26");
     expect(dato("En curso")).toBe("5");
-    expect(dato("Final pendiente")).toBe("2");
-    expect(dato("Pendiente")).toBe("17");
+    expect(dato("Falta final")).toBe("2");
+    expect(dato("Por cursar")).toBe("17");
     expect(dato("Aprobado")).toBe("52 %");
     expect(dato("Cursado")).toBe("56 %");
     expect(dato("Promedio sin aplazos")).toBe("7,73");

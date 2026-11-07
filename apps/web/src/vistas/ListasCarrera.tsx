@@ -90,7 +90,7 @@ export function Cursando() {
       <EncabezadoVista seccion={SECCION} titulo="En curso" />
       <p className="sub rise" style={retardo(1)}>
         Cargá tus parciales en cada materia: cuando apruebes la cursada te sugiere pasarla a
-        &quot;Final pendiente&quot;.
+        &quot;Falta final&quot;.
       </p>
       <ConPlan>
         {(datos) => {
@@ -167,7 +167,7 @@ function TarjetaFinal({
 export function Finales() {
   return (
     <>
-      <EncabezadoVista seccion={SECCION} titulo="Finales pendientes" />
+      <EncabezadoVista seccion={SECCION} titulo="Falta final" />
       <ConPlan>
         {(datos) => {
           const lista = materiasPorEstado(datos, "final");
@@ -239,7 +239,7 @@ function ContenidoPendientes({ datos }: { datos: DatosAlumno }) {
 export function Pendientes() {
   return (
     <>
-      <EncabezadoVista seccion={SECCION} titulo="Pendientes" />
+      <EncabezadoVista seccion={SECCION} titulo="Por cursar" />
       <ConPlan>{(datos) => <ContenidoPendientes datos={datos} />}</ConPlan>
     </>
   );

@@ -71,8 +71,8 @@ describe("Inicio con el caso de prueba", () => {
     const kpi = (nombre: RegExp) => main.getByRole("link", { name: nombre }).textContent;
     expect(kpi(/^Aprobadas/)).toContain("26de 50 materias");
     expect(kpi(/^En curso/)).toContain("5");
-    expect(kpi(/^Finales pendientes/)).toContain("2");
-    expect(kpi(/^Pendientes/)).toContain("17");
+    expect(kpi(/^Falta final/)).toContain("2");
+    expect(kpi(/^Por cursar/)).toContain("17");
     expect(kpi(/^Promedio/)).toContain("7,73");
     expect(kpi(/^Promedio/)).toContain("con aplazos 7,36");
 
@@ -488,7 +488,7 @@ describe("Promedio", () => {
   it("muestra los dos promedios y cambia entre sin y con aplazos", async () => {
     const { main } = await abrir("promedio", conCasoDePrueba());
     const dato = (nombre: string) => {
-      const fila = screen.getByRole("main").querySelector<HTMLElement>(".stat-row");
+      const fila = screen.getByRole("main").querySelector<HTMLElement>(".stat4");
       return within(fila as HTMLElement)
         .getByText(nombre)
         .closest("div")
