@@ -107,8 +107,8 @@ Una línea por decisión de Agu. Agregar al final, con fecha. Si una decisión n
 
 - Correlativas en ciclo entre materias propias: no se guardan, y se explica qué materias forman el ciclo.
 - Al editar correlativas, las ya marcadas conservan su condición; las nuevas usan la predeterminada (cursar: regular; rendir: aprobada).
-- Notas en el panel: selector de enteros, como la referencia. Una nota guardada con decimales aparece como opción extra y se conserva. Desde el panel no se cargan decimales nuevos.
-- Cuando haya carreras con decimales, el selector debería salir de la escala del plan, con un "paso" de nota (queda abierto en `arquitectura.md` §12).
+- ~~Notas en el panel: selector de enteros, como la referencia. Una nota guardada con decimales aparece como opción extra y se conserva. Desde el panel no se cargan decimales nuevos.~~ Reemplazada por el slider del 2026-11-07, con decimales según el paso del plan.
+- ~~Cuando haya carreras con decimales, el selector debería salir de la escala del plan, con un "paso" de nota (queda abierto en `arquitectura.md` §12).~~ Resuelta el 2026-11-07: se implementa ya.
 - El bloqueo por ciclos solo mira los que pasan por la materia editada. Un ciclo importado impide guardarla hasta sacarlo. Puede bloquear de más con promociones y no mira la regla de año completo.
 - La vista Materiales filtra igual que Inicio y el contador: plan activo y "sin materia".
 - Crear y borrar materias propias entra en la tanda 4.
@@ -179,7 +179,7 @@ Agu aprobó las 9 decisiones de los mockups con dos ajustes y sumó pedidos. Sig
 - Modales: tocar afuera no los cierra; se cierran con la X, Cancelar o Esc. El menú lateral del celular no cambia.
 - **Ninguna lista nativa en la app:**
   - Materias: selector propio con grupo "En curso ahora" arriba de los años.
-  - Nota: fila de botones 1 a 10. El valor guardado con decimales aparece como opción extra y se conserva, como ya estaba decidido.
+  - ~~Nota: fila de botones 1 a 10. El valor guardado con decimales aparece como opción extra y se conserva, como ya estaba decidido.~~ Reemplazada por el slider, ver abajo.
   - Año y cuatrimestre: botones de opción (segmented).
 - Estados: en toda la app, "Pendiente" pasa a "Por cursar" y "Final pendiente" a "Falta final".
 - Tarjeta de archivo:
@@ -196,3 +196,11 @@ Agu aprobó las 9 decisiones de los mockups con dos ajustes y sumó pedidos. Sig
 - **Archivos:** se acepta cualquier tipo hasta 50 MB. Hay vista previa para PDF, imágenes (HEIC si se puede) y texto (`.txt`, `.md`, `.csv`, `.py`); el resto va con ícono por tipo y descarga. Nada fuera de esos tipos se abre adentro de la app.
 - Fase 1: extraer texto de `.docx`, `.pptx`, `.txt` e imágenes (OCR).
 - Fase 1b: bloquear ejecutables al compartir.
+- **Nota con slider, en vez de botones:** escala y paso salen del plan (UCA: 1 a 10, paso 0,1). Número grande arriba que cambia en vivo, imán suave en los enteros, botones − y +, tocar el número permite escribirlo, botón "Sin nota" aparte. Teclado: flechas de a un paso y Shift+flechas de a 1; rol `slider` con `aria-valuetext` ("8,5").
+- **Paso de nota del plan:** se implementa ya lo que estaba abierto en `arquitectura.md` §12, con 0,1 por defecto. Agu aprobó que toque la base y `core`: columna `planes.nota_paso` editando la migración original, `"paso"` en el fixture y el seed, y funciones en `core`. Las notas guardadas no se migran ni se redondean. La distribución de notas agrupa por la parte entera, y el cambio de estado por nota se aplica al soltar el slider.
+- **Notas visibles por estado:** Por cursar, ninguna. En curso: Parcial 1, Parcial 2 y Recuperatorio. Falta final: Nota de cursada y Final. Aprobada: Nota final, Final y Nota de cursada. Una nota ya cargada se ve siempre, y hay un botón "Ver todas las notas".
+- Plan "más reciente": por fecha de carga (`created_at`) y, si empatan, la versión más alta. No cambia la base.
+- "¿Cómo consigo el archivo?" se ve desactivado en la fase 0.
+- HEIC sin librería nueva: miniatura donde el navegador lo sepa leer; en los demás, ícono y descarga.
+- `pdfjs-dist` aprobada (Apache-2.0), con carga diferida: se baja solo si en Materiales falta generar la vista previa de algún PDF.
+- Abrir PDF, imágenes y texto sigue siendo en una pestaña nueva, sin visor nuevo. El texto se abre siempre como texto plano. SVG va con ícono y descarga. La vista previa va solo en las tarjetas de Materiales.

@@ -58,7 +58,7 @@ Se implementan después del ok de Agu a los mockups.
   - Carrera con un solo plan: se saltea la elección. Con varios: el más reciente preseleccionado como "vigente", con la ayuda "¿No sabés cuál es? Figura en tu Historia Académica del Guaraní".
   - Paso de carga: "Importar desde SIU Guaraní" ("Próximamente", con "¿Cómo consigo el archivo?" previsto), "Cargar a mano" e "Importar respaldo de EstudIA".
 - Paneles laterales convertidos en modales centrados con blur; en el celular ocupan casi toda la pantalla.
-- Ninguna lista nativa: selector propio de materias (por año, con buscador y estado visible), nota en botones 1 a 10 y controles segmentados para estado, año y cuatrimestre.
+- Ninguna lista nativa: selector propio de materias (por año, con buscador y estado visible), nota con slider según la escala y el paso del plan, y controles segmentados para estado, año y cuatrimestre.
 - Una tarjeta por archivo, con las materias como etiquetas, para quitar o agregar. "Borrar archivo" avisa de cuántas materias se borró.
 - Celebración a pantalla completa, tarjeta de Promedio pareja, tope de 4 px al imán y zona de subida más evidente.
 - Vista previa en las tarjetas de Materiales:

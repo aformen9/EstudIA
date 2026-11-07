@@ -190,7 +190,7 @@ PDF del plan / analítico → salida estructurada con el esquema de catálogo/pr
 - Embeddings/pgvector para búsqueda semántica (si full-text no alcanza).
 - Firma de binarios (costo).
 - **Bloqueante de la fase 1: texto falso en documentos.** Con la deduplicación global (§7), el primero que registra un `sha256` fija el texto para todos, y `registrar_documento` no comprueba que ese texto salga del archivo. Quien conozca un hash podría cargar un texto falso, y lo recibiría cualquiera que suba después ese mismo archivo. Hay que resolverlo antes de guardar texto extraído: preguntarle a Agu antes de elegir.
-- Selector de notas según la escala del plan: cuando haya carreras con decimales, debería salir de la escala, agregando al plan un "paso" de nota (1, 0,5, 0,01). Por ahora: enteros más el valor existente, si la nota guardada tiene decimales.
+- Paso de nota del plan: decidido el 2026-11-07, con 0,1 por defecto y un slider en el panel. Agu aprobó que toque la base y `core`; se está implementando en la rama `fase-0/cambios-de-diseno`.
 - **Bloqueantes de la fase 1 (revisión del 2026-11-05):**
   - M2: un admin puede leer el hash y el texto de un documento privado ajeno, creando un material propio con su `documento_id`. Contradice §5 y §7.
   - B2: se puede acaparar una versión de plan, y el error revela planes pendientes.

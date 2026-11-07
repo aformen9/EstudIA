@@ -4,7 +4,7 @@
 
 ## Dónde quedó
 
-- **Fase 0, sin cerrar.** Están hechas `db`, `core`, el CI y las 4 tandas de `web`. Agu probó a mano en Safari y pidió cambios de diseño (`docs/decisiones.md`, 2026-11-07, y `docs/fases/fase-0.md` §0.6). Aprobó la primera versión de los mockups con ajustes y sumó la vista previa de archivos y un onboarding nuevo: **esperan su ok a la segunda versión, nada implementado todavía**. Después sigue lo de "Próximos pasos": vincular el remoto, probar con Google real, deploy, documentación y revisión final.
+- **Fase 0, sin cerrar.** Están hechas `db`, `core`, el CI y las 4 tandas de `web`. Agu probó a mano en Safari y pidió cambios de diseño (`docs/decisiones.md`, 2026-11-07, y `docs/fases/fase-0.md` §0.6). Aprobó la primera versión de los mockups con ajustes y sumó la vista previa de archivos y un onboarding nuevo: **aprobados e implementándose en la rama `fase-0/cambios-de-diseno`**. Después sigue lo de "Próximos pasos": vincular el remoto, probar con Google real, deploy, documentación y revisión final.
 - **El repo está en `/Users/aformen9/Dev/EstudIA`.** Abrir la sesión nueva desde esa carpeta: desde ahí se cargan los agentes de `.claude/agents/`.
 - **`main` está pusheado.** Resultado del CI: ver "Última verificación".
 - **Supabase remoto:** proyecto y login con Google creados por Agu, **sin vincular y sin migraciones**. Ver el paso 1.
@@ -40,9 +40,7 @@ Funcionan bien: brillo, guardar y recargar, confeti, PDFs, Deshacer, modo oscuro
 
 ## Dudas abiertas de los cambios de diseño
 
-- Cómo se define el plan "más reciente": `planes` no tiene año ni marca de vigente, solo `created_at` y `version`.
-- Qué hace "¿Cómo consigo el archivo?" en la fase 0: todavía no hay capturas ni pasos comprobados en la UCA.
-- HEIC: sin dependencia nueva, solo se vería donde el navegador lo sepa leer.
+- Slider de nota: falta que Agu cuente cómo le resultó en el celular. Se implementa como está en el mockup.
 
 ## Sin probar
 
