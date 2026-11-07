@@ -2,7 +2,7 @@
 -- generado por el cliente.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(125);
+select plan(134);
 
 create function pg_temp.como(uid uuid) returns void language plpgsql as $$
 begin
@@ -259,6 +259,19 @@ select is((select owner_id from public.materias where id = '40000000-0000-4000-8
 select is((select titulo from public.materiales where id = '60000000-0000-4000-8000-000000000020'), 'Nota de ana', 'materiales: la fila de ana sigue igual');
 select is((select texto from public.materiales where id = '60000000-0000-4000-8000-000000000020'), 'secreto', 'materiales: con su contenido');
 select is((select user_id from public.materiales where id = '60000000-0000-4000-8000-000000000020'), '00000000-0000-4000-8000-00000000000a'::uuid, 'materiales: y sigue siendo suya');
+
+/* ---------- Topes de título, link y nota ---------- */
+
+select pg_temp.como('00000000-0000-4000-8000-00000000000a');
+select lives_ok($$insert into public.materiales (tipo, titulo, url) values ('link', repeat('t', 200), 'https://x.test')$$, 'tope: título de 200 caracteres');
+select lives_ok($$insert into public.materiales (tipo, titulo, url) values ('link', repeat('ñ', 200), 'https://x.test')$$, 'tope: el título se cuenta en caracteres, no en bytes');
+select throws_like($$insert into public.materiales (tipo, titulo, url) values ('link', repeat('t', 201), 'https://x.test')$$, '%materiales_titulo_largo%', 'tope: título de 201 caracteres');
+select lives_ok($$insert into public.materiales (tipo, titulo, url) values ('link', 'Largo', 'https://x.test/' || repeat('u', 2033))$$, 'tope: link de 2048 caracteres');
+select throws_like($$insert into public.materiales (tipo, titulo, url) values ('link', 'Largo', 'https://x.test/' || repeat('u', 2034))$$, '%materiales_url_largo%', 'tope: link de 2049 caracteres');
+select lives_ok($$insert into public.materiales (id, tipo, titulo, texto) values ('60000000-0000-4000-8000-0000000000f1', 'nota', 'Larga', repeat('n', 51200))$$, 'tope: nota de 50 KB');
+select throws_like($$insert into public.materiales (tipo, titulo, texto) values ('nota', 'Larga', repeat('n', 51201))$$, '%materiales_texto_largo%', 'tope: nota de un byte más');
+select throws_like($$insert into public.materiales (tipo, titulo, texto) values ('nota', 'Larga', repeat('ñ', 25601))$$, '%materiales_texto_largo%', 'tope: la nota se cuenta en bytes, no en caracteres');
+select throws_like($$update public.materiales set texto = repeat('n', 51201) where id = '60000000-0000-4000-8000-0000000000f1'$$, '%materiales_texto_largo%', 'tope: también al editar');
 
 select pg_temp.como_postgres();
 select * from finish();

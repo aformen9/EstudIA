@@ -183,6 +183,7 @@ select is(
     'material_proteger_oculto',
     'material_sin_fecha_futura',
     'ocultar_material_denunciado',
+    'plan_proteger_materias_propias',
     'poner_updated_at'
   ],
   'authenticated no ejecuta exactamente estas funciones');

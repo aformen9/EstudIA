@@ -206,6 +206,31 @@ create trigger materias_proteger_datos_de_alumnos
   before delete on public.materias
   for each row execute function public.materia_proteger_datos_de_alumnos();
 
+/* ---------- Planes con materias propias ---------- */
+
+-- `materias.plan_id` va en cascada: sin esto, borrar un plan sin inscripciones se llevaría las materias
+-- propias de un alumno dado de baja, con su progreso e historial. Security definer: la RLS le oculta a
+-- quien borra las materias de los demás. Las del catálogo las cuida el trigger de arriba.
+create function public.plan_proteger_materias_propias()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if exists (select 1 from public.materias m where m.plan_id = old.id and m.owner_id is not null) then
+    raise exception 'el plan % tiene materias propias de alumnos', old.version
+      using errcode = '23503';
+  end if;
+
+  return old;
+end;
+$$;
+
+create trigger planes_proteger_materias_propias
+  before delete on public.planes
+  for each row execute function public.plan_proteger_materias_propias();
+
 /* ---------- materiales.oculto ---------- */
 
 -- Solo cambian `oculto` un admin o el trigger de denuncias. El trigger de denuncias corre dentro de

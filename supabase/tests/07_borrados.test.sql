@@ -1,7 +1,7 @@
 -- Borrados que se llevarían datos de alumnos: planes con inscripciones y materias del catálogo.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(53);
+select plan(59);
 
 create function pg_temp.como(uid uuid) returns void language plpgsql as $$
 begin
@@ -167,6 +167,28 @@ select pg_temp.como('00000000-0000-4000-8000-0000000000ad');
 select is(pg_temp.filas($$delete from public.materias where id = '40000000-0000-4000-8000-000000000001'$$), 1, 'materia del catálogo sin datos ya: admin la borra');
 select is(pg_temp.filas($$delete from public.planes where id = '30000000-0000-4000-8000-000000000001'$$), 1, 'plan sin inscripciones ni datos: admin lo borra');
 select is((select count(*)::int from public.materias where id = '40000000-0000-4000-8000-000000000002'), 0, 'plan borrado: sus materias se van en cascada');
+
+/* ---------- Plan con materias propias de un alumno dado de baja ---------- */
+
+select pg_temp.como_postgres();
+insert into public.universidades (id, nombre, estado) values ('10000000-0000-4000-8000-000000000006', 'Baja', 'publicado');
+insert into public.carreras (id, universidad_id, nombre, estado) values ('20000000-0000-4000-8000-000000000006', '10000000-0000-4000-8000-000000000006', 'Baja', 'publicado');
+insert into public.planes (id, carrera_id, version, estado) values ('30000000-0000-4000-8000-000000000006', '20000000-0000-4000-8000-000000000006', 'P6', 'publicado');
+insert into public.materias (id, plan_id, codigo, nombre, anio, owner_id) values ('40000000-0000-4000-8000-000000000061', '30000000-0000-4000-8000-000000000006', null, 'Propia de la baja', 1, '00000000-0000-4000-8000-00000000000b');
+insert into public.progreso (user_id, materia_id, estado) values ('00000000-0000-4000-8000-00000000000b', '40000000-0000-4000-8000-000000000061', 'aprobada');
+
+-- Sin inscripción: el RESTRICT de inscripciones no frena nada, solo este trigger.
+select is((select count(*)::int from public.inscripciones where plan_id = '30000000-0000-4000-8000-000000000006'), 0, 'baja: el plan no tiene inscripciones');
+select pg_temp.como('00000000-0000-4000-8000-0000000000ad');
+select throws_ok($$delete from public.planes where id = '30000000-0000-4000-8000-000000000006'$$, '23503', 'el plan P6 tiene materias propias de alumnos', 'baja: admin no borra un plan con materias propias, aunque la RLS se las oculte');
+select pg_temp.como_postgres();
+select is((select count(*)::int from public.materias where id = '40000000-0000-4000-8000-000000000061'), 1, 'baja: la materia propia sigue');
+select is((select count(*)::int from public.progreso where materia_id = '40000000-0000-4000-8000-000000000061'), 1, 'baja: su progreso sigue');
+
+select pg_temp.como('00000000-0000-4000-8000-00000000000b');
+select is(pg_temp.filas($$delete from public.materias where id = '40000000-0000-4000-8000-000000000061'$$), 1, 'baja: el dueño sigue pudiendo borrar su materia');
+select pg_temp.como('00000000-0000-4000-8000-0000000000ad');
+select is(pg_temp.filas($$delete from public.planes where id = '30000000-0000-4000-8000-000000000006'$$), 1, 'baja: sin materias propias, el plan se borra');
 
 select pg_temp.como_postgres();
 select * from finish();
