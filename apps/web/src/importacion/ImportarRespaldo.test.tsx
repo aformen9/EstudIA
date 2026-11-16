@@ -162,7 +162,8 @@ describe("vista previa", () => {
     elegirArchivo(leerFixtureLegacy());
 
     await screen.findByText("Materias", { selector: "dt" });
-    expect(document.activeElement).toBe(document.querySelector(".importar"));
+    // El foco se mueve en un efecto después de pintar: en el CI puede llegar un instante más tarde.
+    await waitFor(() => expect(document.activeElement).toBe(document.querySelector(".importar")));
   });
 
   it("sin datos existentes se confirma con un botón y sin aviso de reemplazo", async () => {

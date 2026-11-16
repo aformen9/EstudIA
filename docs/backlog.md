@@ -17,21 +17,29 @@ No se suma nada más a la fase 0. Orden:
 
 ## 2. Antes de abrir a los primeros usuarios
 
-Chico, pero necesario para no perder datos ni quedar a ciegas:
+Chico, pero necesario para no perder datos ni quedar a ciegas.
+
+**Primera tanda, apenas se cierre la fase 0** (pedido de Agu del 16/11/2026, tras probar el deploy):
+
+- [ ] **Botón de casita** junto al menú de tres líneas, que lleva a Inicio.
+- [ ] **Acento azul por defecto** (el resto de la paleta igual) y **selector de color de acento** en Ajustes. Incluye adaptar el logo y los íconos de la PWA al azul, y verificar contraste AA.
+- [ ] **Analítica con Umami**: sin cookies ni datos personales, con eventos del onboarding (en qué paso se abandona). Servicio nuevo: aprobar antes, incluido si va alojado o en la nube de Umami.
+- [ ] **Pantalla de métricas para admin**: consultas a la base (alumnos, inscripciones, materias cargadas, materiales), solo para `es_admin`, sin exponer datos de alumnos individuales.
+- [ ] **Monitoreo de caídas** (UptimeRobot o similar, plan gratis): aviso si la web o Supabase no responden.
+- [ ] **Botón "Reportar un problema o sugerencia"**: a dónde llega (mail, issue de GitHub, tabla en la base) se decide antes de implementarlo.
+
+**El resto:**
 
 - [ ] **Proteger `main`**: solo merge por Pull Request con CI en verde. (Lo hace Agu a mano.)
 - [ ] **Backups**: job diario de GitHub Actions con volcado cifrado de la base. Además evita que el proyecto gratis de Supabase se pause por inactividad. (Lo hace Agu a mano.)
 - [ ] **Verificación en dos pasos** en GitHub, Supabase y Google. (Agu.)
 - [ ] **Almacenamiento persistente**: pedir `navigator.storage.persist()` y avisar al alumno que los archivos viven solo en ese dispositivo hasta que llegue Drive. Safari puede borrar datos locales de sitios sin uso si la app no está instalada.
 - [ ] **Registro de errores** (Sentry, plan gratis). Dependencia nueva: aprobar antes.
-- [ ] **Analítica con Umami**: sin cookies ni datos personales, con eventos del onboarding (en qué paso se abandona). Servicio nuevo: aprobar antes, incluido si va alojado o en la nube de Umami.
-- [ ] **Pantalla de métricas para admin**: consultas a la base (alumnos, inscripciones, materias cargadas, materiales), solo para `es_admin`, sin exponer datos de alumnos individuales.
-- [ ] **Monitoreo de caídas** (UptimeRobot o similar, plan gratis): aviso si la web o Supabase no responden.
-- [ ] **Botón "Reportar un problema o sugerencia"**: a dónde llega (mail, issue de GitHub, tabla en la base) se decide antes de implementarlo.
 - [ ] **Cabeceras de seguridad (CSP)** en Vercel, permitiendo los hosts de las fotos de Google.
 - [ ] **Dependabot** y `pnpm audit` en el CI.
 - [ ] **Política de privacidad y términos de uso** (borrador), con un mail de contacto visible.
 - [ ] **Borrar mi cuenta y mis datos** desde Ajustes.
+- [ ] **Test automático de la caché de la vista previa**: que un PDF ya cacheado no se vuelva a procesar (`materiales/VistaPrevia.tsx`). En la fase 0 quedó con prueba manual.
 - [ ] **Prueba con usuarios**: Lucía y 4 o 5 compañeros de LCD. Observarlos usar la app y anotar acá lo que salga.
 
 ## 3. Fase 1, reordenada
@@ -59,7 +67,6 @@ Aprobadas por Agu el 16/11/2026. Se aplican al arrancar la fase 1, no ahora.
 
 - **Planificador de cuatrimestres**: "si curso estas materias, ¿qué se me habilita y cuándo me recibo?". Usa la lógica de correlativas que ya existe.
 - **Fechas desde EVA (iCal)**: importar entregas y exámenes; se muestran junto a las instancias "Programadas" en "Próximos exámenes".
-- **Color de acento elegible** (4 o 5 opciones con las variables CSS actuales).
 - **Efectos reducidos automáticos** en dispositivos de gama baja.
 - **Navegación inferior en el celular**, en lugar del menú lateral (evaluar con usuarios).
 - **Slider de notas**: validar con usuarios; si la mayoría carga enteros, volver a botones.

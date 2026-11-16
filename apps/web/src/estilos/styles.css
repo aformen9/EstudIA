@@ -325,8 +325,10 @@ h3 {
   overflow-y: auto;
   overflow-x: hidden;
   flex: 1;
-  margin-inline: -4px;
-  padding-inline: 4px;
+  /* El scroll recorta lo que sale de la caja: este margen deja entrar el anillo y el brillo del
+     indicador (.nav-ind) del primer y del último ítem sin mover los enlaces de lugar. */
+  margin: -6px -4px -16px;
+  padding: 6px 4px 16px;
 }
 .nav a {
   position: relative;

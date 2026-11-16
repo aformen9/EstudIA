@@ -87,9 +87,11 @@ IA de cualquier tipo · Google Drive · extracción de texto/OCR (la vista previ
    - no se puede borrar una materia del catálogo con progreso o historial, y una materia propia sí;
    - `historial` exige lo mismo que `progreso`: materia de un plan inscripto o materia propia.
 5. Flujo manual en el navegador (con capturas): entrar con Google → elegir UCA / LCD / 7023 → importar el caso de prueba legacy → Inicio muestra 26 de 50 y promedio 7,73 → cambiar una nota y recargar persiste → modo oscuro → vista celular (390 px) sin scroll horizontal.
+   - ✅ **Verificado manualmente por Agu el 2026-11-16** sobre el deploy (https://estudia-liard.vercel.app) con Google real, **sin capturas** (decisión de Agu).
 6. Ninguna clave real en el repo: gitleaks corre en el CI sobre todo el historial y no encuentra nada.
 7. Logo aprobado por Agu.
 8. No queda ningún `<select>` en `apps/web/src`. Una carrera con un solo plan saltea la elección de plan, y una con varios preselecciona el más reciente (con tests).
 9. La vista previa funciona con PDF, imagen y texto, y un PDF ya cacheado no vuelve a procesarse. La librería de PDF no está en la carga inicial (comprobado en el build). Un archivo de otro tipo, incluidos HTML y SVG, no se abre adentro de la app.
+   - ✅ Aceptado por Agu el 2026-11-16: PDF.js fuera de la carga inicial y HTML/SVG sin abrir, con tests; que un PDF cacheado no se reprocese, con la prueba manual en Chrome del 2026-11-07. El test automático de esa caché va al backlog.
 
 Al terminar: resumen corto, lista de criterios con ✅/❌ y lo que quedó pendiente o dudoso. Esperar aprobación antes de la fase 1.

@@ -154,7 +154,8 @@ describe("cerrar sesión durante el onboarding", () => {
     const { signOut } = renderConRepositorio(<Shell />, repositorioFalso());
     fireEvent.click(await screen.findByRole("button", { name: "Cerrar sesión" }));
     await waitFor(() => expect(signOut).toHaveBeenCalledExactlyOnceWith({ scope: "local" }));
-    expect(screen.queryByRole("dialog")).toBeNull();
+    // El onboarding también es un diálogo: se mira solo el de cerrar sesión.
+    expect(screen.queryByRole("dialog", { name: "Cerrar sesión" })).toBeNull();
   });
 
   it("con archivos aparece el diálogo, y marcada solo borra los suyos", async () => {

@@ -1,6 +1,9 @@
 -- anon sin acceso, funciones cerradas, RLS activada y catálogo sembrado.
 begin;
 create extension if not exists pgtap with schema extensions;
+-- pgTAP vive en el esquema extensions. La sesión de la CLI contra el remoto no lo tiene en el
+-- search_path (la local sí): se fija acá, solo para esta transacción.
+set local search_path = "$user", public, extensions;
 select plan(55);
 
 create function pg_temp.como_anon() returns void language plpgsql as $$
