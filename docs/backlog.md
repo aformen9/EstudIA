@@ -19,26 +19,28 @@ No se suma nada más a la fase 0. Orden:
 
 Chico, pero necesario para no perder datos ni quedar a ciegas.
 
-**Primera tanda, apenas se cierre la fase 0** (pedido de Agu del 16/11/2026, tras probar el deploy):
+**Primera tanda, apenas se cierre la fase 0** (pedido de Agu del 16/11/2026, tras probar el deploy). Un PR por punto:
 
 - [x] **Botón de casita** junto al menú de tres líneas, que lleva a Inicio. (Solo en el celular.)
-- [ ] **Acento azul por defecto** (el resto de la paleta igual) y **selector de color de acento** en Ajustes. Incluye adaptar el logo y los íconos de la PWA al azul, y verificar contraste AA.
-- [ ] **Analítica con Umami**: sin cookies ni datos personales, con eventos del onboarding (en qué paso se abandona). Servicio nuevo: aprobar antes, incluido si va alojado o en la nube de Umami.
-- [ ] **Pantalla de métricas para admin**: consultas a la base (alumnos, inscripciones, materias cargadas, materiales), solo para `es_admin`, sin exponer datos de alumnos individuales.
-- [ ] **Monitoreo de caídas** (UptimeRobot o similar, plan gratis): aviso si la web o Supabase no responden.
-- [ ] **Botón "Reportar un problema o sugerencia"**: a dónde llega (mail, issue de GitHub, tabla en la base) se decide antes de implementarlo.
+- [ ] **Acento azul por defecto, fondos y textos neutros y selector de color de acento** en Ajustes (Azul, Rosa, Violeta, Verde, Naranja), con **modo oscuro por defecto** en la primera visita (si el alumno pasa a claro, se recuerda). Incluye logo, favicon e íconos de la PWA en azul y contraste AA de todas las opciones. Valores aprobados por Agu el 16/11/2026 (ver `docs/decisiones.md`).
+- [ ] **Pantalla de métricas para admin** (RPC `metricas_admin()`, solo totales) y **botón "Reportar un problema o sugerencia"** (tabla `reportes`: de 1 a 1000 caracteres y hasta 5 por alumno cada 24 horas corridas, controlado en la base, con tests).
+- [ ] **Analítica con Umami Cloud** (plan gratis; verificar el cupo antes de integrar): sin cookies ni datos personales, con eventos del onboarding. Agu crea la cuenta y pasa el ID del sitio.
+- [ ] **Monitoreo de caídas con UptimeRobot** (plan gratis): lo configura Agu con guía, para la web y la API de Supabase.
+
+**Segunda tanda, antes de invitar usuarios** (orden aprobado por Agu el 16/11/2026):
+
+1. [ ] **Backups diarios**: job de GitHub Actions con volcado cifrado de la base. Van primero para proteger los datos desde el primer alumno; además evitan que Supabase pause el proyecto por inactividad. (Lo hace Agu a mano, con guía.)
+2. [ ] **Dependabot** y `pnpm audit` en el CI.
+3. [ ] **Almacenamiento persistente**: pedir `navigator.storage.persist()` y avisar que los archivos viven solo en ese dispositivo hasta que llegue Drive. Safari puede borrar datos locales de sitios sin uso si la app no está instalada.
+4. [ ] **Registro de errores con Sentry** (plan gratis, sin datos personales, solo en producción). Dependencia nueva: aprobar antes.
+5. [ ] **Cabeceras de seguridad (CSP)** en Vercel, con todos los hosts ya conocidos: Supabase, fotos de Google, Umami y Sentry.
+6. [ ] **Borrar mi cuenta y mis datos** desde Ajustes. Decisión de diseño a proponer antes de implementar: borrar el usuario de Auth necesita un permiso que no puede estar en el cliente (probablemente una Edge Function), y resuelve B6 (documentos huérfanos).
+7. [ ] **Política de privacidad y términos de uso** (borrador): al final, para describir lo que de verdad quedó (Google, Supabase, Umami, Sentry, borrado de cuenta). Necesita un mail de contacto visible.
 
 **El resto:**
 
-- [ ] **Proteger `main`**: solo merge por Pull Request con CI en verde. (Lo hace Agu a mano.)
-- [ ] **Backups**: job diario de GitHub Actions con volcado cifrado de la base. Además evita que el proyecto gratis de Supabase se pause por inactividad. (Lo hace Agu a mano.)
+- [x] **Proteger `main`**: ruleset con PR obligatorio y los tres chequeos del CI. (Hecho por Agu el 16/11/2026.)
 - [ ] **Verificación en dos pasos** en GitHub, Supabase y Google. (Agu.)
-- [ ] **Almacenamiento persistente**: pedir `navigator.storage.persist()` y avisar al alumno que los archivos viven solo en ese dispositivo hasta que llegue Drive. Safari puede borrar datos locales de sitios sin uso si la app no está instalada.
-- [ ] **Registro de errores** (Sentry, plan gratis). Dependencia nueva: aprobar antes.
-- [ ] **Cabeceras de seguridad (CSP)** en Vercel, permitiendo los hosts de las fotos de Google.
-- [ ] **Dependabot** y `pnpm audit` en el CI.
-- [ ] **Política de privacidad y términos de uso** (borrador), con un mail de contacto visible.
-- [ ] **Borrar mi cuenta y mis datos** desde Ajustes.
 - [ ] **Test automático de la caché de la vista previa**: que un PDF ya cacheado no se vuelva a procesar (`materiales/VistaPrevia.tsx`). En la fase 0 quedó con prueba manual.
 - [ ] **Investigar por qué pgTAP no corre con `supabase test db --remote`**: falla con `function plan(integer) does not exist` (CLI v3.0.0), también fijando `set local search_path = "$user", public, extensions` en el test (se probó el 16/11/2026 y se sacó). La CLI instala pgTAP en `extensions` antes de correr y lo borra al terminar. Hipótesis a confirmar: el rol con el que entra la CLI al remoto no tiene `USAGE` sobre el esquema `extensions`. Mientras tanto, el remoto se verifica con `supabase/verificacion_remoto.sql` (solo lectura, en el SQL Editor). No volver a correr la herramienta contra producción sin el ok de Agu.
 - [ ] **Prueba con usuarios**: Lucía y 4 o 5 compañeros de LCD. Observarlos usar la app y anotar acá lo que salga.
