@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es" data-theme="light">
+<html lang="es" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -7,16 +7,21 @@
     <link rel="icon" href="/icons/favicon.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
-    <meta name="theme-color" content="#fff7fb" id="themeColor" />
+    <meta name="theme-color" content="#0f1115" id="themeColor" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="EstudIA" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <script>
-      // Antes de pintar, para que el tema guardado no parpadee. Ver src/interfaz/tema.ts.
+      // Antes de pintar, para que el tema y el acento guardados no parpadeen. Ver src/interfaz/tema.ts
+      // y src/interfaz/acento.ts. Sin nada guardado, oscuro y azul (los de <html> y styles.css).
       try {
-        if (localStorage.getItem("estudia.theme") === "dark") {
-          document.documentElement.dataset.theme = "dark";
-          document.getElementById("themeColor").setAttribute("content", "#130c13");
+        if (localStorage.getItem("estudia.theme") === "light") {
+          document.documentElement.dataset.theme = "light";
+          document.getElementById("themeColor").setAttribute("content", "#f6f7f9");
+        }
+        var acento = localStorage.getItem("estudia.acento");
+        if (["rosa", "violeta", "verde", "naranja"].indexOf(acento) >= 0) {
+          document.documentElement.dataset.accent = acento;
         }
       } catch (e) {}
     </script>
