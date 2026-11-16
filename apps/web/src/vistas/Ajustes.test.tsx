@@ -45,9 +45,11 @@ describe("Ajustes", () => {
     const repositorio = conInscripcion();
     repositorio.actualizarPerfil.mockImplementation(async ({ nombre }) => ({
       id: "u",
-      nombre,
+      nombre: nombre ?? null,
       avatarUrl: null,
       esAdmin: false,
+      acento: null,
+      tema: null,
     }));
     const { main, container } = await abrir(repositorio);
     const campo = await main.findByLabelText("Nombre");
@@ -166,7 +168,8 @@ describe("Ajustes", () => {
 
   it("elige el color de acento, lo aplica y lo recuerda", async () => {
     delete document.documentElement.dataset.accent;
-    const { main } = await abrir(conInscripcion());
+    const repositorio = conInscripcion();
+    const { main } = await abrir(repositorio);
     const grupo = await main.findByRole("radiogroup", { name: /Color de acento/ });
     expect(within(grupo).getByRole("radio", { name: "Azul" }).getAttribute("aria-checked")).toBe(
       "true",
@@ -175,6 +178,9 @@ describe("Ajustes", () => {
     fireEvent.click(within(grupo).getByRole("radio", { name: "Verde" }));
     expect(document.documentElement.dataset.accent).toBe("verde");
     expect(localStorage.getItem("estudia.acento")).toBe("verde");
+    await waitFor(() =>
+      expect(repositorio.actualizarPerfil).toHaveBeenCalledWith({ acento: "verde" }),
+    );
     expect(within(grupo).getByRole("radio", { name: "Verde" }).getAttribute("aria-checked")).toBe(
       "true",
     );

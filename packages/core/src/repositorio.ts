@@ -67,7 +67,8 @@ export interface Repositorio {
 
   /* Perfil */
   obtenerPerfil(): Promise<Perfil>;
-  actualizarPerfil(cambios: Pick<Perfil, "nombre">): Promise<Perfil>;
+  /** Cambia solo lo que viene: el nombre, el acento o el modo. */
+  actualizarPerfil(cambios: Partial<Pick<Perfil, "nombre" | "acento" | "tema">>): Promise<Perfil>;
 
   /* Inscripciones: como mucho una activa. */
   listarInscripciones(): Promise<Inscripcion[]>;

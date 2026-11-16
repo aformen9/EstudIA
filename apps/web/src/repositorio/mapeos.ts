@@ -2,7 +2,7 @@
  * Único lugar donde se traduce entre las filas de Postgres (snake_case) y los tipos de `core`
  * (camelCase). Los nombres de columnas que se piden también viven acá, junto a su tipo de fila.
  */
-import { ordenarInstancias } from "@estudia/core";
+import { esAcento, esTema, ordenarInstancias } from "@estudia/core";
 import type {
   BorradorCorrelativa,
   BorradorMateriaPropia,
@@ -232,13 +232,15 @@ export function correlativaAFila(
 
 /* ---------- Alumno ---------- */
 
-export const COLUMNAS_PERFIL = "id, nombre, avatar_url, es_admin";
+export const COLUMNAS_PERFIL = "id, nombre, avatar_url, es_admin, acento, tema";
 
 export interface FilaPerfil {
   id: string;
   nombre: string | null;
   avatar_url: string | null;
   es_admin: boolean;
+  acento: string | null;
+  tema: string | null;
 }
 
 export function perfilDesdeFila(fila: FilaPerfil): Perfil {
@@ -247,6 +249,9 @@ export function perfilDesdeFila(fila: FilaPerfil): Perfil {
     nombre: fila.nombre,
     avatarUrl: fila.avatar_url,
     esAdmin: fila.es_admin,
+    // La base ya los valida; esto cubre una fila vieja o un valor que esta versión no conoce.
+    acento: esAcento(fila.acento) ? fila.acento : null,
+    tema: esTema(fila.tema) ? fila.tema : null,
   };
 }
 

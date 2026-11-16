@@ -39,7 +39,8 @@ describe("redirección obligatoria", () => {
     expect(screen.queryByRole("navigation")).toBeNull();
 
     expect(screen.queryByRole("button", { name: "Respaldo y ajustes" })).toBeNull();
-    expect(screen.getByRole("button", { name: "Modo oscuro" })).toBeTruthy();
+    // Sin nada guardado el modo es oscuro: el botón ofrece pasar a claro.
+    expect(screen.getByRole("button", { name: "Modo claro" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /^Ajustes/ })).toBeNull();
     // El modal del onboarding tiene su propio "Cerrar sesión": lo de atrás queda inerte.
     const modal = within(screen.getByRole("dialog"));

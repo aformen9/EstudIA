@@ -268,3 +268,6 @@ Agu aprobó todos los puntos del backlog. Acá van las decisiones de sus seccion
 - Acento azul aprobado (claro: `#1d5fd1`, fuerte `#2563eb`, suave `#e3edff`; oscuro: `#6aa6ff`, fuerte `#60a5fa`, suave `#16243d`). Fondos pasan a neutros; Agu ve la muestra con fondos neutros antes de implementar.
 - Reportes: de 1 a 1000 caracteres (sin contar espacios al principio y al final) y hasta 5 por alumno cada 24 horas corridas, controlado en la base.
 - Orden de la segunda tanda (antes de invitar usuarios): backups, Dependabot y `pnpm audit`, almacenamiento persistente, Sentry, CSP, borrar mi cuenta, política de privacidad y términos.
+- Acento y modo claro/oscuro se sincronizan entre dispositivos en el perfil (columnas `acento` y `tema`, con CHECK y permiso por columna), con copia local para no parpadear. Al entrar gana el perfil; si está vacío se sube lo del dispositivo. PR aparte, antes del PR 3.
+- PR 3, reportes: botón en el menú lateral y en el menú de Ajustes. En `#admin`, sin identidad por defecto; casilla opcional "Pueden contactarme por este reporte" (desmarcada) que deja ver el mail; datos técnicos automáticos sin identidad (navegador, sistema operativo y versión de la app).
+- PR 3, métricas: la lista propuesta más "alumnos activos en los últimos 7 días" (cargaron o modificaron algo), siempre como total.
