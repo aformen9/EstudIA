@@ -33,7 +33,7 @@ Local, antes del PR #1 (2026-11-16):
 - `anon` no lee ni escribe ninguna de las 14 tablas y no ejecuta ninguna RPC (401, `42501`).
 - Un pedido de 2 MB de texto pasa el gateway (sin 413; Postgres lo rechaza por permisos). Probado sin sesión.
 - Login por mail apagado: comprobado en `/auth/v1/settings` (`email: false`, `google: true`).
-- **GRANT y seed en el remoto: sin correr.** Falta `supabase test db --remote supabase/tests/01_privilegios_y_seed.test.sql supabase/tests/08_grants.test.sql` (lo corre Agu, con Docker abierto; cada archivo hace `begin … rollback`). El conector de Supabase de esta sesión es de otra cuenta y no ve el proyecto.
+- **GRANT, RLS, `security definer` y seed en el remoto:** `supabase test db --remote` falla antes de correr (ver `docs/backlog.md` §2) y se dejó de usar contra producción. Se verifican con `supabase/verificacion_remoto.sql` (una sola consulta de solo lectura para el SQL Editor; en local da 28 de 28 "ok" y detecta los errores a propósito). Falta que Agu la corra en el remoto.
 
 ## Prueba manual de Agu en Safari (2026-11-07)
 
@@ -55,7 +55,7 @@ Funcionan bien: brillo, guardar y recargar, confeti, PDFs, Deshacer, modo oscuro
 ## Próximos pasos (`docs/backlog.md` §1)
 
 1. ~~Mergear la rama por PR con squash y CI en verde.~~ Hecho (PR #1).
-2. **Remoto:** ~~`supabase link`, migraciones, seed y login por mail apagado~~ hecho. Falta: `supabase test db --remote` de `01` y `08` (Agu, con Docker).
+2. **Remoto:** ~~`supabase link`, migraciones, seed y login por mail apagado~~ hecho. Falta: correr `supabase/verificacion_remoto.sql` en el SQL Editor (Agu).
 3. ~~Deploy en Vercel y URL en Supabase y Google.~~ Hecho por Agu.
 4. ~~**Criterio 5** con Google real sobre el deploy.~~ Verificado a mano por Agu el 2026-11-16, sin capturas. Falta confirmar en el deploy el arreglo del menú lateral.
 5. **README real** con el crédito a "Mi Plan de Estudio", de Lucía Formenti, y los comandos en `CLAUDE.md`, incluido `pnpm --filter web test:integracion` con `supabase db reset` antes y después (borra los datos locales). Va en un PR.
@@ -67,8 +67,8 @@ Funcionan bien: brillo, guardar y recargar, confeti, PDFs, Deshacer, modo oscuro
 |---|---|---|
 | 1 | test, lint, typecheck y build | Pasa en local y en CI |
 | 2 | `core` contra el fixture esperado | Pasa |
-| 3 | `supabase db reset` con migraciones y seed | Pasa en local; en remoto se subieron, falta `supabase test db --remote` |
-| 4 | Tests de RLS | Pasa en local y CI; en remoto `anon` pasa, faltan GRANT con `--remote` |
+| 3 | `supabase db reset` con migraciones y seed | Pasa en local; en remoto se subieron, falta `verificacion_remoto.sql` |
+| 4 | Tests de RLS | Pasa en local y CI; en remoto `anon` pasa, faltan GRANT con `verificacion_remoto.sql` |
 | 5 | Flujo manual con Google | ✅ Verificado manualmente por Agu en el deploy (2026-11-16), sin capturas |
 | 6 | Sin claves reales, gitleaks en CI | Pasa en CI |
 | 7 | Logo aprobado | Aprobado en `docs/decisiones.md` |
