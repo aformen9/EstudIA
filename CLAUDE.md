@@ -19,7 +19,7 @@ Dueño del proyecto: Agu (Agustín Formenti). Hablale en español rioplatense.
 3. **Una fase por vez.** Trabajá solo la fase indicada en `docs/fases/`. Al terminar, verificá cada criterio de aceptación, mostrá el resultado y esperá aprobación antes de pasar a la siguiente.
 4. **Formato.** Las explicaciones paso a paso a Agu van en bullets cortos, no en párrafos. No cierres los mensajes con "¿arrancamos?": dejá claro qué decisión o aprobación necesitás.
 5. **No uses dashboards/HTML de visualización en el chat** salvo que Agu lo pida.
-6. **Commits chicos y descriptivos**, en español, uno por unidad lógica. Nunca commitear secretos ni datos reales (ver "Repo público").
+6. **Commits chicos y descriptivos**, en español, uno por unidad lógica. Nunca commitear secretos ni datos reales (ver "Repo público"). **El único autor es Agu:** nunca agregues `Co-Authored-By` ni ninguna otra mención a Claude en commits, PRs ni merges (tampoco "Generated with Claude Code").
 7. **Si un criterio de aceptación falla, decilo.** No lo marques como hecho.
 8. **Toda idea nueva va a `docs/backlog.md`, no a la fase en curso.** Vale para las de Agu y para las tuyas. Una fase cambia de alcance solo si Agu lo aprueba explícitamente.
 
