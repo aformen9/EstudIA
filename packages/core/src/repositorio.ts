@@ -12,6 +12,8 @@ import type {
   ProgresoMateria,
   Universidad,
 } from "./tipos";
+import type { MetricasAdmin } from "./admin/metricas";
+import type { NuevoReporte, ReporteAdmin } from "./reportes/reportes";
 
 /** `periodo` y `createdAt` solo hacen falta al restaurar: si no vienen, null y la fecha actual. */
 interface NuevoMaterialBase {
@@ -117,4 +119,12 @@ export interface Repositorio {
    * propias del archivo.
    */
   reemplazarDatosDelPlan(planId: string, datos: DatosImportados): Promise<Record<string, string>>;
+
+  /* Reportes y admin */
+  /** El autor y la fecha los pone la base. Rechaza con EQ005 al llegar al tope del día. */
+  crearReporte(reporte: NuevoReporte): Promise<void>;
+  /** Solo para admins. */
+  listarReportesAdmin(limite?: number): Promise<ReporteAdmin[]>;
+  /** Solo para admins. */
+  obtenerMetricasAdmin(): Promise<MetricasAdmin>;
 }
