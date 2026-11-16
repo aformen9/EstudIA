@@ -31,6 +31,8 @@ import { useRepositorio, useSesion } from "../sesion/sesion";
 import { Avatar, fotosDeUsuario } from "./Avatar";
 import { CargaDiferida, diferido } from "./CargaDiferida";
 import { Icono, type NombreIcono } from "./Iconos";
+import { useReportar } from "../reportes/Reportar";
+import { Admin } from "../vistas/Admin";
 import { useSincronizarPreferencias } from "./preferencias";
 import { useTema } from "./tema";
 import { FILTROS_MATERIALES_INICIALES, FILTROS_MATERIAS_INICIALES } from "../vistas/filtros";
@@ -76,6 +78,12 @@ const SECCIONES: { titulo: string | null; enlaces: Enlace[] }[] = [
   { titulo: "Estudio", enlaces: [{ vista: "materiales", icono: "folder" }] },
 ];
 
+/** Solo se muestra a los admins. */
+const SECCION_ADMIN = {
+  titulo: "Admin",
+  enlaces: [{ vista: "admin", icono: "escudo" }] as Enlace[],
+};
+
 function leerMenuAchicado(): boolean {
   try {
     return Boolean(localStorage.getItem(CLAVE_MENU_ACHICADO));
@@ -107,10 +115,19 @@ function contadores(
  * Durante el onboarding no hay ajustes a los que ir: el botón cierra la sesión, y solo pregunta si hay
  * archivos en este dispositivo.
  */
-function MenuAjustes({ email, enOnboarding }: { email: string; enOnboarding: boolean }) {
+function MenuAjustes({
+  email,
+  enOnboarding,
+  vista,
+}: {
+  email: string;
+  enOnboarding: boolean;
+  vista: Vista | null;
+}) {
   const [abierto, setAbierto] = useState(false);
   const contenedor = useRef<HTMLDivElement>(null);
   const boton = useRef<HTMLButtonElement>(null);
+  const reportar = useReportar({ vista, devolverFocoA: boton });
   const { pedir, dialogo, error } = useCerrarSesion({
     preguntarSoloConArchivos: enOnboarding,
     devolverFocoA: boton,
@@ -191,6 +208,17 @@ function MenuAjustes({ email, enOnboarding }: { email: string; enOnboarding: boo
             type="button"
             onClick={() => {
               setAbierto(false);
+              reportar.abrir();
+            }}
+          >
+            <Icono nombre="mensaje" />
+            Reportar un problema
+            <small>O mandarnos una sugerencia</small>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setAbierto(false);
               void pedir();
             }}
           >
@@ -202,6 +230,7 @@ function MenuAjustes({ email, enOnboarding }: { email: string; enOnboarding: boo
       )}
       {mensajeDeError}
       {dialogo}
+      {reportar.dialogo}
     </div>
   );
 }
@@ -264,6 +293,8 @@ function ContenidoVista({
       );
     case "ajustes":
       return <Ajustes />;
+    case "admin":
+      return <Admin />;
   }
 }
 
@@ -282,7 +313,10 @@ function ContenidoShell() {
   // El alumno acaba de activar su plan y está en el último paso del onboarding.
   const [enCurso, setEnCurso] = useState(false);
   if (enCurso && pedida !== "onboarding") setEnCurso(false);
-  const vista = resolverVista(pedida, inscripcion.estado, enCurso);
+  const repositorio = useRepositorio();
+  const perfil = useQuery(consultas.perfil(repositorio));
+  const esAdmin = perfil.data ? perfil.data.esAdmin : perfil.isError ? false : null;
+  const vista = resolverVista(pedida, inscripcion.estado, enCurso, esAdmin);
   const sinPlan = inscripcion.estado !== "activa";
   // Hasta terminar el onboarding, incluido el paso de cargar las materias, el menú queda oculto.
   const bloqueado = sinPlan || vista === "onboarding";
@@ -290,14 +324,12 @@ function ContenidoShell() {
 
   const plan = useDatosAlumno();
   const datos = plan.estado === "listo" ? plan.datos : null;
-  const repositorio = useRepositorio();
   const sesion = useSesion();
   const { tema, alternar } = useTema();
   useSincronizarPreferencias();
   const [abierto, setAbierto] = useState(false);
   const [achicado, setAchicado] = useState(leerMenuAchicado);
 
-  const perfil = useQuery(consultas.perfil(repositorio));
   const materiales = useMaterialesDelAlumno({ enabled: !sinPlan });
   const cuentas = contadores(datos, materiales.data);
   const nombre = perfil.data?.nombre?.trim() || "EstudIA";
@@ -310,6 +342,8 @@ function ContenidoShell() {
   const main = useRef<HTMLElement>(null);
   const botonAbrir = useRef<HTMLButtonElement>(null);
   const marca = useRef<HTMLButtonElement>(null);
+  const botonReportar = useRef<HTMLButtonElement>(null);
+  const reportar = useReportar({ vista, devolverFocoA: botonReportar });
   const yaMontada = useRef(false);
 
   useEffect(() => {
@@ -407,7 +441,7 @@ function ContenidoShell() {
           {!bloqueado && (
             <nav className="nav" ref={nav} aria-label="Secciones">
               <span className="nav-ind" ref={indicador} aria-hidden="true"></span>
-              {SECCIONES.map(({ titulo, enlaces }) => (
+              {(esAdmin ? [...SECCIONES, SECCION_ADMIN] : SECCIONES).map(({ titulo, enlaces }) => (
                 <div key={titulo ?? "principal"} style={{ display: "contents" }}>
                   {titulo && (
                     <div className="nav-label">
@@ -436,6 +470,18 @@ function ContenidoShell() {
 
           <div className="side-bottom">
             <IndicadorGuardado />
+            {!bloqueado && (
+              <button
+                className="side-btn"
+                type="button"
+                ref={botonReportar}
+                title="Reportar un problema o sugerencia"
+                onClick={reportar.abrir}
+              >
+                <Icono nombre="mensaje" />
+                <span>Reportar un problema</span>
+              </button>
+            )}
             <button
               className="side-btn"
               type="button"
@@ -445,8 +491,9 @@ function ContenidoShell() {
               <Icono nombre={tema === "dark" ? "sun" : "moon"} />
               <span>{tema === "dark" ? "Modo claro" : "Modo oscuro"}</span>
             </button>
-            <MenuAjustes email={email} enOnboarding={bloqueado} />
+            <MenuAjustes email={email} enOnboarding={bloqueado} vista={vista} />
           </div>
+          {reportar.dialogo}
         </aside>
 
         <div

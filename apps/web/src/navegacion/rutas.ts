@@ -8,6 +8,7 @@ export const VISTAS = {
   promedio: "Promedio",
   materiales: "Materiales",
   ajustes: "Ajustes",
+  admin: "Admin",
   onboarding: "Elegí tu carrera",
 } as const;
 

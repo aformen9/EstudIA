@@ -5,6 +5,7 @@ import { ImportarRespaldo } from "../importacion/ImportarRespaldoDiferido";
 import { Dialogo } from "../interfaz/Dialogo";
 import { Icono } from "../interfaz/Iconos";
 import { useTema } from "../interfaz/tema";
+import { useReportar } from "../reportes/Reportar";
 import { VISTAS } from "../navegacion/rutas";
 import { ConPlan, ErrorDeCarga, ponerInscripcionActiva } from "../plan/planActivo";
 import { useCerrarSesion } from "../sesion/CerrarSesion";
@@ -187,6 +188,8 @@ function BarraOnboarding({ alVolver }: { alVolver: (() => void) | null }) {
     preguntarSoloConArchivos: true,
     devolverFocoA: boton,
   });
+  const botonReportar = useRef<HTMLButtonElement>(null);
+  const reportar = useReportar({ vista: "onboarding", devolverFocoA: botonReportar });
   return (
     <div className="ob-top">
       {alVolver ? (
@@ -206,11 +209,22 @@ function BarraOnboarding({ alVolver }: { alVolver: (() => void) | null }) {
         >
           <Icono nombre={tema === "dark" ? "sun" : "moon"} />
         </button>
+        <button
+          className="icon-btn"
+          type="button"
+          ref={botonReportar}
+          aria-label="Reportar un problema o sugerencia"
+          title="Reportar un problema"
+          onClick={reportar.abrir}
+        >
+          <Icono nombre="mensaje" />
+        </button>
         <button className="btn-sin" type="button" ref={boton} onClick={() => void pedir()}>
           <Icono nombre="logout" />
           Cerrar sesión
         </button>
       </span>
+      {reportar.dialogo}
       {error && (
         <p className="msg err" role="alert">
           {error}
