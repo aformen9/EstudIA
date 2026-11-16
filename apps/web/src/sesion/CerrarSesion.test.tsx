@@ -149,6 +149,12 @@ describe("diálogo de cerrar sesión", () => {
 });
 
 describe("cerrar sesión durante el onboarding", () => {
+  it("durante el onboarding no está la casita de Inicio", async () => {
+    renderConRepositorio(<Shell />, repositorioFalso());
+    await screen.findByRole("button", { name: "Cerrar sesión" });
+    expect(screen.queryByRole("link", { name: "Ir a Inicio" })).toBeNull();
+  });
+
   it("sin archivos en este dispositivo cierra directo, sin diálogo", async () => {
     await AJENOS.guardar(archivo("a"));
     const { signOut } = renderConRepositorio(<Shell />, repositorioFalso());

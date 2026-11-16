@@ -170,6 +170,14 @@ describe("App", () => {
     await waitFor(() => expect(pedidos.length).toBeGreaterThan(pedidosAntes));
   });
 
+  it("la casita de la barra de arriba lleva a Inicio", async () => {
+    window.location.hash = "materias";
+    const { conexion } = conexionFalsa(sesionFalsa());
+    render(<App conexion={conexion} />);
+    const casita = await screen.findByRole("link", { name: "Ir a Inicio" });
+    expect(casita.getAttribute("href")).toBe("#inicio");
+  });
+
   it("abre el menú en el celular y lo cierra con Escape", async () => {
     const { conexion } = conexionFalsa(sesionFalsa());
     const { container } = render(<App conexion={conexion} />);

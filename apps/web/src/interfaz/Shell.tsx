@@ -468,6 +468,12 @@ function ContenidoShell() {
             >
               <Icono nombre="menu" />
             </button>
+            {/* Atajo a Inicio sin abrir el menú. Durante el onboarding no hay adónde ir. */}
+            {!bloqueado && (
+              <a className="icon-btn" href="#inicio" aria-label="Ir a Inicio" title="Inicio">
+                <Icono nombre="home" />
+              </a>
+            )}
             <span className="topbar-title">{vista ? VISTAS[vista] : "EstudIA"}</span>
             {/* El menú lateral está oculto en el celular: sin esto, no se vería si guardó o no. */}
             <IndicadorGuardado />
