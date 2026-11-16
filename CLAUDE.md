@@ -22,6 +22,7 @@ Dueño del proyecto: Agu (Agustín Formenti). Hablale en español rioplatense.
 6. **Commits chicos y descriptivos**, en español, uno por unidad lógica. Nunca commitear secretos ni datos reales (ver "Repo público"). **El único autor es Agu:** nunca agregues `Co-Authored-By` ni ninguna otra mención a Claude en commits, PRs ni merges (tampoco "Generated with Claude Code").
 7. **Si un criterio de aceptación falla, decilo.** No lo marques como hecho.
 8. **Toda idea nueva va a `docs/backlog.md`, no a la fase en curso.** Vale para las de Agu y para las tuyas. Una fase cambia de alcance solo si Agu lo aprueba explícitamente.
+9. **Todo cambio a `main` va por Pull Request**, también los de docs. `main` está protegida con un ruleset: sin borrado ni force push, PR obligatorio y los tres chequeos del CI en verde ("Lint, tipos, tests y build", "Migraciones y tests de RLS", "Claves en el historial") con la rama al día. Trabajá en una rama, abrí el PR y mergeá con squash cuando Agu lo apruebe.
 
 ## Documentos (leer antes de trabajar)
 
