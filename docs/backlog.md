@@ -21,7 +21,7 @@ Chico, pero necesario para no perder datos ni quedar a ciegas.
 
 **Primera tanda, apenas se cierre la fase 0** (pedido de Agu del 16/11/2026, tras probar el deploy):
 
-- [ ] **Botón de casita** junto al menú de tres líneas, que lleva a Inicio.
+- [x] **Botón de casita** junto al menú de tres líneas, que lleva a Inicio. (Solo en el celular.)
 - [ ] **Acento azul por defecto** (el resto de la paleta igual) y **selector de color de acento** en Ajustes. Incluye adaptar el logo y los íconos de la PWA al azul, y verificar contraste AA.
 - [ ] **Analítica con Umami**: sin cookies ni datos personales, con eventos del onboarding (en qué paso se abandona). Servicio nuevo: aprobar antes, incluido si va alojado o en la nube de Umami.
 - [ ] **Pantalla de métricas para admin**: consultas a la base (alumnos, inscripciones, materias cargadas, materiales), solo para `es_admin`, sin exponer datos de alumnos individuales.

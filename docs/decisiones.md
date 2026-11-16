@@ -253,3 +253,15 @@ Agu aprobó todos los puntos del backlog. Acá van las decisiones de sus seccion
 - Crédito del README: Lucía Formenti está de acuerdo con que se la nombre.
 - Agu protege `main` con un ruleset.
 - `main` protegida con un ruleset (lo configuró Agu): sin borrado ni force push, PR obligatorio con 0 aprobaciones y los tres chequeos del CI requeridos, con la rama al día. Desde ahora todo cambio va por PR (`CLAUDE.md`, regla 9).
+
+## 2026-11-16 (fase 0 cerrada y primera tanda)
+
+- **Fase 0 aprobada y cerrada por Agu.** Los 9 criterios en ✅ (`docs/estado.md`).
+- Primera tanda de `docs/backlog.md` §2, en 5 PRs: casita; acento azul con selector y modo oscuro por defecto; métricas y reportes; Umami; UptimeRobot.
+- Casita: solo en la barra de arriba del celular (en la compu, Inicio es el primer ítem del menú). Oculta durante el onboarding.
+- Modo oscuro por defecto en la primera visita; si el alumno pasa a claro, se recuerda. Va en el PR del acento.
+- Acento: Agu aprueba el azul y su contraste antes de implementarlo.
+- Reportes: tabla `reportes`, con tope de caracteres por reporte y máximo de reportes por alumno por día, con tests (valores a proponer).
+- Métricas: RPC `metricas_admin()` aprobada, solo con totales.
+- Umami Cloud, plan gratis: aprobado; verificar el cupo actual antes de integrarlo. Agu crea la cuenta y pasa el ID del sitio.
+- UptimeRobot, plan gratis: aprobado; lo configura Agu con guía.
