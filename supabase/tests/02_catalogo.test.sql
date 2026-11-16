@@ -1,9 +1,6 @@
 -- Políticas de universidades, carreras, planes, materias y correlativas.
 begin;
 create extension if not exists pgtap with schema extensions;
--- pgTAP vive en el esquema extensions. La sesión de la CLI contra el remoto no lo tiene en el
--- search_path (la local sí): se fija acá, solo para esta transacción.
-set local search_path = "$user", public, extensions;
 select plan(123);
 
 create function pg_temp.como(uid uuid) returns void language plpgsql as $$
