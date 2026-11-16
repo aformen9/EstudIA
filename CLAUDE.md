@@ -15,18 +15,21 @@ Dueño del proyecto: Agu (Agustín Formenti). Hablale en español rioplatense.
    - decisiones de UX que cambien un flujo (onboarding, compartir material, permisos);
    - todo lo listado en "Decisiones abiertas" de `docs/arquitectura.md`;
    - cuando la especificación sea ambigua, contradictoria o no cubra el caso.
-   Detalles menores de implementación (nombres internos, estructura de un componente) los decidís vos y lo mencionás en el resumen.
+   **Las decisiones menores las tomás vos y las informás** en el resumen (nombres internos, estructura de un componente, detalles de implementación que no cambian un flujo ni el modelo). Solo se consulta lo de diseño grande.
 3. **Una fase por vez.** Trabajá solo la fase indicada en `docs/fases/`. Al terminar, verificá cada criterio de aceptación, mostrá el resultado y esperá aprobación antes de pasar a la siguiente.
 4. **Formato.** Las explicaciones paso a paso a Agu van en bullets cortos, no en párrafos. No cierres los mensajes con "¿arrancamos?": dejá claro qué decisión o aprobación necesitás.
 5. **No uses dashboards/HTML de visualización en el chat** salvo que Agu lo pida.
 6. **Commits chicos y descriptivos**, en español, uno por unidad lógica. Nunca commitear secretos ni datos reales (ver "Repo público").
 7. **Si un criterio de aceptación falla, decilo.** No lo marques como hecho.
+8. **Toda idea nueva va a `docs/backlog.md`, no a la fase en curso.** Vale para las de Agu y para las tuyas. Una fase cambia de alcance solo si Agu lo aprueba explícitamente.
 
 ## Documentos (leer antes de trabajar)
 
 - `docs/arquitectura.md` — stack, estructura del repo, modelo de datos, RLS, reglas de dominio, IA, MCP, almacenamiento, distribución, decisiones abiertas. **Es la fuente de verdad.**
 - `docs/decisiones.md` — registro de decisiones tomadas con Agu (y por qué). Agregá una línea cada vez que Agu decida algo nuevo.
 - `docs/fases/fase-N.md` — alcance y criterios de aceptación de cada fase.
+- `docs/backlog.md` — ideas y mejoras priorizadas, fuera de la fase en curso.
+- `docs/estado.md` — dónde quedó el trabajo, para retomar en otra sesión.
 - `docs/agentes.md` — cómo repartir el trabajo entre subagentes (`.claude/agents/`).
 - `fixtures/` — catálogo LCD 7023, caso de prueba (formato legacy) y resultados esperados.
 - `referencia/mi-plan-de-estudio/` — código original para portar estética, vistas y lógica. Solo lectura: no se despliega ni se importa. **Está en `.gitignore`: existe solo en la compu de Agu y nunca se sube al repo** (el repo es público y el código es de su hermana).

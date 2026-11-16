@@ -2,10 +2,10 @@
 
 **Objetivo:** un chat dentro de la app que responde sobre la carrera y los apuntes y **ejecuta cambios** con confirmación.
 
-Prerrequisito: fase 1b aprobada.
+Prerrequisito: fase 1 aprobada (incluye la comunidad, que antes era la fase 1b).
 
 ## Alcance
-- Registro de herramientas en `packages/core/herramientas` (§9.3 de arquitectura): esquemas zod + implementación sobre una interfaz `Repositorio` (implementación Supabase en la web; en fase 3 la reusa el MCP).
+- Registro de herramientas en `packages/core/herramientas` (§9.3 de arquitectura): esquemas zod + implementación sobre una interfaz `Repositorio` (implementación Supabase en la web; si se retoma el MCP, lo reusa).
 - Chat (panel lateral o vista "Asistente"), streaming, historial de la conversación en el dispositivo.
 - Proveedores: los de fase 1 + **Ollama / LM Studio** detectados en `localhost` (mostrar cómo instalar y qué modelo bajar; sugerir 2–3 modelos chicos con buen tool calling y **preguntar a Agu** cuál recomendar por defecto).
 - Escrituras: la IA propone → tarjeta de confirmación con el cambio exacto ("Optimización: En curso → Aprobada, nota 9") → aplicar / descartar. Nunca escribir sin confirmar.

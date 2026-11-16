@@ -19,7 +19,7 @@ Una línea por decisión de Agu. Agregar al final, con fecha. Si una decisión n
 - IA: tres modos (local, clave propia con Gemini gratis por defecto, MCP con la suscripción del alumno). Herramientas únicas compartidas.
 - MCP: remoto (datos en Supabase) primero; local (escritorio, archivos) después.
 - Distribución: PWA + binarios (APK, dmg, exe) desde una landing; binarios en GitHub Releases.
-- Orden de fases: 0 → 1 → 1b → 2 → 3 → 4 → 5 (ver `docs/fases/`).
+- ~~Orden de fases: 0 → 1 → 1b → 2 → 3 → 4 → 5 (ver `docs/fases/`).~~ Cambiado el 2026-11-16: la 1b entra en la fase 1 y las fases 3, 4 y 5 se postergan.
 - Implementación con **Claude Code + subagentes** sobre este repo; ante decisiones grandes de diseño o dudas, **parar y preguntar**.
 - Repo **público**, licencia **AGPL-3.0**. Fixtures con un **alumno inventado** (sin datos reales). `referencia/` (código de la hermana) en `.gitignore`: solo local, con crédito en el README.
 
@@ -67,9 +67,9 @@ Una línea por decisión de Agu. Agregar al final, con fecha. Si una decisión n
 
 ## 2026-11-04 (hash de documentos)
 
-- Deduplicación **global** por `sha256`, para privados y compartidos. Resuelve el pendiente bloqueante de la fase 1 y acepta que quien ya tenga el hash de un documento pueda leer su texto.
+- ~~Deduplicación **global** por `sha256`, para privados y compartidos. Resuelve el pendiente bloqueante de la fase 1 y acepta que quien ya tenga el hash de un documento pueda leer su texto.~~ Reemplazada el 2026-11-16: la deduplicación es solo de lo compartido.
 - Ningún usuario puede obtener el `sha256` de documentos ajenos por ninguna vía. Se mantienen los tests de la fase 0.
-- Al subir un archivo que ya existe: si está compartido en esa misma materia y el alumno puede verlo, se muestra "Este archivo ya está en el material de la materia, ¿lo querés ver?" y se lo lleva ahí, sin guardar nada nuevo. Si solo existe como privado de otro usuario, se reutiliza en silencio y para el alumno aparece como subido por él.
+- Al subir un archivo que ya existe: si está compartido en esa misma materia y el alumno puede verlo, se muestra "Este archivo ya está en el material de la materia, ¿lo querés ver?" y se lo lleva ahí, sin guardar nada nuevo. ~~Si solo existe como privado de otro usuario, se reutiliza en silencio y para el alumno aparece como subido por él.~~ (Sin efecto desde el 2026-11-16: lo privado ya no se deduplica.)
 - Fase 1b: casi duplicados por similitud de texto (`pg_trgm`) contra el material compartido de la materia. Si se parece mucho, se pregunta "¿Es el mismo?" con las opciones Ver / Subir igual. El umbral se define y se prueba con PDFs reales en esa fase.
 
 ## 2026-11-04 (dudas de la tanda 1 de `web`)
@@ -222,3 +222,22 @@ Agu aprobó las 9 decisiones de los mockups con dos ajustes y sumó pedidos. Sig
 - Importador legacy y respaldo v1: el historial pasa a instancias (Regularidad → cursada, Examen → final, Ausente → final sin nota, Promoción → promoción; "En curso" se descarta) y las notas sin evento se crean con la fecha del respaldo. Respaldo nuevo v2 con instancias. El fixture y los resultados esperados no cambian.
 - Numeración también para cursadas y finales: con más de una del mismo tipo se llaman "Cursada 1", "Cursada 2", "Final 1", "Final 2", por fecha. La promoción, única, no lleva número.
 - Arriba de las instancias, botones para ver Todas, Cursadas, Parciales (con los recuperatorios) o Finales (con la promoción).
+
+## 2026-11-16 (revisión general del proyecto, `docs/backlog.md`)
+
+Agu aprobó todos los puntos del backlog. Acá van las decisiones de sus secciones 3, 4, 6 y 7; el detalle y lo demás quedan en `docs/backlog.md`.
+
+- **Fase 0 congelada:** no se suma nada más. Se cierra con los pasos de la sección 1 del backlog.
+- **Toda idea nueva va a `docs/backlog.md`**, no a la fase en curso. Una fase cambia de alcance solo si Agu lo aprueba explícitamente.
+- **Fase 1 reordenada** (antes: SIU → IA → Drive y texto; comunidades en la fase 1b). Orden nuevo, priorizando lo que hace única a la app:
+  1. Importador de SIU Guaraní (PDF y XLS), con la guía "¿Cómo consigo el archivo?" con capturas. Detecta el plan desde el archivo. Requiere que Agu baje su Historia Académica real (fuera del repo).
+  2. Comunidad por materia (lo que era la fase 1b): compartir material, denuncias, casi duplicados y cierre de cuatrimestre. Se siembra con material de Agu y de Lucía para que no arranque vacía. Ejecutables bloqueados al compartir.
+  3. Drive y texto en la nube: originales en el Drive del alumno y extracción de texto (PDF, `.docx`, `.pptx`, `.txt`, imágenes con OCR).
+  4. Onboarding con IA y clave propia, último por ser el de más fricción: la app tiene que ser excelente sin IA.
+- La fase 1b deja de existir como fase aparte: su contenido pasa a ser el bloque 2 de la fase 1.
+- **Antes de empezar la fase 1:** averiguar qué exige la verificación de Google para salir del modo "prueba" (límite de usuarios, política de privacidad, dominio propio, vencimiento de sesiones) y cómo afecta al permiso de Drive; y reconsiderar Playwright (incluye el motor de Safari). Playwright es una dependencia nueva: se aprueba antes.
+- **Deduplicación: de global a solo lo compartido.** Lo privado guarda su propio texto por alumno. Se mantiene que nunca se expone el hash de documentos ajenos. Reemplaza la deduplicación global del 2026-11-04. Se aplica al arrancar la fase 1, no antes.
+- **Materias propias sin correlativas:** se quita la edición de correlativas en materias propias (y con ella los ciclos, su restauración y sus duplicados). Antes de tocar nada se le propone a Agu cómo migrar las que ya existan. Se aplica al arrancar la fase 1, no antes.
+- **Postergado hasta que haya demanda:** apps descargables (dmg, exe, APK) y landing de descargas (la PWA cubre lo mismo sin firmas), IA local embebida y en el celular, MCP para Claude y ChatGPT, moderadores por carrera y otras carreras (Ingeniería Química). Las fases 3, 4 y 5 quedan en pausa.
+- **Forma de trabajo:** las decisiones menores las toma la coordinadora y las informa; solo se consulta lo de diseño grande.
+- **Agu hace a mano**, para aprender y poder defenderlo: el job de backups, el deploy en Vercel y la protección de ramas. La coordinadora lo guía paso a paso.
