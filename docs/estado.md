@@ -32,7 +32,7 @@ En Chrome headless, con mouse simulado:
 - Inicio, panel, materias propias, ciclos, Materiales, Ajustes, cerrar sesión, mover y agregar material, Deshacer y restaurar durante Deshacer, a 390 y 1280 px.
 - Botón Atrás con un borrado pendiente. Encontró un bug, ya arreglado: al volver de la caché del navegador se borraba sin poder deshacer. Ahora salir de la página cancela el borrado.
 
-**CI:** verde en `337f8f3` (corrida 42395248359), con los 3 jobs: calidad, RLS y claves en el historial. El paso "El seed coincide con el catálogo" corrió y pasó en GitHub. Después de ese commit solo cambió este archivo.
+**CI:** verde en `2916b54` (corrida 42395248359, sobre el mismo árbol antes de reescribir los mensajes), con los 3 jobs: calidad, RLS y claves en el historial. El paso "El seed coincide con el catálogo" corrió y pasó en GitHub. Después de ese commit solo cambió este archivo.
 
 ## Prueba manual de Agu en Safari (2026-11-07)
 
