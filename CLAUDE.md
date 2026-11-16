@@ -54,7 +54,9 @@ pnpm workspaces · TypeScript estricto · React + Vite (`apps/web`) · lógica p
 - Las claves de API de IA del usuario nunca salen de su dispositivo ni se loguean.
 - Accesibilidad: respetar `prefers-reduced-motion`, contraste AA, navegación por teclado (la app de referencia ya lo hace bien: mantenerlo).
 
-## Comandos (a completar en Fase 0)
+## Comandos
 
-- `pnpm i` · `pnpm dev` · `pnpm test` · `pnpm lint` · `pnpm build`
-- `supabase start` / `supabase db reset` (requiere Docker) · `supabase test db`
+- `pnpm i` · `pnpm dev` (contra Supabase local, con `apps/web/.env.development.local`) · `pnpm test` · `pnpm lint` · `pnpm typecheck` · `pnpm build` · `pnpm seed` (regenera `supabase/seed.sql`)
+- `supabase start` / `supabase db reset` (requiere Docker; `db reset` borra los datos locales) · `supabase test db`
+- `pnpm --filter web test:integracion`: escribe en la base local; correr `supabase db reset` antes y después.
+- Remoto (`supabase test db --remote`, `supabase db push`): solo con confirmación de Agu.
