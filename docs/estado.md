@@ -4,7 +4,7 @@
 
 ## Dónde quedó
 
-- **Fase 0, sin cerrar y con el alcance congelado** (2026-11-16). Se cierra con los pasos de `docs/backlog.md` §1; ver "Próximos pasos".
+- **Fase 0: todos los criterios verificados, esperando la aprobación de Agu para cerrarla** (2026-11-16). Alcance congelado. Se cierra con los pasos de `docs/backlog.md` §1; ver "Próximos pasos".
 - **Cambios de diseño mergeados:** PR #1 con squash, CI en verde. La rama `fase-0/cambios-de-diseno` está borrada.
 - **Historial reescrito (2026-11-16):** se sacó `Co-Authored-By: Claude` de los 59 commits de `main` (solo cambiaron los mensajes y los hashes; los archivos son los mismos) y se hizo force push. Desde ahora Agu es el único autor (`CLAUDE.md`, regla 6). En la pestaña "Commits" del PR #1 GitHub conserva los commits originales.
 - **El repo está en `/Users/aformen9/Dev/EstudIA`.** Abrir la sesión nueva desde esa carpeta: desde ahí se cargan los agentes de `.claude/agents/`.
@@ -33,7 +33,7 @@ Local, antes del PR #1 (2026-11-16):
 - `anon` no lee ni escribe ninguna de las 14 tablas y no ejecuta ninguna RPC (401, `42501`).
 - Un pedido de 2 MB de texto pasa el gateway (sin 413; Postgres lo rechaza por permisos). Probado sin sesión.
 - Login por mail apagado: comprobado en `/auth/v1/settings` (`email: false`, `google: true`).
-- **GRANT, RLS, `security definer` y seed en el remoto:** `supabase test db --remote` falla antes de correr (ver `docs/backlog.md` §2) y se dejó de usar contra producción. Se verifican con `supabase/verificacion_remoto.sql` (una sola consulta de solo lectura para el SQL Editor; en local da 28 de 28 "ok" y detecta los errores a propósito). Falta que Agu la corra en el remoto.
+- **GRANT, RLS, `security definer` y seed en el remoto: ✅ 28 de 28 "ok"** con `supabase/verificacion_remoto.sql`, corrida por Agu en el SQL Editor el 2026-11-16. `supabase test db --remote` no se usa contra producción (ver `docs/backlog.md` §2).
 
 ## Prueba manual de Agu en Safari (2026-11-07)
 
@@ -55,9 +55,9 @@ Funcionan bien: brillo, guardar y recargar, confeti, PDFs, Deshacer, modo oscuro
 ## Próximos pasos (`docs/backlog.md` §1)
 
 1. ~~Mergear la rama por PR con squash y CI en verde.~~ Hecho (PR #1).
-2. **Remoto:** ~~`supabase link`, migraciones, seed y login por mail apagado~~ hecho. Falta: correr `supabase/verificacion_remoto.sql` en el SQL Editor (Agu).
+2. **Remoto:** ~~`supabase link`, migraciones, seed y login por mail apagado~~ hecho. Verificado con `supabase/verificacion_remoto.sql`: 28 de 28 "ok".
 3. ~~Deploy en Vercel y URL en Supabase y Google.~~ Hecho por Agu.
-4. ~~**Criterio 5** con Google real sobre el deploy.~~ Verificado a mano por Agu el 2026-11-16, sin capturas. Falta confirmar en el deploy el arreglo del menú lateral.
+4. ~~**Criterio 5** con Google real sobre el deploy.~~ Verificado a mano por Agu el 2026-11-16, sin capturas. El arreglo del menú lateral lo confirmó Agu en el deploy.
 5. **README real** con el crédito a "Mi Plan de Estudio", de Lucía Formenti, y los comandos en `CLAUDE.md`, incluido `pnpm --filter web test:integracion` con `supabase db reset` antes y después (borra los datos locales). Va en un PR.
 6. **Revisión final:** agente `revisor` y reporte ✅/❌ de cada criterio de `docs/fases/fase-0.md`. Esperar la aprobación de Agu antes de pasar de fase.
 
@@ -65,14 +65,14 @@ Funcionan bien: brillo, guardar y recargar, confeti, PDFs, Deshacer, modo oscuro
 
 | # | Criterio | Estado |
 |---|---|---|
-| 1 | test, lint, typecheck y build | Pasa en local y en CI |
-| 2 | `core` contra el fixture esperado | Pasa |
-| 3 | `supabase db reset` con migraciones y seed | Pasa en local; en remoto se subieron, falta `verificacion_remoto.sql` |
-| 4 | Tests de RLS | Pasa en local y CI; en remoto `anon` pasa, faltan GRANT con `verificacion_remoto.sql` |
+| 1 | test, lint, typecheck y build | ✅ en local y CI |
+| 2 | `core` contra el fixture esperado | ✅ |
+| 3 | `supabase db reset` con migraciones y seed | ✅ en local y CI; en el remoto, seed verificado por SQL (28/28) |
+| 4 | Tests de RLS | ✅ en local y CI; en el remoto, `anon` por API y GRANT, RLS y `security definer` por SQL (28/28) |
 | 5 | Flujo manual con Google | ✅ Verificado manualmente por Agu en el deploy (2026-11-16), sin capturas |
-| 6 | Sin claves reales, gitleaks en CI | Pasa en CI |
-| 7 | Logo aprobado | Aprobado en `docs/decisiones.md` |
-| 8 | Sin `<select>`; plan único salteado, más reciente preseleccionado | Pasa en tests; lo confirma el revisor |
+| 6 | Sin claves reales, gitleaks en CI | ✅ |
+| 7 | Logo aprobado | ✅ en `docs/decisiones.md` |
+| 8 | Sin `<select>`; plan único salteado, más reciente preseleccionado | ✅ tests y revisor |
 | 9 | Vista previa y PDF.js fuera de la carga inicial | ✅ Aceptado por Agu: build y tests, más la prueba manual de la caché (el test automático va al backlog) |
 
 ## Peso del JS
