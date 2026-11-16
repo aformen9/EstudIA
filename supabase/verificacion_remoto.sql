@@ -50,7 +50,7 @@ listas (chequeo, real, esperado) as (
    (select array_agg(nombre order by nombre collate "C") from tablas where relkind = 'r'),
    array['carreras', 'correlativas', 'denuncias', 'documentos', 'inscripciones', 'instancias',
          'limites_documentos', 'materiales', 'materias', 'perfiles', 'planes', 'progreso',
-         'universidades', 'uso_documentos']),
+         'reportes', 'universidades', 'uso_documentos']),
 
   ('GRANT de authenticated sobre tablas',
    (select array_agg(x order by x collate "C") from privilegios_authenticated),
@@ -83,15 +83,18 @@ listas (chequeo, real, esperado) as (
       where a.attnum > 0 and not a.attisdropped
         and acl.grantee in ('authenticated'::regrole::oid, 0)) c),
    array['perfiles.acento: UPDATE', 'perfiles.avatar_url: UPDATE', 'perfiles.nombre: UPDATE',
-         'perfiles.tema: UPDATE']),
+         'perfiles.tema: UPDATE', 'reportes.contactable: INSERT', 'reportes.navegador: INSERT',
+         'reportes.sistema: INSERT', 'reportes.texto: INSERT', 'reportes.tipo: INSERT',
+         'reportes.version_app: INSERT', 'reportes.vista: INSERT']),
 
   ('funciones que ejecuta authenticated',
    (select array_agg(nombre order by nombre collate "C") from funciones
     where has_function_privilege('authenticated', oid, 'EXECUTE')),
    array['activar_plan', 'correlativa_permitida', 'crear_materia_propia', 'cursa_o_curso',
          'documento_propio', 'es_admin', 'guardar_materia', 'materia_editable', 'materia_visible',
-         'material_compartido', 'material_visible', 'plan_editable', 'plan_visible',
-         'puede_registrar_en_materia', 'reemplazar_datos_del_plan', 'registrar_documento']),
+         'material_compartido', 'material_visible', 'metricas_admin', 'plan_editable', 'plan_visible',
+         'puede_registrar_en_materia', 'reemplazar_datos_del_plan', 'registrar_documento',
+         'reportes_admin']),
 
   ('funciones que authenticated NO ejecuta (triggers y columna generada)',
    (select array_agg(nombre order by nombre collate "C") from funciones
@@ -100,7 +103,8 @@ listas (chequeo, real, esperado) as (
          'materia_proteger_datos_de_alumnos', 'materia_proteger_dueno_y_plan',
          'material_cambio_de_materia_a_privado', 'material_fijar_compartido_en',
          'material_proteger_autor', 'material_proteger_oculto', 'material_sin_fecha_futura',
-         'ocultar_material_denunciado', 'plan_proteger_materias_propias', 'poner_updated_at'])
+         'ocultar_material_denunciado', 'plan_proteger_materias_propias', 'poner_updated_at',
+         'reportes_antes_de_insertar'])
 ),
 comparaciones as (
   select chequeo,

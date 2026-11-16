@@ -36,7 +36,7 @@ declare
 begin
   for t in select c.relname from pg_class c join pg_namespace n on n.oid = c.relnamespace
            where n.nspname = 'public' and c.relkind = 'r'
-             and c.relname not in ('limites_documentos', 'uso_documentos') loop
+             and c.relname not in ('limites_documentos', 'uso_documentos', 'reportes') loop
     execute format('select count(*) from public.%I', t);
     leidas := leidas + 1;
   end loop;
@@ -125,7 +125,9 @@ select is(
      where n.nspname = 'public' and a.attnum > 0 and not a.attisdropped
        and acl.grantee in ('authenticated'::regrole::oid, 0)
    ) columnas),
-  array['perfiles.acento: UPDATE', 'perfiles.avatar_url: UPDATE', 'perfiles.nombre: UPDATE', 'perfiles.tema: UPDATE'],
+  array['perfiles.acento: UPDATE', 'perfiles.avatar_url: UPDATE', 'perfiles.nombre: UPDATE', 'perfiles.tema: UPDATE',
+        'reportes.contactable: INSERT', 'reportes.navegador: INSERT', 'reportes.sistema: INSERT', 'reportes.texto: INSERT',
+        'reportes.tipo: INSERT', 'reportes.version_app: INSERT', 'reportes.vista: INSERT'],
   'los únicos GRANT por columna son estos');
 
 /* ---------- authenticated: secuencias ---------- */
@@ -155,11 +157,13 @@ select is(
     'materia_visible',
     'material_compartido',
     'material_visible',
+    'metricas_admin',
     'plan_editable',
     'plan_visible',
     'puede_registrar_en_materia',
     'reemplazar_datos_del_plan',
-    'registrar_documento'
+    'registrar_documento',
+    'reportes_admin'
   ],
   'authenticated ejecuta exactamente estas funciones');
 
@@ -185,7 +189,8 @@ select is(
     'material_sin_fecha_futura',
     'ocultar_material_denunciado',
     'plan_proteger_materias_propias',
-    'poner_updated_at'
+    'poner_updated_at',
+    'reportes_antes_de_insertar'
   ],
   'authenticated no ejecuta exactamente estas funciones');
 
@@ -222,7 +227,7 @@ select is(
 /* ---------- Comprobación real: entrar como authenticated y leer ---------- */
 
 set local role authenticated;
-select is(pg_temp.leer_todas_las_tablas(), 12, 'authenticated consulta las 12 tablas con grant sin error de permisos');
+select is(pg_temp.leer_todas_las_tablas(), 12, 'authenticated consulta las 12 tablas con grant sin error de permisos (reportes, limites_documentos y uso_documentos no se leen)');
 reset role;
 
 select * from finish();
