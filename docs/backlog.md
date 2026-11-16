@@ -40,6 +40,7 @@ Chico, pero necesario para no perder datos ni quedar a ciegas.
 - [ ] **Política de privacidad y términos de uso** (borrador), con un mail de contacto visible.
 - [ ] **Borrar mi cuenta y mis datos** desde Ajustes.
 - [ ] **Test automático de la caché de la vista previa**: que un PDF ya cacheado no se vuelva a procesar (`materiales/VistaPrevia.tsx`). En la fase 0 quedó con prueba manual.
+- [ ] **Investigar por qué pgTAP no corre con `supabase test db --remote`**: falla con `function plan(integer) does not exist` (CLI v3.0.0), también fijando `set local search_path = "$user", public, extensions` en el test (se probó el 16/11/2026 y se sacó). La CLI instala pgTAP en `extensions` antes de correr y lo borra al terminar. Hipótesis a confirmar: el rol con el que entra la CLI al remoto no tiene `USAGE` sobre el esquema `extensions`. Mientras tanto, el remoto se verifica con `supabase/verificacion_remoto.sql` (solo lectura, en el SQL Editor). No volver a correr la herramienta contra producción sin el ok de Agu.
 - [ ] **Prueba con usuarios**: Lucía y 4 o 5 compañeros de LCD. Observarlos usar la app y anotar acá lo que salga.
 
 ## 3. Fase 1, reordenada
