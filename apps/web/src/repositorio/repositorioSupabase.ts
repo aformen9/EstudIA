@@ -185,7 +185,12 @@ export function crearRepositorioSupabase(cliente: SupabaseClient): Repositorio {
     async actualizarPerfil(cambios) {
       const respuesta = await cliente
         .from("perfiles")
-        .update({ nombre: cambios.nombre })
+        .update({
+          // Solo lo que viene: `undefined` no se manda y no pisa la columna.
+          ...(cambios.nombre !== undefined && { nombre: cambios.nombre }),
+          ...(cambios.acento !== undefined && { acento: cambios.acento }),
+          ...(cambios.tema !== undefined && { tema: cambios.tema }),
+        })
         .eq("id", await idDelAlumno())
         .select(COLUMNAS_PERFIL)
         .single();

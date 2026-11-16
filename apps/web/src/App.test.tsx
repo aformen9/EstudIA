@@ -13,7 +13,14 @@ type Avisar = (evento: AuthChangeEvent, sesion: Session | null) => void;
 const ID_PLAN = "00000000-0000-4000-8000-000000000002";
 
 const FILAS: Record<string, unknown> = {
-  perfiles: { id: ID_ALUMNO, nombre: "Ana Pérez", avatar_url: null, es_admin: false },
+  perfiles: {
+    id: ID_ALUMNO,
+    nombre: "Ana Pérez",
+    avatar_url: null,
+    es_admin: false,
+    acento: null,
+    tema: null,
+  },
   inscripciones: [{ id: "i", plan_id: ID_PLAN, activa: true }],
   planes: {
     id: ID_PLAN,

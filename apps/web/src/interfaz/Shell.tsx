@@ -31,6 +31,7 @@ import { useRepositorio, useSesion } from "../sesion/sesion";
 import { Avatar, fotosDeUsuario } from "./Avatar";
 import { CargaDiferida, diferido } from "./CargaDiferida";
 import { Icono, type NombreIcono } from "./Iconos";
+import { useSincronizarPreferencias } from "./preferencias";
 import { useTema } from "./tema";
 import { FILTROS_MATERIALES_INICIALES, FILTROS_MATERIAS_INICIALES } from "../vistas/filtros";
 import { Inicio } from "../vistas/Inicio";
@@ -292,6 +293,7 @@ function ContenidoShell() {
   const repositorio = useRepositorio();
   const sesion = useSesion();
   const { tema, alternar } = useTema();
+  useSincronizarPreferencias();
   const [abierto, setAbierto] = useState(false);
   const [achicado, setAchicado] = useState(leerMenuAchicado);
 

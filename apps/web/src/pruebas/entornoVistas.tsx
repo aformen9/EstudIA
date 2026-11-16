@@ -139,8 +139,19 @@ export function repositorioFalso(inicial: Inicial = {}): RepositorioFalso {
       nombre: "Ana Pérez",
       avatarUrl: null,
       esAdmin: false,
+      // Lo mismo que el dispositivo sin nada guardado: al entrar no hay nada que aplicar ni subir.
+      acento: "azul",
+      tema: "dark",
     }),
-    actualizarPerfil: async () => ({ id: "u", nombre: "x", avatarUrl: null, esAdmin: false }),
+    actualizarPerfil: async (cambios) => ({
+      id: "u",
+      nombre: "x",
+      avatarUrl: null,
+      esAdmin: false,
+      acento: null,
+      tema: null,
+      ...cambios,
+    }),
     listarInscripciones: async () => base.inscripciones,
     activarPlan: async (planId) => {
       const inscripcion = { id: "ins-1", planId, activa: true };

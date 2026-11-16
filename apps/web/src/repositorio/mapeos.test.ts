@@ -183,11 +183,34 @@ describe("catálogo", () => {
 
 describe("alumno", () => {
   it("perfil", () => {
-    expect(perfilDesdeFila({ id: "i", nombre: null, avatar_url: "a", es_admin: true })).toEqual({
+    expect(
+      perfilDesdeFila({
+        id: "i",
+        nombre: null,
+        avatar_url: "a",
+        es_admin: true,
+        acento: "naranja",
+        tema: "light",
+      }),
+    ).toEqual({
       id: "i",
       nombre: null,
       avatarUrl: "a",
       esAdmin: true,
+      acento: "naranja",
+      tema: "light",
+    });
+  });
+
+  it("perfil con preferencias vacías o que esta versión no conoce", () => {
+    const fila = { id: "i", nombre: null, avatar_url: null, es_admin: false };
+    expect(perfilDesdeFila({ ...fila, acento: null, tema: null })).toMatchObject({
+      acento: null,
+      tema: null,
+    });
+    expect(perfilDesdeFila({ ...fila, acento: "turquesa", tema: "sepia" })).toMatchObject({
+      acento: null,
+      tema: null,
     });
   });
 
