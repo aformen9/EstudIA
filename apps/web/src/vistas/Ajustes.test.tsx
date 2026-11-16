@@ -164,6 +164,26 @@ describe("Ajustes", () => {
     expect(await main.findByRole("button", { name: "Descargar respaldo" })).toBeTruthy();
   });
 
+  it("elige el color de acento, lo aplica y lo recuerda", async () => {
+    delete document.documentElement.dataset.accent;
+    const { main } = await abrir(conInscripcion());
+    const grupo = await main.findByRole("radiogroup", { name: /Color de acento/ });
+    expect(within(grupo).getByRole("radio", { name: "Azul" }).getAttribute("aria-checked")).toBe(
+      "true",
+    );
+
+    fireEvent.click(within(grupo).getByRole("radio", { name: "Verde" }));
+    expect(document.documentElement.dataset.accent).toBe("verde");
+    expect(localStorage.getItem("estudia.acento")).toBe("verde");
+    expect(within(grupo).getByRole("radio", { name: "Verde" }).getAttribute("aria-checked")).toBe(
+      "true",
+    );
+
+    fireEvent.click(within(grupo).getByRole("radio", { name: "Azul" }));
+    expect(document.documentElement.dataset.accent).toBeUndefined();
+    expect(localStorage.getItem("estudia.acento")).toBe("azul");
+  });
+
   it("cerrar sesión desde Ajustes usa el mismo diálogo", async () => {
     const { main, signOut } = await abrir(conInscripcion());
     fireEvent.click(await main.findByRole("button", { name: "Cerrar sesión" }));
