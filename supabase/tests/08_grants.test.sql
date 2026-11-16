@@ -73,8 +73,8 @@ select is(
    from pg_attribute a
    where a.attrelid = 'public.perfiles'::regclass and a.attnum > 0 and not a.attisdropped
      and has_column_privilege('authenticated', a.attrelid, a.attnum, 'UPDATE')),
-  array['avatar_url', 'nombre'],
-  'de perfiles, authenticated solo actualiza nombre y avatar_url');
+  array['acento', 'avatar_url', 'nombre', 'tema'],
+  'de perfiles, authenticated solo actualiza nombre, avatar_url, acento y tema');
 
 select is(
   (select coalesce(array_agg(a.attname::text order by a.attname::text collate "C"), '{}')
@@ -125,7 +125,7 @@ select is(
      where n.nspname = 'public' and a.attnum > 0 and not a.attisdropped
        and acl.grantee in ('authenticated'::regrole::oid, 0)
    ) columnas),
-  array['perfiles.avatar_url: UPDATE', 'perfiles.nombre: UPDATE'],
+  array['perfiles.acento: UPDATE', 'perfiles.avatar_url: UPDATE', 'perfiles.nombre: UPDATE', 'perfiles.tema: UPDATE'],
   'los únicos GRANT por columna son estos');
 
 /* ---------- authenticated: secuencias ---------- */

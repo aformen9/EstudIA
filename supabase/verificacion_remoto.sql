@@ -67,12 +67,12 @@ listas (chequeo, real, esperado) as (
          'progreso: DELETE,INSERT,SELECT,UPDATE',
          'universidades: DELETE,INSERT,SELECT,UPDATE']),
 
-  ('perfiles: authenticated actualiza solo nombre y avatar_url',
+  ('perfiles: authenticated actualiza solo nombre, avatar_url, acento y tema',
    (select array_agg(a.attname::text order by a.attname::text collate "C")
     from pg_attribute a
     where a.attrelid = 'public.perfiles'::regclass and a.attnum > 0 and not a.attisdropped
       and has_column_privilege('authenticated', a.attrelid, a.attnum, 'UPDATE')),
-   array['avatar_url', 'nombre']),
+   array['acento', 'avatar_url', 'nombre', 'tema']),
 
   ('GRANT por columna (authenticated y PUBLIC)',
    (select array_agg(x order by x collate "C") from (
@@ -82,7 +82,8 @@ listas (chequeo, real, esperado) as (
       cross join lateral aclexplode(a.attacl) acl
       where a.attnum > 0 and not a.attisdropped
         and acl.grantee in ('authenticated'::regrole::oid, 0)) c),
-   array['perfiles.avatar_url: UPDATE', 'perfiles.nombre: UPDATE']),
+   array['perfiles.acento: UPDATE', 'perfiles.avatar_url: UPDATE', 'perfiles.nombre: UPDATE',
+         'perfiles.tema: UPDATE']),
 
   ('funciones que ejecuta authenticated',
    (select array_agg(nombre order by nombre collate "C") from funciones
