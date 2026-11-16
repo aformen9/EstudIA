@@ -28,6 +28,9 @@ import type {
   TipoMaterial,
   Universidad,
   VisibilidadMaterial,
+  NuevoReporte,
+  ReporteAdmin,
+  TipoReporte,
 } from "@estudia/core";
 
 /* ---------- Catálogo ---------- */
@@ -432,5 +435,46 @@ export function nuevoDocumentoAParametros(documento: NuevoDocumento) {
     bytes: documento.bytes,
     paginas: documento.paginas,
     texto: documento.texto,
+  };
+}
+
+/* ---------- Reportes y admin ---------- */
+
+export function nuevoReporteAFila(reporte: NuevoReporte) {
+  // Ni user_id ni created_at: los pone la base, y el alumno no tiene permiso sobre esas columnas.
+  return {
+    tipo: reporte.tipo,
+    texto: reporte.texto,
+    vista: reporte.vista,
+    contactable: reporte.contactable,
+    navegador: reporte.navegador,
+    sistema: reporte.sistema,
+    version_app: reporte.versionApp,
+  };
+}
+
+export interface FilaReporteAdmin {
+  id: string;
+  created_at: string;
+  tipo: TipoReporte;
+  texto: string;
+  vista: string | null;
+  contacto: string | null;
+  navegador: string | null;
+  sistema: string | null;
+  version_app: string | null;
+}
+
+export function reporteAdminDesdeFila(fila: FilaReporteAdmin): ReporteAdmin {
+  return {
+    id: fila.id,
+    createdAt: fila.created_at,
+    tipo: fila.tipo,
+    texto: fila.texto,
+    vista: fila.vista,
+    contacto: fila.contacto,
+    navegador: fila.navegador,
+    sistema: fila.sistema,
+    versionApp: fila.version_app,
   };
 }

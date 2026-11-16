@@ -94,6 +94,29 @@ describe("Repositorio contra Supabase local", () => {
     await repositorio.actualizarPerfil({ nombre: "Alumno de Prueba" });
   });
 
+  it("actualizarPerfil guarda acento y modo, y no toca el nombre", async () => {
+    const antes = await repositorio.obtenerPerfil();
+    const perfil = await repositorio.actualizarPerfil({ acento: "verde", tema: "light" });
+    expect(perfil).toMatchObject({ acento: "verde", tema: "light", nombre: antes.nombre });
+    await repositorio.actualizarPerfil({ acento: antes.acento, tema: antes.tema });
+  });
+
+  it("crearReporte inserta sin poder leer, y el alumno no ve los de admin", async () => {
+    await expect(
+      repositorio.crearReporte({
+        tipo: "problema",
+        texto: "prueba de integración",
+        vista: "inicio",
+        contactable: false,
+        navegador: "Chrome 131",
+        sistema: "macOS",
+        versionApp: "local",
+      }),
+    ).resolves.toBeUndefined();
+    await expect(repositorio.listarReportesAdmin()).rejects.toThrow();
+    await expect(repositorio.obtenerMetricasAdmin()).rejects.toThrow();
+  });
+
   it("lista universidad → carrera → plan", async () => {
     const universidades = await repositorio.listarUniversidades();
     const uca = universidades.find((u) => u.sigla === "UCA");
