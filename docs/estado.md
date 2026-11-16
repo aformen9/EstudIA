@@ -4,7 +4,7 @@
 
 ## Dónde quedó
 
-- **Fase 0: todos los criterios verificados, esperando la aprobación de Agu para cerrarla** (2026-11-16). Alcance congelado. Se cierra con los pasos de `docs/backlog.md` §1; ver "Próximos pasos".
+- **Fase 0: cerrada** (aprobada por Agu el 2026-11-16). En curso: la primera tanda de `docs/backlog.md` §2.
 - **Cambios de diseño mergeados:** PR #1 con squash, CI en verde. La rama `fase-0/cambios-de-diseno` está borrada.
 - **Historial reescrito (2026-11-16):** se sacó `Co-Authored-By: Claude` de los 59 commits de `main` (solo cambiaron los mensajes y los hashes; los archivos son los mismos) y se hizo force push. Desde ahora Agu es el único autor (`CLAUDE.md`, regla 6). En la pestaña "Commits" del PR #1 GitHub conserva los commits originales.
 - **El repo está en `/Users/aformen9/Dev/EstudIA`.** Abrir la sesión nueva desde esa carpeta: desde ahí se cargan los agentes de `.claude/agents/`.
