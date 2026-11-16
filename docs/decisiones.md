@@ -252,3 +252,4 @@ Agu aprobó todos los puntos del backlog. Acá van las decisiones de sus seccion
 - Criterio 9: aceptado con la prueba manual de la caché de la vista previa; el test automático va al backlog.
 - Crédito del README: Lucía Formenti está de acuerdo con que se la nombre.
 - Agu protege `main` con un ruleset.
+- `main` protegida con un ruleset (lo configuró Agu): sin borrado ni force push, PR obligatorio con 0 aprobaciones y los tres chequeos del CI requeridos, con la rama al día. Desde ahora todo cambio va por PR (`CLAUDE.md`, regla 9).
