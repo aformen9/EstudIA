@@ -241,3 +241,10 @@ Agu aprobó todos los puntos del backlog. Acá van las decisiones de sus seccion
 - **Postergado hasta que haya demanda:** apps descargables (dmg, exe, APK) y landing de descargas (la PWA cubre lo mismo sin firmas), IA local embebida y en el celular, MCP para Claude y ChatGPT, moderadores por carrera y otras carreras (Ingeniería Química). Las fases 3, 4 y 5 quedan en pausa.
 - **Forma de trabajo:** las decisiones menores las toma la coordinadora y las informa; solo se consulta lo de diseño grande.
 - **Agu hace a mano**, para aprender y poder defenderlo: el job de backups, el deploy en Vercel y la protección de ramas. La coordinadora lo guía paso a paso.
+
+## 2026-11-16 (cierre de la fase 0)
+
+- Criterio 5 verificado a mano por Agu sobre el deploy (https://estudia-liard.vercel.app) con Google real: login, onboarding con el plan elegido solo, importar el fixture, 26 de 50 y 7,73, cambiar una nota y recargar, modo oscuro. Sin capturas, por decisión de Agu.
+- Bug del menú lateral (borde superior del ítem activo cortado) se arregla dentro del cierre de la fase 0.
+- Primera tanda después de cerrar la fase 0 (`docs/backlog.md` §2): botón de casita, acento azul por defecto con selector de acento en Ajustes (logo e íconos de la PWA en azul, contraste AA), Umami, métricas para admin, monitoreo de caídas y "Reportar un problema o sugerencia".
+- Agu es el único autor de commits y PRs: se sacó `Co-Authored-By: Claude` de todo el historial de `main` (force push corrido por Agu).

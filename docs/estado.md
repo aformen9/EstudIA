@@ -32,8 +32,8 @@ Local, antes del PR #1 (2026-11-16):
 
 - `anon` no lee ni escribe ninguna de las 14 tablas y no ejecuta ninguna RPC (401, `42501`).
 - Un pedido de 2 MB de texto pasa el gateway (sin 413; Postgres lo rechaza por permisos). Probado sin sesión.
-- **El login por mail seguía prendido** (`/auth/v1/settings`: `email: true`). Agu tiene que apagarlo en el panel; falta volver a comprobarlo.
-- **GRANT y seed en el remoto: sin correr.** Falta `supabase test db --linked` (lo corre Agu, con Docker abierto; cada archivo hace `begin … rollback`). El conector de Supabase de esta sesión es de otra cuenta y no ve el proyecto.
+- Login por mail apagado: comprobado en `/auth/v1/settings` (`email: false`, `google: true`).
+- **GRANT y seed en el remoto: sin correr.** Falta `supabase test db --remote supabase/tests/01_privilegios_y_seed.test.sql supabase/tests/08_grants.test.sql` (lo corre Agu, con Docker abierto; cada archivo hace `begin … rollback`). El conector de Supabase de esta sesión es de otra cuenta y no ve el proyecto.
 
 ## Prueba manual de Agu en Safari (2026-11-07)
 
@@ -47,7 +47,7 @@ Funcionan bien: brillo, guardar y recargar, confeti, PDFs, Deshacer, modo oscuro
 
 ## Sin probar
 
-- Google real (criterio 5) y `statement_timeout` con 2 MB de texto con sesión.
+- `statement_timeout` con 2 MB de texto con sesión.
 - Táctil real y `prefers-reduced-motion` en un dispositivo.
 - La descarga real de archivos que no se abren en pestaña, arrastrar archivos y el aviso nativo de `beforeunload`.
 - La vuelta del foco con teclado físico. El avatar con una foto real de Google.
@@ -55,9 +55,9 @@ Funcionan bien: brillo, guardar y recargar, confeti, PDFs, Deshacer, modo oscuro
 ## Próximos pasos (`docs/backlog.md` §1)
 
 1. ~~Mergear la rama por PR con squash y CI en verde.~~ Hecho (PR #1).
-2. **Remoto:** ~~`supabase link`, migraciones y seed~~ hecho. Falta: apagar el login por mail (Agu) y correr `supabase test db --linked` (Agu, con Docker).
+2. **Remoto:** ~~`supabase link`, migraciones, seed y login por mail apagado~~ hecho. Falta: `supabase test db --remote` de `01` y `08` (Agu, con Docker).
 3. ~~Deploy en Vercel y URL en Supabase y Google.~~ Hecho por Agu.
-4. **Criterio 5** con Google real sobre el deploy, en la Mac y en un celular real, con capturas. Incluye la prueba pendiente en Safari.
+4. ~~**Criterio 5** con Google real sobre el deploy.~~ Verificado a mano por Agu el 2026-11-16, sin capturas. Falta confirmar en el deploy el arreglo del menú lateral.
 5. **README real** con el crédito a "Mi Plan de Estudio", de Lucía Formenti, y los comandos en `CLAUDE.md`, incluido `pnpm --filter web test:integracion` con `supabase db reset` antes y después (borra los datos locales). Va en un PR.
 6. **Revisión final:** agente `revisor` y reporte ✅/❌ de cada criterio de `docs/fases/fase-0.md`. Esperar la aprobación de Agu antes de pasar de fase.
 
@@ -67,9 +67,9 @@ Funcionan bien: brillo, guardar y recargar, confeti, PDFs, Deshacer, modo oscuro
 |---|---|---|
 | 1 | test, lint, typecheck y build | Pasa en local y en CI |
 | 2 | `core` contra el fixture esperado | Pasa |
-| 3 | `supabase db reset` con migraciones y seed | Pasa en local; en remoto se subieron, falta `supabase test db --linked` |
-| 4 | Tests de RLS | Pasa en local y CI; en remoto `anon` pasa, faltan GRANT con `--linked` |
-| 5 | Flujo manual con Google | **Falta:** deploy listo, sin probar con Google |
+| 3 | `supabase db reset` con migraciones y seed | Pasa en local; en remoto se subieron, falta `supabase test db --remote` |
+| 4 | Tests de RLS | Pasa en local y CI; en remoto `anon` pasa, faltan GRANT con `--remote` |
+| 5 | Flujo manual con Google | Verificado a mano por Agu en el deploy (2026-11-16), sin capturas |
 | 6 | Sin claves reales, gitleaks en CI | Pasa en CI |
 | 7 | Logo aprobado | Aprobado en `docs/decisiones.md` |
 | 8 | Sin `<select>`; plan único salteado, más reciente preseleccionado | Pasa en tests; lo confirma el revisor |
