@@ -69,11 +69,11 @@ Funcionan bien: brillo, guardar y recargar, confeti, PDFs, Deshacer, modo oscuro
 | 2 | `core` contra el fixture esperado | Pasa |
 | 3 | `supabase db reset` con migraciones y seed | Pasa en local; en remoto se subieron, falta `supabase test db --remote` |
 | 4 | Tests de RLS | Pasa en local y CI; en remoto `anon` pasa, faltan GRANT con `--remote` |
-| 5 | Flujo manual con Google | Verificado a mano por Agu en el deploy (2026-11-16), sin capturas |
+| 5 | Flujo manual con Google | ✅ Verificado manualmente por Agu en el deploy (2026-11-16), sin capturas |
 | 6 | Sin claves reales, gitleaks en CI | Pasa en CI |
 | 7 | Logo aprobado | Aprobado en `docs/decisiones.md` |
 | 8 | Sin `<select>`; plan único salteado, más reciente preseleccionado | Pasa en tests; lo confirma el revisor |
-| 9 | Vista previa y PDF.js fuera de la carga inicial | Pasa en local; lo confirma el revisor |
+| 9 | Vista previa y PDF.js fuera de la carga inicial | ✅ Aceptado por Agu: build y tests, más la prueba manual de la caché (el test automático va al backlog) |
 
 ## Peso del JS
 

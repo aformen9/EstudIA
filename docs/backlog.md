@@ -39,6 +39,7 @@ Chico, pero necesario para no perder datos ni quedar a ciegas.
 - [ ] **Dependabot** y `pnpm audit` en el CI.
 - [ ] **Política de privacidad y términos de uso** (borrador), con un mail de contacto visible.
 - [ ] **Borrar mi cuenta y mis datos** desde Ajustes.
+- [ ] **Test automático de la caché de la vista previa**: que un PDF ya cacheado no se vuelva a procesar (`materiales/VistaPrevia.tsx`). En la fase 0 quedó con prueba manual.
 - [ ] **Prueba con usuarios**: Lucía y 4 o 5 compañeros de LCD. Observarlos usar la app y anotar acá lo que salga.
 
 ## 3. Fase 1, reordenada

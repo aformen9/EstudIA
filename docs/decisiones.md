@@ -248,3 +248,7 @@ Agu aprobó todos los puntos del backlog. Acá van las decisiones de sus seccion
 - Bug del menú lateral (borde superior del ítem activo cortado) se arregla dentro del cierre de la fase 0.
 - Primera tanda después de cerrar la fase 0 (`docs/backlog.md` §2): botón de casita, acento azul por defecto con selector de acento en Ajustes (logo e íconos de la PWA en azul, contraste AA), Umami, métricas para admin, monitoreo de caídas y "Reportar un problema o sugerencia".
 - Agu es el único autor de commits y PRs: se sacó `Co-Authored-By: Claude` de todo el historial de `main` (force push corrido por Agu).
+- Criterio 5: ✅ verificado manualmente por Agu, sin capturas.
+- Criterio 9: aceptado con la prueba manual de la caché de la vista previa; el test automático va al backlog.
+- Crédito del README: Lucía Formenti está de acuerdo con que se la nombre.
+- Agu protege `main` con un ruleset.
