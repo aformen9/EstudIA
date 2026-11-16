@@ -81,6 +81,10 @@ Universidad, carrera y plan no se borran en cascada: un padre con hijos no se pu
 - **materiales** (lo que ve cada alumno): `id` (lo puede generar el cliente: un reintento con el mismo id no duplica), `user_id`, `materia_id` (null = "sin materia"; CHECK: sin materia no puede ser `compartido`. Al borrar la materia, el material queda sin materia y pasa a `privado`. Al moverlo a otra materia, también pasa a `privado`), `tipo` (`archivo` | `link` | `nota`), `titulo` (hasta 200 caracteres), `documento_id` (solo archivo; varios materiales pueden apuntar al mismo documento), `url` (solo link, solo `http` o `https`, hasta 2048 caracteres), `texto` (solo nota, hasta 50 KB), `drive_file_id` (fase 1), `visibilidad` (`privado` | `compartido`), `anonimo` (bool), `periodo` (text, ej. `"2025-2C"`), `oculto` (bool, por denuncias o admin), `created_at` (el cliente puede mandar una fecha pasada, para restaurar respaldos; una futura se lleva a ahora), `compartido_en` (la fija siempre el servidor al pasar a `compartido` y se borra al volver a `privado`; `material_compartido` ordena por esta columna). `user_id` no se puede cambiar.
 - **denuncias**: `id`, `material_id`, `user_id`, `motivo`, `created_at`. Único (`material_id`, `user_id`). Trigger: con **3 denuncias** distintas → `materiales.oculto = true`.
 
+### 4.4 Reportes
+
+- **reportes** (problemas y sugerencias): `id`, `user_id` (lo fija la base; al borrar la cuenta se borran), `tipo` (`problema` | `sugerencia`), `texto` (de 1 a 1000 caracteres sin contar los espacios de las puntas), `vista` (desde dónde se reportó, hasta 30), `contactable` (bool, default false), `navegador`, `sistema` y `version_app` (datos técnicos sin identidad: nombre y versión principal, nunca el user agent entero), `created_at` (lo fija la base). Trigger `reportes_antes_de_insertar` (security definer): fija autor y fecha y rechaza con `EQ005` el sexto reporte de un alumno en 24 horas corridas.
+
 ## 5. Reglas de acceso (RLS)
 
 Funciones auxiliares `security definer`, `stable`, con `search_path` fijo:
@@ -100,6 +104,8 @@ Funciones auxiliares `security definer`, `stable`, con `search_path` fijo:
 | material compartido | vía RPC `material_compartido(materia_id)` (security definer): devuelve materiales `compartido`, no `oculto`, de esa materia, **solo si `cursa_o_curso(materia_id)`**; el autor se devuelve como `null` si `anonimo`. Del documento solo devuelve `mime`, `bytes` y `paginas`: ni `sha256` ni `id`, porque con el `id` se podría crear un material propio y leer la fila completa. Abrir un documento compartido (fase 1, comunidad) requiere una RPC que lea por `material_id` | — |
 | documentos | la tabla, solo si el usuario tiene un material propio que lo referencia, sin excepción para admin (moderar un archivo necesitará otra vía). El de un material compartido visible para él se expone solo por RPC y **nunca con su `sha256`**: ninguna RPC ni consulta devuelve el hash de documentos ajenos (ver §7) | vía RPC `registrar_documento(sha256, mime, bytes, paginas, texto)` que hace upsert por `sha256` y devuelve el `id`. Nunca pisa un `texto` existente: solo lo completa si era null |
 | denuncias | propias (admin: todas) | insertar propias, sobre material que puede ver |
+| reportes | nadie, ni el admin: el admin los lee con la RPC `reportes_admin(limite)`, que no devuelve `user_id` y solo da el mail si `contactable` | insertar propios, solo las columnas `tipo`, `texto`, `vista`, `contactable`, `navegador`, `sistema` y `version_app` |
+| métricas | RPC `metricas_admin()`, solo admin: totales (alumnos, nuevos y activos en 7 días, con plan activo, con materias, alumnos por plan, progreso, instancias, materias propias, material por tipo, documentos y reportes). Nunca ids ni datos de un alumno | — |
 
 - `anon` (sin sesión): sin acceso a nada.
 - Las **notas nunca se comparten**: ninguna política ni RPC expone `progreso` ni `instancias` de otro usuario.
