@@ -4,6 +4,8 @@
  * Las fechas `date` son strings "YYYY-MM-DD"; las `timestamptz`, strings ISO.
  */
 
+import type { Acento, Tema } from "./preferencias/preferencias";
+
 export const ESTADOS_MATERIA = ["pendiente", "cursando", "final", "aprobada"] as const;
 export type EstadoMateria = (typeof ESTADOS_MATERIA)[number];
 
@@ -109,6 +111,9 @@ export interface Perfil {
   nombre: string | null;
   avatarUrl: string | null;
   esAdmin: boolean;
+  /** `null`: todavía no eligió; la app sube lo que tenga el dispositivo. */
+  acento: Acento | null;
+  tema: Tema | null;
 }
 
 export interface Inscripcion {
