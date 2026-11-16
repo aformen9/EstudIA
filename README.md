@@ -75,7 +75,7 @@ La prueba de integración escribe en la base local: conviene correr `supabase db
 
 ## Hacerse admin
 
-No hay pantalla para nombrar admins y la API no lo permite. Se hace una sola vez desde el SQL Editor del panel de Supabase, con el id del usuario (Authentication → Users):
+No hay pantalla para nombrar admins y la API no lo permite. Se hace una sola vez desde el SQL Editor del panel de Supabase, con el id del usuario (Authentication → Users). Es un dato, no un cambio de esquema: es la única excepción a la regla de tocar la base solo con migraciones.
 
 ```sql
 update public.perfiles set es_admin = true where id = '<id-del-usuario>';

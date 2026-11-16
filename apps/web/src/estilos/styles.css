@@ -327,8 +327,8 @@ h3 {
   flex: 1;
   /* El scroll recorta lo que sale de la caja: este margen deja entrar el anillo y el brillo del
      indicador (.nav-ind) del primer y del último ítem sin mover los enlaces de lugar. */
-  margin: -6px -4px;
-  padding: 6px 4px;
+  margin: -6px -4px -16px;
+  padding: 6px 4px 16px;
 }
 .nav a {
   position: relative;
