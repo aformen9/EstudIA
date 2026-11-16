@@ -1,68 +1,65 @@
 # Estado del proyecto
 
-Última actualización: 2026-11-07. Para retomar alcanza con este archivo y `git log`; las reglas de trabajo están en `CLAUDE.md`.
+Última actualización: 2026-11-16. Para retomar alcanza con este archivo, `docs/backlog.md` y `git log`; las reglas de trabajo están en `CLAUDE.md`.
 
 ## Dónde quedó
 
-- **Fase 0, sin cerrar.** Están hechas `db`, `core`, el CI y las 4 tandas de `web`. Agu probó a mano en Safari y pidió cambios de diseño (`docs/decisiones.md`, 2026-11-07, y `docs/fases/fase-0.md` §0.6). Aprobó la primera versión de los mockups con ajustes y sumó la vista previa de archivos y un onboarding nuevo: **implementados en la rama `fase-0/cambios-de-diseno`, sin pushear y esperando la prueba de Agu**. Después sigue lo de "Próximos pasos": vincular el remoto, probar con Google real, deploy, documentación y revisión final.
+- **Fase 0, sin cerrar y con el alcance congelado** (2026-11-16). Se cierra con los pasos de `docs/backlog.md` §1; ver "Próximos pasos".
+- **Cambios de diseño mergeados:** PR #1 con squash, CI en verde. La rama `fase-0/cambios-de-diseno` está borrada.
+- **Historial reescrito (2026-11-16):** se sacó `Co-Authored-By: Claude` de los 59 commits de `main` (solo cambiaron los mensajes y los hashes; los archivos son los mismos) y se hizo force push. Desde ahora Agu es el único autor (`CLAUDE.md`, regla 6). En la pestaña "Commits" del PR #1 GitHub conserva los commits originales.
 - **El repo está en `/Users/aformen9/Dev/EstudIA`.** Abrir la sesión nueva desde esa carpeta: desde ahí se cargan los agentes de `.claude/agents/`.
-- **`main` está pusheado.** Resultado del CI: ver "Última verificación".
-- **Supabase remoto:** proyecto y login con Google creados por Agu, **sin vincular y sin migraciones**. Ver el paso 1.
-- **Migraciones:** se editaron en el lugar porque nunca se aplicaron en remoto. Desde que se suban, cualquier cambio va en una migración nueva.
-- **Entorno local:** la base local se reseteó el 2026-11-07 para aplicar `instancias`. El usuario de prueba quedó con el plan 7023 activo y el fixture importado (26 de 50, promedio 7,73), listo para probar. Para probar:
-  - Docker abierto, `supabase start` y `pnpm dev` desde la carpeta del repo.
+- **Supabase remoto** (`uckdkqsdyindmyrvdccw`): vinculado por Agu con `supabase link`, con las migraciones y el seed subidos (`supabase db push --include-seed`). **Desde ahora, cualquier cambio a la base va en una migración nueva**: las originales ya no se editan.
+- **Deploy en Vercel:** https://estudia-liard.vercel.app, hecho por Agu. Root Directory `apps/web`, preset Vite, con `VITE_SUPABASE_URL` y `VITE_SUPABASE_PUBLISHABLE_KEY` del remoto, sin la integración de Supabase. La URL está en Supabase (Site URL y Redirect URLs) y en Google (orígenes autorizados).
+- **Entorno local:** para probar contra la base local:
+  - Docker abierto, `supabase start` y `pnpm dev` desde la carpeta del repo (`pnpm dev` usa `.env.development.local`, o sea la base local).
   - Abrir `http://localhost:5173` y tocar "Entrar con el usuario de prueba".
   - Importar `fixtures/caso-prueba-legacy.json` (alumno inventado): Inicio da 26 de 50 y promedio 7,73.
 
 ## Última verificación
 
-Local, sobre el árbol que se commiteó:
+Local, antes del PR #1 (2026-11-16):
 
 | Qué | Resultado |
 |---|---|
 | `pnpm lint` y `pnpm typecheck` | pasan |
-| `pnpm test` | `core` 247, `web` 449 |
-| `pnpm build` | pasa; sin login de prueba ni enlaces a Google Fonts en `dist` |
-| `supabase test db` (pgTAP) | 783 en 11 archivos |
-| `pnpm --filter web test:integracion` | 22, contra la base local |
-| Seed contra el catálogo | coincide; se comprobó que el chequeo falla con una diferencia |
+| `pnpm test` | `core` 282, `web` 467 |
+| `pnpm build` | pasa |
+| `supabase test db` y la integración | no se corrieron (Docker apagado); la última vez, el 2026-11-07: pgTAP 796, integración 22 |
 
-En Chrome headless, con mouse simulado:
+**CI:** verde en el PR #1 (calidad, migraciones y RLS, claves en el historial) y en `main` después de reescribir el historial.
 
-- Inicio, panel, materias propias, ciclos, Materiales, Ajustes, cerrar sesión, mover y agregar material, Deshacer y restaurar durante Deshacer, a 390 y 1280 px.
-- Botón Atrás con un borrado pendiente. Encontró un bug, ya arreglado: al volver de la caché del navegador se borraba sin poder deshacer. Ahora salir de la página cancela el borrado.
+**Remoto, con la API real y sin sesión (2026-11-16):**
 
-**CI:** verde en `2916b54` (corrida 42395248359, sobre el mismo árbol antes de reescribir los mensajes), con los 3 jobs: calidad, RLS y claves en el historial. El paso "El seed coincide con el catálogo" corrió y pasó en GitHub. Después de ese commit solo cambió este archivo.
+- `anon` no lee ni escribe ninguna de las 14 tablas y no ejecuta ninguna RPC (401, `42501`).
+- Un pedido de 2 MB de texto pasa el gateway (sin 413; Postgres lo rechaza por permisos). Probado sin sesión.
+- **El login por mail seguía prendido** (`/auth/v1/settings`: `email: true`). Agu tiene que apagarlo en el panel; falta volver a comprobarlo.
+- **GRANT y seed en el remoto: sin correr.** Falta `supabase test db --linked` (lo corre Agu, con Docker abierto; cada archivo hace `begin … rollback`). El conector de Supabase de esta sesión es de otra cuenta y no ve el proyecto.
 
 ## Prueba manual de Agu en Safari (2026-11-07)
 
 Funcionan bien: brillo, guardar y recargar, confeti, PDFs, Deshacer, modo oscuro y la vista Promedio.
 
-## Cambios de diseño (rama `fase-0/cambios-de-diseno`)
+## Cambios de diseño (mergeados en el PR #1)
 
-- **Hecho:** todo lo de `docs/fases/fase-0.md` §0.6, en 6 commits sobre `main`. Solo el último deja todo en verde: los intermedios de `core` y de `web` no compilan por separado.
-- **Verificado en local:** lint, typecheck, `core` 276 tests, `web` 461 tests, `supabase test db` 784 y `pnpm build`. PDF.js queda en un chunk aparte (148 kB con gzip, más el worker), fuera de la carga inicial.
-- **Visto en Chrome (local, 1280 y 390 px):** subir con el selector nuevo, vista previa de un PDF real, de una imagen y de texto, tarjeta con dos materias, aviso de borrado, slider con arrastre de mouse y escribiendo, celebración y Promedio.
-- **No visto en la app real:** el onboarding nuevo, porque el usuario de prueba ya tenía plan y no se pudo desactivar desde acá. Está cubierto por tests y por el mockup.
-- **Panel por instancias (pedido después):** hecho. `historial` y las notas fijas de `progreso` se reemplazaron por la tabla `instancias` y la RPC `guardar_materia`. El fixture y los resultados esperados no cambiaron: el criterio 2 pasa igual, y el criterio 5 por la interfaz da 26 de 50 y 7,73.
-- **Verificado (2026-11-07):** lint, typecheck, `core` 282, `web` 467, integración 22, `supabase test db` 796 y build. En Chrome, a 1280 y 390 px: onboarding real (con el plan elegido solo), importar el fixture, el panel de Cálculo Avanzado (recursada: nota 7, cursada vigente 8), Probabilidad (6 con aplazo 2), agregar instancias, agrupar y Falta final.
-- **Falta:** que Agu lo pruebe en Safari antes del merge, en especial el blur, el slider con el dedo, el selector de fecha y la miniatura de HEIC. Agu no contó cómo le fue con el slider en el mockup.
+- **Hecho:** todo lo de `docs/fases/fase-0.md` §0.6 y el panel por instancias (`instancias` y la RPC `guardar_materia` en lugar de `historial` y las notas fijas).
+- **Verificado (2026-11-07):** en Chrome, a 1280 y 390 px: onboarding real, importar el fixture, panel por instancias, vista previa de PDF, imagen y texto, tarjeta con dos materias, slider, celebración y Promedio.
+- **Falta probar en Safari, sobre el deploy** (decidido el 2026-11-16: se mergeó antes): el blur, el slider con el dedo, el selector de fecha y la miniatura de HEIC.
 
 ## Sin probar
 
-- Google real y Supabase remoto (GRANT, `anon`, tope de tamaño del gateway para 2 MB de texto y `statement_timeout`).
+- Google real (criterio 5) y `statement_timeout` con 2 MB de texto con sesión.
 - Táctil real y `prefers-reduced-motion` en un dispositivo.
 - La descarga real de archivos que no se abren en pestaña, arrastrar archivos y el aviso nativo de `beforeunload`.
 - La vuelta del foco con teclado físico. El avatar con una foto real de Google.
-- El brillo se midió con mouse simulado. Agu lo probó a mano y dijo que quedó bien.
 
-## Próximos pasos
+## Próximos pasos (`docs/backlog.md` §1)
 
-1. **Vincular el remoto (lo hace Agu):** primero apagar en el panel el login por mail; después correr `supabase link` con la contraseña de la base. Subir las migraciones y repetir contra el remoto la prueba de GRANT y de `anon` con la API real. Comprobar que un pedido de 2 MB de texto pase por el gateway.
-2. **Criterio 5 con Google real:** entrar, elegir UCA / LCD / 7023, importar el caso de prueba, Inicio con 26 de 50 y 7,73, cambiar una nota y recargar, modo oscuro y 390 px, con capturas.
-3. **Deploy en Vercel:** requiere conectar el proyecto al repo. Si se agrega una CSP, tiene que permitir el host de las fotos de Google en `img-src`.
-4. **Documentación:** README y comandos en `CLAUDE.md`, incluido `pnpm --filter web test:integracion` con `supabase db reset` antes y después (borra los datos locales).
-5. **Revisión final:** agente `revisor` y reporte ✅/❌ de cada criterio de `docs/fases/fase-0.md`. Esperar la aprobación de Agu antes de pasar de fase.
+1. ~~Mergear la rama por PR con squash y CI en verde.~~ Hecho (PR #1).
+2. **Remoto:** ~~`supabase link`, migraciones y seed~~ hecho. Falta: apagar el login por mail (Agu) y correr `supabase test db --linked` (Agu, con Docker).
+3. ~~Deploy en Vercel y URL en Supabase y Google.~~ Hecho por Agu.
+4. **Criterio 5** con Google real sobre el deploy, en la Mac y en un celular real, con capturas. Incluye la prueba pendiente en Safari.
+5. **README real** con el crédito a "Mi Plan de Estudio", de Lucía Formenti, y los comandos en `CLAUDE.md`, incluido `pnpm --filter web test:integracion` con `supabase db reset` antes y después (borra los datos locales). Va en un PR.
+6. **Revisión final:** agente `revisor` y reporte ✅/❌ de cada criterio de `docs/fases/fase-0.md`. Esperar la aprobación de Agu antes de pasar de fase.
 
 ## Criterios de la fase 0
 
@@ -70,11 +67,13 @@ Funcionan bien: brillo, guardar y recargar, confeti, PDFs, Deshacer, modo oscuro
 |---|---|---|
 | 1 | test, lint, typecheck y build | Pasa en local y en CI |
 | 2 | `core` contra el fixture esperado | Pasa |
-| 3 | `supabase db reset` con migraciones y seed | Pasa en local; falta en remoto |
-| 4 | Tests de RLS | Pasa en local y CI; falta repetir GRANT y `anon` en remoto |
-| 5 | Flujo manual con Google | **Falta:** probado con el login de prueba, no con Google |
+| 3 | `supabase db reset` con migraciones y seed | Pasa en local; en remoto se subieron, falta `supabase test db --linked` |
+| 4 | Tests de RLS | Pasa en local y CI; en remoto `anon` pasa, faltan GRANT con `--linked` |
+| 5 | Flujo manual con Google | **Falta:** deploy listo, sin probar con Google |
 | 6 | Sin claves reales, gitleaks en CI | Pasa en CI |
 | 7 | Logo aprobado | Aprobado en `docs/decisiones.md` |
+| 8 | Sin `<select>`; plan único salteado, más reciente preseleccionado | Pasa en tests; lo confirma el revisor |
+| 9 | Vista previa y PDF.js fuera de la carga inicial | Pasa en local; lo confirma el revisor |
 
 ## Peso del JS
 
