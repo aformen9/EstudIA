@@ -8,13 +8,20 @@ import {
   promedio,
   promocionadas,
   resumenFinal,
+  resumirMateria,
   type DatosAlumno,
   type Materia,
 } from "@estudia/core";
 import { Icono } from "../interfaz/Iconos";
 import { useAbrirMateria } from "../plan/abrirMateria";
 import { ConPlan } from "../plan/planActivo";
-import { cantidad, formatoFecha, formatoNota, lugarMateria } from "../plan/presentacion";
+import {
+  cantidad,
+  fechaDeHoy,
+  formatoFecha,
+  formatoNota,
+  lugarMateria,
+} from "../plan/presentacion";
 import {
   CajaVacia,
   Contador,
@@ -90,7 +97,7 @@ export function Cursando() {
       <EncabezadoVista seccion={SECCION} titulo="En curso" />
       <p className="sub rise" style={retardo(1)}>
         Cargá tus parciales en cada materia: cuando apruebes la cursada te sugiere pasarla a
-        &quot;Final pendiente&quot;.
+        &quot;Falta final&quot;.
       </p>
       <ConPlan>
         {(datos) => {
@@ -125,10 +132,13 @@ function TarjetaFinal({
 }) {
   const abrirMateria = useAbrirMateria();
   const rendir = estadoCorrelativas(datos, materia, "rendir");
-  const notaCursada = progresoDe(datos, materia.id)?.notaCursada;
-  const { cursadaAprobada, intentos } = resumenFinal(datos.historial, materia.id);
-  const textoIntentos = intentos.map(({ nota, resultado }) =>
-    nota != null ? formatoNota(nota) : resultado.toLowerCase(),
+  const progreso = progresoDe(datos, materia.id);
+  const notaCursada = progreso
+    ? (resumirMateria(progreso, datos.plan).cursadaVigente?.nota ?? null)
+    : null;
+  const { cursadaVigente, intentos } = resumenFinal(progreso, datos.plan, fechaDeHoy());
+  const textoIntentos = intentos.map(({ nota, situacion }) =>
+    nota != null ? formatoNota(nota) : situacion === "programada" ? "programado" : "ausente",
   );
   return (
     <section className="card rise" style={retardo(indice)}>
@@ -140,7 +150,7 @@ function TarjetaFinal({
         {notaCursada != null && <span className="nota-cursada">{formatoNota(notaCursada)}</span>}
       </div>
       <p className="sub">
-        Cursada aprobada{cursadaAprobada ? ` el ${formatoFecha(cursadaAprobada)}` : ""}
+        Cursada aprobada{cursadaVigente ? ` el ${formatoFecha(cursadaVigente)}` : ""}
         {intentos.length > 0 &&
           ` · ${cantidad(intentos.length, "intento", "intentos")} de final (${textoIntentos.join(", ")})`}
       </p>
@@ -167,7 +177,7 @@ function TarjetaFinal({
 export function Finales() {
   return (
     <>
-      <EncabezadoVista seccion={SECCION} titulo="Finales pendientes" />
+      <EncabezadoVista seccion={SECCION} titulo="Falta final" />
       <ConPlan>
         {(datos) => {
           const lista = materiasPorEstado(datos, "final");
@@ -239,7 +249,7 @@ function ContenidoPendientes({ datos }: { datos: DatosAlumno }) {
 export function Pendientes() {
   return (
     <>
-      <EncabezadoVista seccion={SECCION} titulo="Pendientes" />
+      <EncabezadoVista seccion={SECCION} titulo="Por cursar" />
       <ConPlan>{(datos) => <ContenidoPendientes datos={datos} />}</ConPlan>
     </>
   );

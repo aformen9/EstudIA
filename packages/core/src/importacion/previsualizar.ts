@@ -56,7 +56,7 @@ export function materiasPropiasConservadas(plan: PlanCompleto, datos: DatosImpor
 /**
  * Arma los `DatosAlumno` que quedarían después de aplicar una importación, para calcular sobre ellos
  * antes de guardar. Las materias propias del archivo usan su `clave` como id. Las propias que no se
- * reutilizan se conservan, sin progreso ni historial porque esos se reemplazan.
+ * reutilizan se conservan, sin progreso porque ese se reemplaza.
  */
 export function datosAlumnoDesdeImportacion(
   plan: PlanCompleto,
@@ -107,6 +107,5 @@ export function datosAlumnoDesdeImportacion(
     materias: [...catalogo, ...conservadas, ...propias],
     correlativas,
     progreso: datos.progreso,
-    historial: datos.historial,
   };
 }

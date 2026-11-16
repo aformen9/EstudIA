@@ -1,7 +1,7 @@
 -- anon sin acceso, funciones cerradas, RLS activada y catálogo sembrado.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(53);
+select plan(55);
 
 create function pg_temp.como_anon() returns void language plpgsql as $$
 begin
@@ -25,7 +25,7 @@ end $$;
 
 select tables_are('public', array[
   'universidades', 'carreras', 'planes', 'materias', 'correlativas', 'perfiles',
-  'inscripciones', 'progreso', 'historial', 'documentos', 'limites_documentos', 'uso_documentos', 'materiales', 'denuncias'
+  'inscripciones', 'progreso', 'instancias', 'documentos', 'limites_documentos', 'uso_documentos', 'materiales', 'denuncias'
 ], 'están todas las tablas de §4');
 
 select is(
@@ -51,7 +51,7 @@ select throws_ok('select * from public.correlativas', '42501', null, 'anon no le
 select throws_ok('select * from public.perfiles', '42501', null, 'anon no lee perfiles');
 select throws_ok('select * from public.inscripciones', '42501', null, 'anon no lee inscripciones');
 select throws_ok('select * from public.progreso', '42501', null, 'anon no lee progreso');
-select throws_ok('select * from public.historial', '42501', null, 'anon no lee historial');
+select throws_ok('select * from public.instancias', '42501', null, 'anon no lee instancias');
 select throws_ok('select * from public.documentos', '42501', null, 'anon no lee documentos');
 select throws_ok('select * from public.limites_documentos', '42501', null, 'anon no lee limites_documentos');
 select throws_ok('select * from public.uso_documentos', '42501', null, 'anon no lee uso_documentos');
@@ -67,6 +67,7 @@ select throws_ok($$select public.registrar_documento(repeat('a', 64))$$, '42501'
 select throws_ok('select public.activar_plan(gen_random_uuid())', '42501', null, 'anon no ejecuta activar_plan');
 select throws_ok($$select public.reemplazar_datos_del_plan(gen_random_uuid(), '{}')$$, '42501', null, 'anon no ejecuta reemplazar_datos_del_plan');
 select throws_ok($$select public.crear_materia_propia(gen_random_uuid(), gen_random_uuid(), '{}')$$, '42501', null, 'anon no ejecuta crear_materia_propia');
+select throws_ok($$select public.guardar_materia(gen_random_uuid(), 'final', '[]')$$, '42501', null, 'anon no ejecuta guardar_materia');
 select pg_temp.como_postgres();
 
 select is(
@@ -109,6 +110,7 @@ select is((select count(*)::int from public.planes where version = '7023' and es
 select is((select nota_min from public.planes where version = '7023'), 1::numeric, 'escala: nota mínima');
 select is((select nota_max from public.planes where version = '7023'), 10::numeric, 'escala: nota máxima');
 select is((select nota_aprobacion from public.planes where version = '7023'), 4::numeric, 'escala: nota de aprobación');
+select is((select nota_paso from public.planes where version = '7023'), 0.1::numeric, 'escala: paso de nota');
 select is((select cuatrimestres_por_anio from public.planes where version = '7023'), 2, 'dos cuatrimestres por año');
 select is((select cierre_cuatrimestres from public.planes where version = '7023'),
   '[{"cuatrimestre":1,"mes":7},{"cuatrimestre":2,"mes":12}]'::jsonb, 'cierre de cuatrimestres de la arquitectura');

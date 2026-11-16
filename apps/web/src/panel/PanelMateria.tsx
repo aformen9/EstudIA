@@ -1,63 +1,46 @@
 import {
   aniosDelPlan,
   borradorDeMateria,
-  alEditarNota,
   cicloDeCorrelativas,
   CONDICION_PREDETERMINADA,
   cuatrimestresDelAnio,
   esMateriaPropia,
   ESTADOS_MATERIA,
   estadoCorrelativas,
-  historialDeMateria,
   materialesDeMateria,
   normalizarBorrador,
-  notasDeEscala,
   opcionesDeCorrelativa,
-  parsearAplazos,
   progresoDe,
   progresoInicial,
-  sugerirEstado,
+  resumirMateria,
+  sugerirAprobada,
+  ordenarInstancias,
   type BorradorMateriaPropia,
   type DatosAlumno,
   type EstadoMateria,
-  type EventoHistorial,
+  type ProgresoMateria,
   type Materia,
   type ParaCorrelativa,
 } from "@estudia/core";
 import { useQueryClient } from "@tanstack/react-query";
 import { useId, useRef, useState, type FormEvent } from "react";
 import { useGuardado, useRepositorio } from "../sesion/sesion";
-import { lanzarConfeti } from "../interfaz/efectos";
 import { Dialogo } from "../interfaz/Dialogo";
+import { festejar } from "../interfaz/Festejo";
 import { Icono } from "../interfaz/Iconos";
+import { Segmentado } from "../interfaz/Segmentado";
 import { SeccionMaterial } from "../materiales/ComponentesMaterial";
 import { useMaterialesDelAlumno } from "../materiales/useMateriales";
 import { clavesPlan, invalidarDatosDelPlan } from "../plan/planActivo";
-import {
-  enumerar,
-  ETIQUETAS_ESTADO,
-  formatoFecha,
-  formatoNota,
-  lugarMateria,
-} from "../plan/presentacion";
+import { enumerar, ETIQUETAS_ESTADO, ICONO_ESTADO, lugarMateria } from "../plan/presentacion";
 import { useGuardarProgreso, type CambiosProgreso } from "../plan/useGuardarProgreso";
+import { Instancias } from "./Instancias";
 
 const ETIQUETA_CONDICION = { regular: "regularizada", aprobada: "aprobada" } as const;
 const ETIQUETA_PARA: Record<ParaCorrelativa, string> = {
   cursar: "Para cursar",
   rendir: "Para rendir",
 };
-
-type CampoNota = "p1" | "p2" | "rec" | "notaCursada" | "notaFinalExamen" | "nota";
-
-const CAMPOS_NOTA: [CampoNota, string][] = [
-  ["p1", "Parcial 1"],
-  ["p2", "Parcial 2"],
-  ["rec", "Recuperatorio"],
-  ["notaCursada", "Nota de cursada"],
-  ["notaFinalExamen", "Final"],
-  ["nota", "Nota final"],
-];
 
 function mensajeDe(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -98,78 +81,6 @@ function BloqueCorrelativas({
   );
 }
 
-function SelectorNota({
-  etiqueta,
-  valor,
-  guardada,
-  escala,
-  alCambiar,
-}: {
-  etiqueta: string;
-  valor: number | null;
-  /** Lo que tenía al abrir: si no está en la escala de enteros, se ofrece como opción extra. */
-  guardada: number | null;
-  escala: number[];
-  alCambiar: (valor: number | null) => void;
-}) {
-  const id = useId();
-  const opciones =
-    guardada != null && !escala.includes(guardada)
-      ? [...escala, guardada].sort((a, b) => a - b)
-      : escala;
-  return (
-    <div className="field">
-      <label htmlFor={id}>{etiqueta}</label>
-      <select
-        id={id}
-        value={valor == null ? "" : String(valor)}
-        onChange={(e) => alCambiar(e.target.value === "" ? null : Number(e.target.value))}
-      >
-        <option value="">–</option>
-        {opciones.map((nota) => (
-          <option key={nota} value={String(nota)}>
-            {formatoNota(nota)}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
-}
-
-function TablaHistorial({ eventos }: { eventos: EventoHistorial[] }) {
-  const tipo = (t: EventoHistorial["tipo"]) =>
-    t === "Regularidad" ? "Cursada" : t === "Promocion" ? "Promoción" : t;
-  const clase = (r: EventoHistorial["resultado"]) =>
-    r === "Aprobado" || r === "Promocionado" ? "r-ok" : r === "Reprobado" ? "r-no" : "r-aus";
-  return (
-    <div className="sec">
-      <b>Historial</b>
-      <div className="hist-wrap">
-        <table className="hist">
-          <thead>
-            <tr>
-              <th>Fecha</th>
-              <th>Tipo</th>
-              <th>Nota</th>
-              <th>Resultado</th>
-            </tr>
-          </thead>
-          <tbody>
-            {eventos.map((h, i) => (
-              <tr key={i}>
-                <td>{formatoFecha(h.fecha)}</td>
-                <td>{tipo(h.tipo)}</td>
-                <td>{formatoNota(h.nota)}</td>
-                <td className={clase(h.resultado)}>{h.resultado}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
 function claveDeCorrelativas(correlativas: BorradorMateriaPropia["correlativas"]): string[] {
   return correlativas.map((c) => `${c.para}|${c.requiereId}|${c.condicion}`).sort();
 }
@@ -178,12 +89,15 @@ function claveCorrelativas(borrador: BorradorMateriaPropia): string {
   return JSON.stringify({ ...borrador, correlativas: claveDeCorrelativas(borrador.correlativas) });
 }
 
-function mismosValores(a: CambiosProgreso, b: CambiosProgreso): boolean {
-  const campos = ["estado", ...CAMPOS_NOTA.map(([campo]) => campo)] as const;
-  return (
-    campos.every((campo) => a[campo] === b[campo]) &&
-    JSON.stringify(a.aplazos) === JSON.stringify(b.aplazos)
+/** Lo que importa de las instancias para saber si cambiaron: sin ids, en orden de fecha. */
+function claveDeInstancias(progreso: Pick<ProgresoMateria, "instancias">): string {
+  return JSON.stringify(
+    ordenarInstancias(progreso.instancias).map(({ tipo, fecha, nota }) => [tipo, fecha, nota]),
   );
+}
+
+function mismosValores(a: Required<CambiosProgreso>, b: ProgresoMateria): boolean {
+  return a.estado === b.estado && claveDeInstancias(a) === claveDeInstancias(b);
 }
 
 function materiaNueva(lugar: LugarInicial): BorradorMateriaPropia {
@@ -230,7 +144,6 @@ export function PanelMateria({
   const idTitulo = useId();
   const idFormulario = useId();
   const idEstado = useId();
-  const idAplazos = useId();
   const idNombre = useId();
   const idAnio = useId();
   const idCuatrimestre = useId();
@@ -245,8 +158,6 @@ export function PanelMateria({
     () => (materia && progresoDe(datos, materia.id)) ?? progresoInicial(materia?.id ?? ""),
   );
   const [valores, setValores] = useState(guardada);
-  const [textoInicial] = useState(() => guardada.aplazos.join(", "));
-  const [textoAplazos, setTextoAplazos] = useState(textoInicial);
   const [borradorInicial] = useState(() =>
     materia ? borradorDeMateria(datos, materia) : materiaNueva(lugarInicial),
   );
@@ -263,16 +174,6 @@ export function PanelMateria({
   const materiales = useMaterialesDelAlumno();
   const todos = materiales.data ?? [];
   const delaMateria = materia ? materialesDeMateria(todos, materia.id) : [];
-  const escala = notasDeEscala(plan);
-  const sugerencia = sugerirEstado(valores, plan);
-
-  function cambiarNota(campo: CampoNota, valor: number | null) {
-    setValores((actuales) => {
-      const siguientes = { ...actuales, [campo]: valor };
-      if (campo !== "nota" && campo !== "notaFinalExamen") return siguientes;
-      return { ...siguientes, ...alEditarNota(campo, siguientes, plan) };
-    });
-  }
 
   function alternarCorrelativa(requiereId: string, para: ParaCorrelativa, marcada: boolean) {
     setBorrador((actual) => {
@@ -303,16 +204,9 @@ export function PanelMateria({
   async function guardar() {
     setError(null);
     setAviso(null);
-    const cambios: CambiosProgreso = {
+    const cambios: Required<CambiosProgreso> = {
       estado: valores.estado,
-      p1: valores.p1,
-      p2: valores.p2,
-      rec: valores.rec,
-      notaCursada: valores.notaCursada,
-      notaFinalExamen: valores.notaFinalExamen,
-      nota: valores.nota,
-      aplazos:
-        textoAplazos === textoInicial ? guardada.aplazos : parsearAplazos(textoAplazos, plan),
+      instancias: valores.instancias,
     };
     const id = materia?.id ?? idCreada.current;
     const normalizado = editable ? normalizarBorrador(borrador, id) : null;
@@ -389,7 +283,6 @@ export function PanelMateria({
     }
     const nombre = aGuardar?.nombre ?? materia?.nombre ?? "";
     const aprobo = cambios.estado === "aprobada" && actual.estado !== "aprobada";
-    if (aprobo) lanzarConfeti();
     if (ciclo) {
       // El panel sigue abierto: el alumno tiene que ver qué no se guardó y puede corregirlo.
       setGuardando(false);
@@ -399,7 +292,7 @@ export function PanelMateria({
     }
     alCerrar();
     if (aprobo) {
-      avisar(`¡Aprobaste ${nombre}! 🎉`);
+      festejar({ materia: nombre, nota: resumirMateria(cambios, plan).nota });
     } else {
       avisar("Guardado");
     }
@@ -438,7 +331,6 @@ export function PanelMateria({
     ? new Set(datos.correlativas.filter((c) => c.requiereId === materia.id).map((c) => c.materiaId))
         .size
     : 0;
-  const historial = materia ? historialDeMateria(datos.historial, materia.id) : [];
 
   return (
     <Dialogo idTitulo={idTitulo} alCerrar={alCerrar}>
@@ -466,49 +358,31 @@ export function PanelMateria({
 
         <form className="dlg-form" id={idFormulario} onSubmit={alEnviar}>
           <div className="field">
-            <label htmlFor={idEstado}>Estado</label>
-            <select
-              id={idEstado}
-              value={valores.estado}
-              onChange={(e) =>
-                setValores((v) => ({ ...v, estado: e.target.value as EstadoMateria }))
-              }
-            >
-              {ESTADOS_MATERIA.map((estado) => (
-                <option key={estado} value={estado}>
-                  {ETIQUETAS_ESTADO[estado]}
-                </option>
-              ))}
-            </select>
-            <span className="hint" role="status">
-              {sugerencia?.mensaje}
+            <span className="etiqueta" id={idEstado}>
+              Estado
             </span>
-          </div>
-          <div className="fgrid">
-            {CAMPOS_NOTA.map(([campo, etiqueta]) => (
-              <SelectorNota
-                key={campo}
-                etiqueta={etiqueta}
-                valor={valores[campo]}
-                guardada={guardada[campo]}
-                escala={escala}
-                alCambiar={(valor) => cambiarNota(campo, valor)}
-              />
-            ))}
-          </div>
-          <div className="field">
-            <label htmlFor={idAplazos}>Aplazos (notas de finales desaprobados)</label>
-            <input
-              id={idAplazos}
-              inputMode="decimal"
-              placeholder="Ej.: 2, 3"
-              value={textoAplazos}
-              onChange={(e) => setTextoAplazos(e.target.value)}
+            <Segmentado<EstadoMateria>
+              idEtiqueta={idEstado}
+              columnasCelular={2}
+              valor={valores.estado}
+              alCambiar={(estado) => setValores((v) => ({ ...v, estado }))}
+              opciones={ESTADOS_MATERIA.map((estado) => ({
+                valor: estado,
+                texto: ETIQUETAS_ESTADO[estado],
+                icono: ICONO_ESTADO[estado],
+                clase: `e-${estado}`,
+              }))}
             />
           </div>
+          <Instancias
+            estado={valores.estado}
+            instancias={valores.instancias}
+            plan={plan}
+            alCambiar={(instancias) => setValores((v) => ({ ...v, instancias }))}
+            sugerirAprobada={sugerirAprobada(valores.estado, valores.instancias, plan)}
+            alPasarAAprobada={() => setValores((v) => ({ ...v, estado: "aprobada" }))}
+          />
         </form>
-
-        {historial.length > 0 && <TablaHistorial eventos={historial} />}
 
         {editable && (
           <div className="sec">
@@ -533,39 +407,37 @@ export function PanelMateria({
                 </div>
                 <div className="fgrid">
                   <div className="field">
-                    <label htmlFor={idAnio}>Año</label>
-                    <select
-                      id={idAnio}
-                      value={borrador.anio}
-                      onChange={(e) => setBorrador((b) => ({ ...b, anio: Number(e.target.value) }))}
-                    >
-                      {anios.map((anio) => (
-                        <option key={anio} value={anio}>
-                          {anio === 0 ? "Extras" : `${anio}° año`}
-                        </option>
-                      ))}
-                    </select>
+                    <span className="etiqueta" id={idAnio}>
+                      Año
+                    </span>
+                    <Segmentado<number>
+                      idEtiqueta={idAnio}
+                      valor={borrador.anio}
+                      alCambiar={(anio) => setBorrador((b) => ({ ...b, anio }))}
+                      opciones={[...anios]
+                        .sort((a, b) => (a || 99) - (b || 99))
+                        .map((anio) => ({
+                          valor: anio,
+                          texto: anio === 0 ? "Extras" : `${anio}°`,
+                        }))}
+                    />
                   </div>
                   <div className="field">
-                    <label htmlFor={idCuatrimestre}>Cuatrimestre</label>
-                    <select
-                      id={idCuatrimestre}
-                      disabled={borrador.anio === 0}
-                      value={borrador.cuatrimestre ?? ""}
-                      onChange={(e) =>
-                        setBorrador((b) => ({
-                          ...b,
-                          cuatrimestre: e.target.value === "" ? null : Number(e.target.value),
-                        }))
-                      }
-                    >
-                      <option value="">Anual</option>
-                      {cuatrimestres.map((c) => (
-                        <option key={c} value={c}>
-                          {c}° cuatrimestre
-                        </option>
-                      ))}
-                    </select>
+                    <span className="etiqueta" id={idCuatrimestre}>
+                      Cuatrimestre
+                    </span>
+                    <Segmentado<number | null>
+                      idEtiqueta={idCuatrimestre}
+                      deshabilitado={borrador.anio === 0}
+                      valor={borrador.cuatrimestre}
+                      alCambiar={(cuatrimestre) => setBorrador((b) => ({ ...b, cuatrimestre }))}
+                      opciones={[
+                        { valor: null, texto: "Anual" },
+                        ...cuatrimestres
+                          .sort((a, b) => a - b)
+                          .map((c) => ({ valor: c, texto: `${c}°` })),
+                      ]}
+                    />
                   </div>
                 </div>
                 {(["cursar", "rendir"] as const).map((para) => (
@@ -659,7 +531,8 @@ export function PanelMateria({
               materiaId={materia.id}
               materiales={delaMateria}
               todos={todos}
-              materias={datos.materias}
+              datos={datos}
+              compacta
               nota="Se guarda solo, al instante. El botón Guardar es para el estado, las notas y los datos de la materia."
             />
           </section>

@@ -35,6 +35,7 @@ create table public.planes (
   nota_min numeric not null default 1,
   nota_max numeric not null default 10,
   nota_aprobacion numeric not null default 4,
+  nota_paso numeric not null default 0.1 check (nota_paso > 0),
   cuatrimestres_por_anio integer not null default 2 check (cuatrimestres_por_anio > 0),
   cierre_cuatrimestres jsonb not null default '[]' check (jsonb_typeof(cierre_cuatrimestres) = 'array'),
   created_at timestamptz not null default now(),
@@ -100,32 +101,33 @@ create table public.progreso (
   user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
   materia_id uuid not null references public.materias (id) on delete cascade,
   estado text not null default 'pendiente' check (estado in ('pendiente', 'cursando', 'final', 'aprobada')),
-  p1 numeric,
-  p2 numeric,
-  rec numeric,
-  nota_cursada numeric,
-  nota_final_examen numeric,
-  nota numeric,
-  aplazos numeric[] not null default '{}',
   updated_at timestamptz not null default now(),
   primary key (user_id, materia_id)
 );
 
 create index progreso_materia_id_idx on public.progreso (materia_id);
 
-create table public.historial (
+-- Instancias de evaluación: solo tipo, fecha y nota. No tienen estado: lo que significan (aprobado,
+-- aplazo, ausente, programada) lo deduce core a partir del estado de la materia. Cuelgan de la fila de
+-- progreso: borrarla se las lleva. Los topes (6 parciales, no más recuperatorios que parciales) los
+-- controlan core y la pantalla; la base solo asegura una promoción por materia.
+create table public.instancias (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  user_id uuid not null default auth.uid(),
   materia_id uuid not null references public.materias (id) on delete cascade,
+  tipo text not null check (tipo in ('parcial', 'recuperatorio', 'cursada', 'final', 'promocion')),
   fecha date not null,
-  tipo text not null check (tipo in ('Regularidad', 'Examen', 'Promocion', 'En curso')),
   nota numeric,
-  resultado text not null check (resultado in ('Aprobado', 'Reprobado', 'Ausente', 'Promocionado', 'En curso')),
-  fuente text not null default 'manual' check (fuente in ('siu', 'manual', 'ia'))
+  -- Desempata dos instancias con la misma fecha: el orden en que se cargaron.
+  orden integer not null default 0,
+  fuente text not null default 'manual' check (fuente in ('siu', 'manual', 'ia')),
+  created_at timestamptz not null default now(),
+  foreign key (user_id, materia_id) references public.progreso (user_id, materia_id) on delete cascade
 );
 
-create index historial_user_id_materia_id_idx on public.historial (user_id, materia_id);
-create index historial_materia_id_idx on public.historial (materia_id);
+create index instancias_user_id_materia_id_idx on public.instancias (user_id, materia_id);
+create index instancias_materia_id_idx on public.instancias (materia_id);
+create unique index instancias_una_promocion on public.instancias (user_id, materia_id) where tipo = 'promocion';
 
 /* ---------- 4.3 Material ---------- */
 

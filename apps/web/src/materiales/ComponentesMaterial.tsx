@@ -1,12 +1,12 @@
-import { LIMITES_MATERIAL, type Materia, type Material } from "@estudia/core";
-import { useState, type DragEvent, type FormEvent, type MouseEvent } from "react";
+import { LIMITES_MATERIAL, type DatosAlumno, type Material } from "@estudia/core";
+import { useRef, useState, type DragEvent, type FormEvent, type MouseEvent } from "react";
 import { descargarBlob } from "../interfaz/descargar";
 import { Icono } from "../interfaz/Iconos";
 import { formatoPeso } from "../plan/presentacion";
 import { useBorrados } from "./borradosPendientes";
 import { IconoMaterial } from "./IconoMaterial";
-import { AccionesReferencia } from "./ReferenciasMaterial";
-import { tipoQueSePuedeAbrir, urlSegura } from "./seguridad";
+import { AgregarAMateria } from "./ReferenciasMaterial";
+import { tipoParaAbrir, urlSegura } from "./seguridad";
 import { useAccionesMaterial, useArchivosLocales, useIdDeIntento } from "./useMateriales";
 
 const SEGUNDOS_URL_ABIERTA = 60;
@@ -30,7 +30,7 @@ function AccionArchivo({
   const local = locales.get(sha256);
   if (!local) return null;
   // Decide el tipo del archivo guardado acá: el de `documentos` lo fijó quien lo registró primero.
-  const tipo = tipoQueSePuedeAbrir(local.mime);
+  const tipo = tipoParaAbrir(local.nombre || material.titulo, local.mime);
 
   async function abrirODescargar() {
     // La pestaña se abre ya: después de leer, Safari la tomaría como una ventana no pedida.
@@ -130,13 +130,13 @@ export function BotonBorrarMaterial({ material }: { material: Material }) {
 function FilaMaterial({
   material,
   todos,
-  materias,
+  datos,
   alFallar,
   alAvisar,
 }: {
   material: Material;
   todos: Material[];
-  materias: Materia[];
+  datos: DatosAlumno;
   alFallar: (mensaje: string) => void;
   alAvisar: (mensaje: string) => void;
 }) {
@@ -165,12 +165,9 @@ function FilaMaterial({
       </span>
       <AvisoDeArchivo material={material} />
       {material.tipo === "nota" && notaVisible && <p className="mat-nota">{material.texto}</p>}
-      <AccionesReferencia
-        material={material}
-        todos={todos}
-        materias={materias}
-        alAvisar={alAvisar}
-      />
+      <div className="mat-referencias">
+        <AgregarAMateria material={material} todos={todos} datos={datos} alAvisar={alAvisar} />
+      </div>
     </div>
   );
 }
@@ -281,25 +278,30 @@ function FormularioNota({ materiaId, alListo }: { materiaId: string | null; alLi
 
 /**
  * Lista y carga de material de una materia: la del panel y la del diálogo "Subir material". `todos`
- * son los del alumno en todos sus planes y `materias`, las del plan activo: entre esas se elige al
- * mover o agregar.
+ * son los del alumno en todos sus planes; al agregar a otra materia se elige entre las del plan activo.
  */
 export function SeccionMaterial({
   materiaId,
   materiales,
   todos,
-  materias,
+  datos,
   nota,
+  compacta = false,
 }: {
   materiaId: string;
   materiales: Material[];
   todos: Material[];
-  materias: Materia[];
+  datos: DatosAlumno;
   nota?: string;
+  /** En el panel de materia la zona de subida es un poco más baja. */
+  compacta?: boolean;
 }) {
   const { subirArchivos } = useAccionesMaterial();
   const [formulario, setFormulario] = useState<"link" | "nota" | null>(null);
   const [arrastrando, setArrastrando] = useState(false);
+  // dragenter y dragleave llegan también de cada hijo: se cuentan para saber cuándo salió de verdad.
+  const profundidad = useRef(0);
+  const nombreMateria = datos.materias.find((m) => m.id === materiaId)?.nombre;
   const [subiendo, setSubiendo] = useState(false);
   const [estado, setEstado] = useState<string | null>(null);
   const [errores, setErrores] = useState<string[]>([]);
@@ -322,68 +324,97 @@ export function SeccionMaterial({
     setSubiendo(false);
   }
 
+  const conArchivos = (evento: DragEvent) => [...evento.dataTransfer.types].includes("Files");
+
   function alSoltar(evento: DragEvent) {
+    if (!conArchivos(evento)) return;
     evento.preventDefault();
+    profundidad.current = 0;
     setArrastrando(false);
-    void subir([...evento.dataTransfer.files]);
+    if (!subiendo) void subir([...evento.dataTransfer.files]);
   }
 
   return (
-    <>
-      <div className="card-h">
-        <b className="titulo-material">Material de estudio</b>
-        <div className="mat-agregar">
-          <label className="elegir-archivo">
-            <input
-              className="drop-input"
-              type="file"
-              multiple
-              disabled={subiendo}
-              aria-label="Elegir archivos"
-              onChange={(e) => {
-                const archivos = [...(e.target.files ?? [])];
-                e.target.value = "";
-                void subir(archivos);
-              }}
-            />
-            <span className="btn sm">
-              <Icono nombre="upload" />
-              Archivos
-            </span>
-          </label>
-          <button
-            className="btn sm"
-            type="button"
-            aria-expanded={formulario === "link"}
-            onClick={() => setFormulario((f) => (f === "link" ? null : "link"))}
-          >
-            <Icono nombre="link" />
-            Link
-          </button>
-          <button
-            className="btn sm"
-            type="button"
-            aria-expanded={formulario === "nota"}
-            onClick={() => setFormulario((f) => (f === "nota" ? null : "nota"))}
-          >
-            <Icono nombre="note" />
-            Nota
-          </button>
-        </div>
-      </div>
+    <div
+      className={arrastrando ? "sec-subida arrastrando" : "sec-subida"}
+      onDragEnter={(e) => {
+        if (!conArchivos(e)) return;
+        e.preventDefault();
+        profundidad.current += 1;
+        setArrastrando(true);
+      }}
+      onDragOver={(e) => {
+        if (conArchivos(e)) e.preventDefault();
+      }}
+      onDragLeave={() => {
+        profundidad.current = Math.max(0, profundidad.current - 1);
+        if (profundidad.current === 0) setArrastrando(false);
+      }}
+      onDrop={alSoltar}
+    >
+      <b className="titulo-material">Material de estudio</b>
       {nota && <p className="nota-material">{nota}</p>}
-      <div
-        className={arrastrando ? "drop over" : "drop"}
-        onDragOver={(e) => {
-          e.preventDefault();
-          setArrastrando(true);
-        }}
-        onDragLeave={() => setArrastrando(false)}
-        onDrop={alSoltar}
-      >
-        Arrastrá acá PDFs, apuntes, fotos o resúmenes (hasta 50 MB cada uno). Quedan guardados en
-        este dispositivo.
+      <label className={compacta ? "zona compacta" : "zona"}>
+        <input
+          type="file"
+          multiple
+          disabled={subiendo}
+          aria-label="Elegir archivos"
+          onChange={(e) => {
+            const archivos = [...(e.target.files ?? [])];
+            e.target.value = "";
+            void subir(archivos);
+          }}
+        />
+        <span className="circ">
+          <Icono nombre="upload" />
+        </span>
+        <b className="solo-mouse">Arrastrá tus archivos acá</b>
+        <b className="solo-tactil">Subí tus archivos</b>
+        <span className="o">
+          <span className="solo-mouse">
+            o <u>elegilos desde tu compu</u>
+          </span>
+          <span className="solo-tactil">
+            <u>Tocá para elegirlos</u>
+          </span>
+        </span>
+        <small>
+          Cualquier tipo de archivo, hasta 50 MB cada uno. Quedan guardados en este dispositivo.
+        </small>
+      </label>
+      <div className="otros">
+        También podés agregar
+        <button
+          className="btn sm"
+          type="button"
+          aria-expanded={formulario === "link"}
+          onClick={() => setFormulario((f) => (f === "link" ? null : "link"))}
+        >
+          <Icono nombre="link" />
+          Link
+        </button>
+        <button
+          className="btn sm"
+          type="button"
+          aria-expanded={formulario === "nota"}
+          onClick={() => setFormulario((f) => (f === "nota" ? null : "nota"))}
+        >
+          <Icono nombre="note" />
+          Nota
+        </button>
       </div>
+      {arrastrando && (
+        <div className="tirar" aria-hidden="true">
+          <div>
+            <div className="circ">
+              <Icono nombre="upload" />
+            </div>
+            <b>Soltá para subir</b>
+            {nombreMateria && <span>a {nombreMateria}</span>}
+          </div>
+        </div>
+      )}
       {formulario === "link" && (
         <FormularioLink materiaId={materiaId} alListo={() => setFormulario(null)} />
       )}
@@ -405,7 +436,7 @@ export function SeccionMaterial({
               key={material.id}
               material={material}
               todos={todos}
-              materias={materias}
+              datos={datos}
               alFallar={alFallar}
               alAvisar={alAvisar}
             />
@@ -414,6 +445,6 @@ export function SeccionMaterial({
           <span className="sub">Todavía no cargaste material para esta materia.</span>
         )}
       </div>
-    </>
+    </div>
   );
 }

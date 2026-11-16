@@ -31,15 +31,37 @@ export function materiasParaAgregar(
 }
 
 /**
- * Las materias a las que se puede mover `material`: las mismas que para agregar, que ya excluyen a la
- * materia actual. "Sin materia" no está en la lista: es una opción aparte de `moverMaterial`.
+ * Una tarjeta de Materiales. Un archivo en varias materias es una sola tarjeta, con una referencia por
+ * materia. Un link o una nota es siempre una tarjeta propia: agregarlos a otra materia hace una copia
+ * independiente.
  */
-export function materiasParaMover(
-  material: Material,
-  materiales: Material[],
-  materias: Materia[],
-): Materia[] {
-  return materiasParaAgregar(material, materiales, materias);
+export interface TarjetaMaterial {
+  /** Estable entre renders: el documento para un archivo, el id del material para lo demás. */
+  clave: string;
+  /** La referencia más nueva: de ahí salen el título, la fecha y el tipo. */
+  principal: Material;
+  /** Todas, de la más nueva a la más vieja. */
+  referencias: Material[];
+}
+
+/**
+ * Agrupa los archivos por documento y deja lo demás como está, ordenado del más nuevo al más viejo
+ * según la referencia más nueva de cada tarjeta. Agrupa lo que recibe: para el plan activo, pasarle
+ * solo los materiales de ese plan.
+ */
+export function agruparPorArchivo(materiales: Material[]): TarjetaMaterial[] {
+  const porClave = new Map<string, Material[]>();
+  for (const material of materiales) {
+    const clave = material.tipo === "archivo" ? `doc:${material.documento.id}` : material.id;
+    const grupo = porClave.get(clave);
+    if (grupo) grupo.push(material);
+    else porClave.set(clave, [material]);
+  }
+  const tarjetas = [...porClave].map(([clave, grupo]) => {
+    const referencias = [...grupo].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    return { clave, principal: referencias[0] as Material, referencias };
+  });
+  return tarjetas.sort((a, b) => b.principal.createdAt.localeCompare(a.principal.createdAt));
 }
 
 /**

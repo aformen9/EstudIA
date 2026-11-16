@@ -11,7 +11,12 @@ import {
   type PlanCompleto,
   type Repositorio,
 } from "@estudia/core";
-import { agregarOCorregirMaterial } from "@estudia/core";
+import {
+  agregarOCorregirMaterial,
+  resumirMateria,
+  type Instancia,
+  type ProgresoMateria,
+} from "@estudia/core";
 import { importarLegacy } from "@estudia/core/importacion";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { readFileSync } from "node:fs";
@@ -102,7 +107,7 @@ describe("Repositorio contra Supabase local", () => {
     const p7023 = planes.find((p) => p.version === "7023");
     if (!p7023) throw new Error("Falta el plan 7023");
     plan = p7023;
-    expect(plan).toMatchObject({ notaMin: 1, notaMax: 10, notaAprobacion: 4 });
+    expect(plan).toMatchObject({ notaMin: 1, notaMax: 10, notaAprobacion: 4, notaPaso: 0.1 });
     expect(plan.cierreCuatrimestres).toHaveLength(2);
   });
 
@@ -121,13 +126,7 @@ describe("Repositorio contra Supabase local", () => {
       otro.guardarProgreso({
         materiaId: materiaPorCodigo("GMA1234").id,
         estado: "cursando",
-        p1: null,
-        p2: null,
-        rec: null,
-        notaCursada: null,
-        notaFinalExamen: null,
-        nota: null,
-        aplazos: [],
+        instancias: [],
       }),
     ).rejects.toBeInstanceOf(Error);
   });
@@ -141,23 +140,60 @@ describe("Repositorio contra Supabase local", () => {
   });
 
   it("guardarProgreso + obtenerProgreso, también al pisar y con decimales", async () => {
-    const progreso = {
+    const instancia = (tipo: Instancia["tipo"], fecha: string, nota: number | null): Instancia => ({
+      id: crypto.randomUUID(),
+      tipo,
+      fecha,
+      nota,
+      orden: 0,
+      fuente: "manual",
+    });
+    const sinIds = (lista: ProgresoMateria[]) =>
+      lista.map((p) => ({
+        ...p,
+        instancias: p.instancias.map(({ tipo, fecha, nota, orden, fuente }) => ({
+          tipo,
+          fecha,
+          nota,
+          orden,
+          fuente,
+        })),
+      }));
+    const progreso: ProgresoMateria = {
       materiaId: materiaPorCodigo("GMA1234").id,
-      estado: "final" as const,
-      p1: 7.5,
-      p2: 4,
-      rec: null,
-      notaCursada: 6,
-      notaFinalExamen: null,
-      nota: null,
-      aplazos: [2, 3],
+      estado: "final",
+      instancias: [
+        instancia("final", "2025-07-01", 2.5),
+        instancia("parcial", "2025-04-01", 7.5),
+        instancia("final", "2025-08-01", null),
+      ],
     };
     await repositorio.guardarProgreso(progreso);
-    expect(await repositorio.obtenerProgreso(plan.id)).toEqual([progreso]);
+    expect(sinIds(await repositorio.obtenerProgreso(plan.id))).toEqual([
+      {
+        materiaId: progreso.materiaId,
+        estado: "final",
+        instancias: [
+          { tipo: "parcial", fecha: "2025-04-01", nota: 7.5, orden: 0, fuente: "manual" },
+          { tipo: "final", fecha: "2025-07-01", nota: 2.5, orden: 1, fuente: "manual" },
+          { tipo: "final", fecha: "2025-08-01", nota: null, orden: 2, fuente: "manual" },
+        ],
+      },
+    ]);
 
-    const aprobada = { ...progreso, estado: "aprobada" as const, nota: 8, notaFinalExamen: 8 };
+    const aprobada: ProgresoMateria = {
+      ...progreso,
+      estado: "aprobada",
+      instancias: [instancia("final", "2025-09-01", 8)],
+    };
     await repositorio.guardarProgreso(aprobada);
-    expect(await repositorio.obtenerProgreso(plan.id)).toEqual([aprobada]);
+    expect(sinIds(await repositorio.obtenerProgreso(plan.id))).toEqual([
+      {
+        materiaId: progreso.materiaId,
+        estado: "aprobada",
+        instancias: [{ tipo: "final", fecha: "2025-09-01", nota: 8, orden: 0, fuente: "manual" }],
+      },
+    ]);
   });
 
   it("registrarDocumento + agregarMaterial + listarMateriales", async () => {
@@ -430,7 +466,6 @@ describe("Repositorio contra Supabase local", () => {
     const datos: DatosAlumno = {
       ...(await repositorio.obtenerPlanCompleto(plan.id)),
       progreso: await repositorio.obtenerProgreso(plan.id),
-      historial: await repositorio.obtenerHistorial(plan.id),
     };
     expect(conteoPorEstado(datos)).toEqual({
       aprobada: 26,
@@ -438,10 +473,13 @@ describe("Repositorio contra Supabase local", () => {
       final: 2,
       pendiente: 17,
     });
-    expect(datos.historial).toHaveLength(importado.datos.historial.length);
-    expect(datos.historial.map((h) => h.fecha)).toEqual(datos.historial.map((h) => h.fecha).sort());
+    const cuantas = (lista: ProgresoMateria[]) =>
+      lista.reduce((total, p) => total + p.instancias.length, 0);
+    expect(cuantas(datos.progreso)).toBe(cuantas(importado.datos.progreso));
+    const probabilidad = datos.progreso.find((p) => p.materiaId === materiaPorCodigo("GMA1234").id);
+    expect(probabilidad && resumirMateria(probabilidad, datos.plan)).toMatchObject({ nota: 6 });
     expect(
-      datos.progreso.find((p) => p.materiaId === materiaPorCodigo("GMA1234").id)?.aplazos,
+      probabilidad && resumirMateria(probabilidad, datos.plan).aplazos.map((a) => a.nota),
     ).toEqual([2]);
   });
 

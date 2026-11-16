@@ -2,6 +2,8 @@
 
 **Objetivo:** IA sin internet también en Android, y MCP local en escritorio para que Claude Desktop lea los originales.
 
+**Postergada hasta que haya demanda** (decisión de Agu del 2026-11-16, `docs/backlog.md` §6). No se trabaja sin que Agu la retome explícitamente.
+
 Prerrequisito: fase 4 aprobada y decisión de Agu de seguir con esto.
 
 ## Alcance (a confirmar con Agu antes de empezar)

@@ -275,7 +275,7 @@ $$;
 -- - Cada materia existente se reutiliza para una sola clave: dos claves que coinciden no se fusionan,
 --   la segunda crea otra materia. El orden de desempate hace que reimportar el mismo archivo le
 --   devuelva a cada clave su materia, porque las creadas en una misma importación tienen igual fecha.
--- - `progreso` e `historial` del alumno en ese plan se borran y se reinsertan.
+-- - `progreso` del alumno en ese plan se borra y se reinserta, con sus instancias.
 -- - v_mapa traduce cada referencia del archivo (clave o uuid) al uuid de la materia.
 -- - Devuelve { clave: uuid } de las materias propias del archivo.
 create function public.reemplazar_datos_del_plan(plan_id uuid, datos jsonb)
@@ -290,7 +290,6 @@ declare
   v_plan uuid := reemplazar_datos_del_plan.plan_id;
   v_propias jsonb := reemplazar_datos_del_plan.datos -> 'materiasPropias';
   v_progreso jsonb := reemplazar_datos_del_plan.datos -> 'progreso';
-  v_historial jsonb := reemplazar_datos_del_plan.datos -> 'historial';
   v_mapa jsonb := '{}';
   v_usadas uuid[] := '{}';
   v_claves jsonb;
@@ -313,9 +312,8 @@ begin
   end if;
 
   if jsonb_typeof(v_propias) is distinct from 'array'
-    or jsonb_typeof(v_progreso) is distinct from 'array'
-    or jsonb_typeof(v_historial) is distinct from 'array' then
-    raise exception 'datos debe tener materiasPropias, progreso e historial como listas'
+    or jsonb_typeof(v_progreso) is distinct from 'array' then
+    raise exception 'datos debe tener materiasPropias y progreso como listas'
       using errcode = '22023';
   end if;
 
@@ -380,8 +378,6 @@ begin
   for v_ref in
     select p ->> 'materiaId' from jsonb_array_elements(v_progreso) p
     union
-    select h ->> 'materiaId' from jsonb_array_elements(v_historial) h
-    union
     select c ->> 'requiere'
     from jsonb_array_elements(v_propias) m
     cross join lateral jsonb_array_elements(m -> 'correlativas') c
@@ -414,42 +410,68 @@ begin
   using public.materias m
   where p.materia_id = m.id and m.plan_id = v_plan and p.user_id = v_uid;
 
-  delete from public.historial h
-  using public.materias m
-  where h.materia_id = m.id and m.plan_id = v_plan and h.user_id = v_uid;
-
-  insert into public.progreso
-    (user_id, materia_id, estado, p1, p2, rec, nota_cursada, nota_final_examen, nota, aplazos)
-  select
-    v_uid,
-    (v_mapa ->> (f ->> 'materiaId'))::uuid,
-    f ->> 'estado',
-    (f ->> 'p1')::numeric,
-    (f ->> 'p2')::numeric,
-    (f ->> 'rec')::numeric,
-    (f ->> 'notaCursada')::numeric,
-    (f ->> 'notaFinalExamen')::numeric,
-    (f ->> 'nota')::numeric,
-    array(
-      select a.valor::numeric
-      from jsonb_array_elements_text(
-        case when jsonb_typeof(f -> 'aplazos') = 'array' then f -> 'aplazos' else '[]'::jsonb end
-      ) with ordinality as a (valor, posicion)
-      order by a.posicion
-    )
+  -- Las instancias se van en cascada con su fila de progreso.
+  insert into public.progreso (user_id, materia_id, estado)
+  select v_uid, (v_mapa ->> (f ->> 'materiaId'))::uuid, f ->> 'estado'
   from jsonb_array_elements(v_progreso) f;
 
-  insert into public.historial (user_id, materia_id, fecha, tipo, nota, resultado, fuente)
+  insert into public.instancias (user_id, materia_id, tipo, fecha, nota, orden, fuente)
   select
     v_uid,
     (v_mapa ->> (f ->> 'materiaId'))::uuid,
-    (f ->> 'fecha')::date,
-    f ->> 'tipo',
-    (f ->> 'nota')::numeric,
-    f ->> 'resultado',
-    f ->> 'fuente'
-  from jsonb_array_elements(v_historial) f;
+    i.valor ->> 'tipo',
+    (i.valor ->> 'fecha')::date,
+    (i.valor ->> 'nota')::numeric,
+    i.posicion::integer - 1,
+    coalesce(i.valor ->> 'fuente', 'manual')
+  from jsonb_array_elements(v_progreso) f
+  cross join lateral jsonb_array_elements(
+    case when jsonb_typeof(f -> 'instancias') = 'array' then f -> 'instancias' else '[]'::jsonb end
+  ) with ordinality as i (valor, posicion);
 
   return v_claves;
 end;
 $$;
+
+/* ---------- Guardar una materia: estado e instancias juntos ---------- */
+
+-- Reemplaza el estado y todas las instancias de la materia del alumno, todo o nada. Repetirlo con los
+-- mismos datos deja lo mismo: un reintento después de un timeout no duplica. Corre con los permisos
+-- del alumno: la RLS decide si puede escribir en esa materia.
+create function public.guardar_materia(materia_id uuid, estado text, instancias jsonb)
+returns void
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+#variable_conflict use_column
+declare
+  v_uid uuid := auth.uid();
+  v_materia uuid := guardar_materia.materia_id;
+begin
+  if v_uid is null then
+    raise exception 'hace falta una sesión' using errcode = '42501';
+  end if;
+  if jsonb_typeof(guardar_materia.instancias) is distinct from 'array' then
+    raise exception 'instancias debe ser una lista' using errcode = '22023';
+  end if;
+
+  insert into public.progreso as p (user_id, materia_id, estado, updated_at)
+  values (v_uid, v_materia, guardar_materia.estado, now())
+  on conflict (user_id, materia_id) do update set estado = excluded.estado, updated_at = now();
+
+  delete from public.instancias i where i.user_id = v_uid and i.materia_id = v_materia;
+
+  insert into public.instancias (user_id, materia_id, tipo, fecha, nota, orden, fuente)
+  select
+    v_uid,
+    v_materia,
+    e.valor ->> 'tipo',
+    (e.valor ->> 'fecha')::date,
+    (e.valor ->> 'nota')::numeric,
+    e.posicion::integer - 1,
+    coalesce(e.valor ->> 'fuente', 'manual')
+  from jsonb_array_elements(guardar_materia.instancias) with ordinality as e (valor, posicion);
+end;
+$$;
+

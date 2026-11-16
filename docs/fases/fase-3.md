@@ -2,6 +2,8 @@
 
 **Objetivo:** el alumno conecta EstudIA como conector en Claude o ChatGPT y desde ahí ve y modifica su carrera y busca en sus apuntes, usando su propia suscripción.
 
+**Postergada hasta que haya demanda** (decisión de Agu del 2026-11-16, `docs/backlog.md` §6). No se trabaja sin que Agu la retome explícitamente.
+
 Prerrequisito: fase 2 aprobada.
 
 ## Antes de implementar (preguntar)

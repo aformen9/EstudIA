@@ -1,13 +1,15 @@
-import type { Material } from "@estudia/core";
 import { useEffect, useSyncExternalStore } from "react";
-import { useBorrados, type BorradosPendientes } from "./borradosPendientes";
+import { useBorrados, type BorradoPendiente, type BorradosPendientes } from "./borradosPendientes";
 
 /** El botón "Borrar" ya no está: al deshacer, el foco vuelve al del material que reapareció. */
 function enfocarMaterial(materialId: string) {
   requestAnimationFrame(() => {
-    const fila = document.querySelector<HTMLElement>(`[data-material="${CSS.escape(materialId)}"]`);
+    // Una tarjeta agrupa varias referencias: su `data-material` las lista separadas por espacios.
+    const fila = document.querySelector<HTMLElement>(
+      `[data-material~="${CSS.escape(materialId)}"]`,
+    );
     const destino =
-      fila?.querySelector<HTMLElement>(".del") ??
+      fila?.querySelector<HTMLElement>(".del, .txt-b") ??
       document.querySelector<HTMLElement>("dialog[open]") ??
       document.querySelector<HTMLElement>("main");
     destino?.focus();
@@ -16,37 +18,39 @@ function enfocarMaterial(materialId: string) {
 
 function AvisoDeshacer({
   borrados,
-  material,
+  borrado,
 }: {
   borrados: BorradosPendientes;
-  material: Material;
+  borrado: BorradoPendiente;
 }) {
+  const material = borrado.materiales[0];
+  const titulo = material?.titulo ?? "";
   // Puede desmontarse con el foco o el puntero adentro: sin esto, el plazo quedaría frenado.
   useEffect(
     () => () => {
-      borrados.reanudar(material.id, "foco");
-      borrados.reanudar(material.id, "puntero");
+      borrados.reanudar(borrado.id, "foco");
+      borrados.reanudar(borrado.id, "puntero");
     },
-    [borrados, material.id],
+    [borrados, borrado.id],
   );
 
   return (
     <div
       className="aviso-deshacer"
-      onMouseEnter={() => borrados.pausar(material.id, "puntero")}
-      onMouseLeave={() => borrados.reanudar(material.id, "puntero")}
-      onFocus={() => borrados.pausar(material.id, "foco")}
-      onBlur={() => borrados.reanudar(material.id, "foco")}
+      onMouseEnter={() => borrados.pausar(borrado.id, "puntero")}
+      onMouseLeave={() => borrados.reanudar(borrado.id, "puntero")}
+      onFocus={() => borrados.pausar(borrado.id, "foco")}
+      onBlur={() => borrados.reanudar(borrado.id, "foco")}
     >
-      <span className="aviso-texto" title={material.titulo}>
-        Borraste “{material.titulo}”.
+      <span className="aviso-texto" title={titulo}>
+        {borrado.texto ?? `Borraste “${titulo}”.`}
       </span>
       <button
         type="button"
-        aria-label={`Deshacer: volver a traer ${material.titulo}`}
+        aria-label={`Deshacer: volver a traer ${titulo}`}
         onClick={() => {
-          borrados.deshacer(material.id);
-          enfocarMaterial(material.id);
+          borrados.deshacer(borrado.id);
+          enfocarMaterial(borrado.id);
         }}
       >
         Deshacer
@@ -70,8 +74,8 @@ function RegionConAvisos({ borrados }: { borrados: BorradosPendientes }) {
   return (
     <div className="avisos-borrado">
       <div role="status" className="avisos-grupo">
-        {pendientes.map((material) => (
-          <AvisoDeshacer key={material.id} borrados={borrados} material={material} />
+        {pendientes.map((borrado) => (
+          <AvisoDeshacer key={borrado.id} borrados={borrados} borrado={borrado} />
         ))}
       </div>
       {fallos.map((fallo) => (

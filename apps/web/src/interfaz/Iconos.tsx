@@ -68,6 +68,8 @@ const TRAZOS = {
   ),
   spark: <path d="M12 3v4m0 10v4M3 12h4m10 0h4M6 6l2.5 2.5m7 7L18 18M6 18l2.5-2.5m7-7L18 6" />,
   arrow: <path d="M5 12h14m-5-5 5 5-5 5" />,
+  circulo: <circle cx="12" cy="12" r="9" strokeDasharray="3.2 3.2" />,
+  "chev-down": <path d="m6 9 6 6 6-6" />,
 };
 
 export type NombreIcono = keyof typeof TRAZOS;

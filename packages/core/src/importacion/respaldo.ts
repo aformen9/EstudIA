@@ -3,6 +3,7 @@ import type {
   DatosAlumno,
   EventoHistorial,
   FuenteHistorial,
+  Instancia,
   Material,
   Materia,
   MateriaPropiaImportada,
@@ -11,10 +12,15 @@ import type {
   PlanCompleto,
   ProgresoMateria,
 } from "../tipos";
+import { ordenarInstancias } from "../calculo/instancias";
+import { ESTADOS_MATERIA } from "../tipos";
+import { instanciasDesdeLegacy, progresoVacio } from "./convertir";
 import {
   Avisos,
   catalogoPorCodigo,
+  fechaValida,
   normalizarEvento,
+  normalizarInstancia,
   normalizarProgreso,
   type OrigenMateria,
   resumirImportacion,
@@ -22,7 +28,8 @@ import {
 import type { MaterialImportado, ResultadoRespaldo } from "./tipos";
 
 export const FORMATO_RESPALDO = "estudia-respaldo";
-export const VERSION_RESPALDO = 1;
+/** La 2 guarda instancias. La 1 (notas en campos fijos e historial) se sigue pudiendo restaurar. */
+export const VERSION_RESPALDO = 2;
 
 /** Los uuid cambian entre entornos: el catálogo se referencia por código y lo propio por clave. */
 export type ReferenciaMateria = { codigo: string } | { clave: string };
@@ -43,12 +50,13 @@ export interface RespaldoMateriaPropia {
   }[];
 }
 
-export interface RespaldoProgreso extends Omit<ProgresoMateria, "materiaId"> {
-  materia: ReferenciaMateria;
-}
+/** Sin `id`: el orden de la lista es el orden de carga. */
+export type RespaldoInstancia = Pick<Instancia, "tipo" | "fecha" | "nota" | "fuente">;
 
-export interface RespaldoEvento extends Omit<EventoHistorial, "materiaId"> {
+export interface RespaldoProgreso {
   materia: ReferenciaMateria;
+  estado: ProgresoMateria["estado"];
+  instancias: RespaldoInstancia[];
 }
 
 interface RespaldoMaterialBase {
@@ -82,7 +90,6 @@ export interface RespaldoEstudia {
   plan: { universidad: string | null; carrera: string | null; version: string };
   materiasPropias: RespaldoMateriaPropia[];
   progreso: RespaldoProgreso[];
-  historial: RespaldoEvento[];
   materiales: RespaldoMaterial[];
 }
 
@@ -128,15 +135,24 @@ export function crearRespaldo(
         }),
     }));
 
-  const progreso = datos.progreso.flatMap(({ materiaId, ...fila }): RespaldoProgreso[] => {
-    const materia = referencia(materiaId);
-    return materia ? [{ materia, ...fila }] : [];
-  });
-
-  const historial = datos.historial.flatMap(({ materiaId, ...evento }): RespaldoEvento[] => {
-    const materia = referencia(materiaId);
-    return materia ? [{ materia, ...evento }] : [];
-  });
+  const progreso = datos.progreso.flatMap(
+    ({ materiaId, estado, instancias }): RespaldoProgreso[] => {
+      const materia = referencia(materiaId);
+      if (!materia) return [];
+      return [
+        {
+          materia,
+          estado,
+          instancias: ordenarInstancias(instancias).map(({ tipo, fecha, nota, fuente }) => ({
+            tipo,
+            fecha,
+            nota,
+            fuente,
+          })),
+        },
+      ];
+    },
+  );
 
   const omitidos: Material[] = [];
   const materialesRespaldados = materiales.flatMap((material): RespaldoMaterial[] => {
@@ -182,7 +198,6 @@ export function crearRespaldo(
       },
       materiasPropias,
       progreso,
-      historial,
       materiales: materialesRespaldados,
     },
     materialesOmitidos: omitidos,
@@ -231,7 +246,8 @@ const esquemaRespaldo = z.object({
   ),
   // Estados y notas se validan después, para reportarlos en vez de rechazar el archivo.
   progreso: z.array(z.looseObject({ materia: esquemaReferencia })),
-  historial: z.array(z.looseObject({ materia: esquemaReferencia })),
+  // Solo en la versión 1.
+  historial: z.array(z.looseObject({ materia: esquemaReferencia })).optional(),
   materiales: z.array(
     z.discriminatedUnion("tipo", [
       z.object({
@@ -281,7 +297,7 @@ function fuenteDelEvento(valor: unknown, materia: string, avisos: Avisos): Fuent
 function codigosReferenciados(respaldo: LecturaRespaldo): Set<string> {
   const referencias: (ReferenciaMateria | null)[] = [
     ...respaldo.progreso.map((fila) => fila.materia),
-    ...respaldo.historial.map((evento) => evento.materia),
+    ...(respaldo.historial ?? []).map((evento) => evento.materia),
     ...respaldo.materiales.map((material) => material.materia),
     ...respaldo.materiasPropias.flatMap((m) => m.correlativas.map((c) => c.requiere)),
   ];
@@ -302,7 +318,7 @@ function nombreDelPlan(
 
 function versionNoSoportada(json: object): string | null {
   const version = "version" in json ? json.version : undefined;
-  if (version === VERSION_RESPALDO) return null;
+  if (version === 1 || version === VERSION_RESPALDO) return null;
   if (typeof version === "number" && version > VERSION_RESPALDO) {
     return "Este respaldo es de una versión más nueva de EstudIA. Actualizá la app y probá de nuevo.";
   }
@@ -406,27 +422,12 @@ export function leerRespaldo(json: unknown, plan: PlanCompleto): ResultadoRespal
     return { ...materia, correlativas };
   });
 
-  const progreso: ProgresoMateria[] = [];
-  const conProgreso = new Set<string>();
-  for (const fila of respaldo.progreso) {
-    const materiaId = resolver(fila.materia);
-    if (materiaId === null) {
-      sinResolver(fila.materia, "su progreso");
-    } else if (conProgreso.has(materiaId)) {
-      const nombre = nombreDeReferencia(fila.materia);
-      avisos.agregar(
-        "dato-invalido",
-        nombre,
-        `${nombre}: tiene más de una fila de progreso, usé la primera.`,
-      );
-    } else {
-      conProgreso.add(materiaId);
-      progreso.push(normalizarProgreso(fila, materiaId, origenDe(fila.materia), plan.plan, avisos));
-    }
-  }
+  const esVersion1 = (json as { version?: unknown }).version === 1;
+  const fechaDelRespaldo = fechaValida(respaldo.creadoEn) ?? "1970-01-01";
 
-  const historial: EventoHistorial[] = [];
-  for (const crudo of respaldo.historial) {
+  // Versión 1: los eventos del historial se juntan por materia y se convierten con su progreso.
+  const eventosDe = new Map<string, EventoHistorial[]>();
+  for (const crudo of respaldo.historial ?? []) {
     const materiaId = resolver(crudo.materia);
     if (materiaId === null) {
       sinResolver(crudo.materia, "un evento del historial");
@@ -435,7 +436,68 @@ export function leerRespaldo(json: unknown, plan: PlanCompleto): ResultadoRespal
     const origen = origenDe(crudo.materia);
     const fuente = fuenteDelEvento(crudo.fuente, origen.id, avisos);
     const evento = normalizarEvento(crudo, materiaId, origen, fuente, plan.plan, avisos);
-    if (evento) historial.push(evento);
+    if (evento) eventosDe.set(materiaId, [...(eventosDe.get(materiaId) ?? []), evento]);
+  }
+
+  const progreso: ProgresoMateria[] = [];
+  const conProgreso = new Set<string>();
+  for (const fila of respaldo.progreso) {
+    const materiaId = resolver(fila.materia);
+    if (materiaId === null) {
+      sinResolver(fila.materia, "su progreso");
+      continue;
+    }
+    if (conProgreso.has(materiaId)) {
+      const nombre = nombreDeReferencia(fila.materia);
+      avisos.agregar(
+        "dato-invalido",
+        nombre,
+        `${nombre}: tiene más de una fila de progreso, usé la primera.`,
+      );
+      continue;
+    }
+    conProgreso.add(materiaId);
+    const origen = origenDe(fila.materia);
+    if (esVersion1) {
+      const legacy = normalizarProgreso(fila, materiaId, origen, plan.plan, avisos);
+      progreso.push(
+        instanciasDesdeLegacy(legacy, eventosDe.get(materiaId) ?? [], fechaDelRespaldo, "manual"),
+      );
+      continue;
+    }
+    const estado = ESTADOS_MATERIA.find((e) => e === fila.estado);
+    if (!estado) {
+      avisos.agregar(
+        "estado-desconocido",
+        origen.id,
+        `${origen.nombre}: el estado ${String(fila.estado)} no existe, la dejé pendiente.`,
+        fila.estado,
+      );
+    }
+    const crudas: unknown[] = Array.isArray(fila.instancias) ? fila.instancias : [];
+    const instancias = crudas.flatMap((crudo, orden) => {
+      const fuente = fuenteDelEvento((crudo as { fuente?: unknown })?.fuente, origen.id, avisos);
+      const instancia = normalizarInstancia(crudo, orden, origen, fuente, plan.plan, avisos);
+      return instancia ? [instancia] : [];
+    });
+    progreso.push({ materiaId, estado: estado ?? "pendiente", instancias });
+  }
+  // Un evento de la v1 sin fila de progreso también vale: la materia queda pendiente con sus instancias.
+  for (const [materiaId, eventos] of eventosDe) {
+    if (conProgreso.has(materiaId)) continue;
+    const vacia = {
+      materiaId,
+      estado: "pendiente" as const,
+      p1: null,
+      p2: null,
+      rec: null,
+      notaCursada: null,
+      notaFinalExamen: null,
+      nota: null,
+      aplazos: [],
+    };
+    const convertida = instanciasDesdeLegacy(vacia, eventos, fechaDelRespaldo, "manual");
+    if (!progresoVacio(convertida)) progreso.push(convertida);
   }
 
   const materiales = respaldo.materiales.flatMap((material): MaterialImportado[] => {
@@ -489,7 +551,7 @@ export function leerRespaldo(json: unknown, plan: PlanCompleto): ResultadoRespal
     }
   });
 
-  const datos = { materiasPropias, progreso, historial };
+  const datos = { materiasPropias, progreso };
   return {
     ok: true,
     datos,

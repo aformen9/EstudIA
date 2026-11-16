@@ -252,13 +252,15 @@ describe("subir un archivo", () => {
       progreso: [fila(enCurso?.id ?? "", { estado: "cursando" })],
     });
     const dialogo = await abrirSubir(repositorio);
-    const opciones = within(
-      dialogo.getByLabelText("¿De qué materia es?"),
-    ).getAllByRole<HTMLOptionElement>("option");
+    // Arranca en la materia en curso, y al abrir el selector las en curso van primero.
+    const boton = dialogo.getByRole("button", { name: "¿De qué materia es?" });
+    expect(boton.textContent).toContain(enCurso?.nombre);
+    fireEvent.click(boton);
+    const opciones = dialogo.getAllByRole("option");
     expect(opciones).toHaveLength(PLAN.materias.length);
-    expect(opciones[0]?.textContent).toBe(`${enCurso?.nombre} · en curso`);
-    const ids = new Set(PLAN.materias.map((m) => m.id));
-    expect(opciones.every((o) => ids.has(o.value))).toBe(true);
+    expect(opciones[0]?.textContent).toContain(enCurso?.nombre);
+    expect(opciones[0]?.textContent).toContain("En curso");
+    expect(dialogo.getByRole("group", { name: "En curso ahora" })).toBeTruthy();
   });
 
   it("guarda la copia local por sha256 y registra el documento sin texto", async () => {
@@ -423,11 +425,15 @@ describe("vista Materiales", () => {
     expect(main.getByText("clase")).toBeTruthy();
     fireEvent.click(main.getByRole("button", { name: "Todo 3" }));
 
-    fireEvent.change(main.getByLabelText("Filtrar por materia"), {
-      target: { value: MATERIA?.id },
-    });
+    const filtro = () => main.getByRole("button", { name: "Filtrar por materia" });
+    fireEvent.click(filtro());
+    fireEvent.click(main.getByRole("option", { name: new RegExp(MATERIA?.nombre ?? "") }));
     expect(main.queryByText("suelta")).toBeNull();
-    fireEvent.change(main.getByLabelText("Filtrar por materia"), { target: { value: "" } });
+    fireEvent.click(filtro());
+    fireEvent.click(main.getByRole("option", { name: "Sin materia" }));
+    expect(main.getByText("suelta")).toBeTruthy();
+    fireEvent.click(filtro());
+    fireEvent.click(main.getByRole("option", { name: "Todas las materias" }));
 
     fireEvent.change(main.getByRole("searchbox"), { target: { value: "SUEL" } });
     expect(main.queryByText("clase")).toBeNull();
@@ -580,7 +586,7 @@ describe("material en el panel", () => {
 describe("restaurar materiales de un respaldo, de punta a punta", () => {
   function respaldoCon(materiales: Material[]) {
     const { respaldo } = crearRespaldo(
-      { ...PLAN, progreso: [], historial: [] },
+      { ...PLAN, progreso: [] },
       materiales,
       "2026-03-01T00:00:00Z",
     );

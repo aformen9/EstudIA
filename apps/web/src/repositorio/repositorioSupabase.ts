@@ -12,7 +12,6 @@ import { TIEMPO_MAXIMO_GUARDADO_MS } from "../guardado/almacenGuardado";
 import {
   COLUMNAS_CARRERA,
   COLUMNAS_CORRELATIVA_CON_PLAN,
-  COLUMNAS_HISTORIAL_CON_PLAN,
   COLUMNAS_INSCRIPCION,
   COLUMNAS_MATERIA,
   COLUMNAS_MATERIAL,
@@ -27,7 +26,6 @@ import {
   correlativaAFila,
   correlativaDesdeFila,
   documentoDesdeFila,
-  historialDesdeFila,
   inscripcionDesdeFila,
   materiaDesdeFila,
   materialDesdeFila,
@@ -35,13 +33,12 @@ import {
   nuevoMaterialAFila,
   perfilDesdeFila,
   planDesdeFila,
-  progresoAFila,
+  progresoAParametros,
   progresoDesdeFila,
   siglasDesdeFila,
   universidadDesdeFila,
   type FilaCarrera,
   type FilaCorrelativa,
-  type FilaHistorial,
   type FilaInscripcion,
   type FilaMateria,
   type FilaMaterial,
@@ -226,21 +223,9 @@ export function crearRepositorioSupabase(cliente: SupabaseClient): Repositorio {
       comprobar(
         "No se pudo guardar el progreso",
         await cliente
-          .from("progreso")
-          .upsert(progresoAFila(progreso), { onConflict: "user_id,materia_id" })
+          .rpc("guardar_materia", progresoAParametros(progreso))
           // Corta el pedido de verdad: si no, uno colgado podría llegar después de uno más nuevo.
           .abortSignal(AbortSignal.timeout(TIEMPO_MAXIMO_GUARDADO_MS)),
-      );
-    },
-
-    async obtenerHistorial(planId) {
-      const respuesta = await cliente
-        .from("historial")
-        .select(COLUMNAS_HISTORIAL_CON_PLAN)
-        .eq("materias.plan_id", planId)
-        .order("fecha");
-      return filas<FilaHistorial[]>("No se pudo leer tu historial", respuesta).map(
-        historialDesdeFila,
       );
     },
 

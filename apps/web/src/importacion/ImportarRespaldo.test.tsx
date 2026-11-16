@@ -6,6 +6,8 @@ import { ConPlan } from "../plan/planActivo";
 import {
   elegirArchivo,
   fila,
+  inst,
+  filaConNotas,
   hashEs,
   ID_PLAN,
   INSCRIPCION,
@@ -40,8 +42,7 @@ function respaldoNuevo(materiales: Material[]): string {
   const [materia] = PLAN.materias as [Materia];
   const datos: DatosAlumno = {
     ...PLAN,
-    progreso: [fila(materia.id, { estado: "aprobada", nota: 9 })],
-    historial: [],
+    progreso: [filaConNotas(materia.id, "aprobada", 9)],
   };
   const creado = crearRespaldo(datos, materiales, "2026-11-04T00:00:00Z");
   return JSON.stringify(creado.respaldo);
@@ -129,8 +130,8 @@ describe("vista previa", () => {
     expect(dato("Materias")).toBe("50");
     expect(dato("Aprobada")).toBe("26");
     expect(dato("En curso")).toBe("5");
-    expect(dato("Final pendiente")).toBe("2");
-    expect(dato("Pendiente")).toBe("17");
+    expect(dato("Falta final")).toBe("2");
+    expect(dato("Por cursar")).toBe("17");
     expect(dato("Aprobado")).toBe("52 %");
     expect(dato("Cursado")).toBe("56 %");
     expect(dato("Promedio sin aplazos")).toBe("7,73");
@@ -192,16 +193,8 @@ describe("sobre datos existentes", () => {
   const conDatos = () =>
     repositorioFalso({
       inscripciones: [INSCRIPCION],
-      progreso: [fila(materia.id, { estado: "cursando" })],
-      historial: [
-        {
-          materiaId: materia.id,
-          fecha: "2025-01-01",
-          tipo: "Examen",
-          nota: 2,
-          resultado: "Reprobado",
-          fuente: "manual",
-        },
+      progreso: [
+        fila(materia.id, { estado: "cursando", instancias: [inst("final", "2025-01-01", 2)] }),
       ],
     });
 
@@ -211,7 +204,7 @@ describe("sobre datos existentes", () => {
     elegirArchivo(leerFixtureLegacy());
 
     const alerta = await screen.findByText(/reemplaza lo que ya tenés/);
-    expect(alerta.closest(".alert")?.textContent).toMatch(/1 materia con datos y 1 evento/);
+    expect(alerta.closest(".alert")?.textContent).toMatch(/1 materia con datos y 1 nota/);
     const boton = screen.getByRole<HTMLButtonElement>("button", { name: "Reemplazar mis datos" });
     expect(boton.disabled).toBe(true);
     fireEvent.click(boton);
@@ -267,7 +260,6 @@ describe("guardar", () => {
       expect.arrayContaining([
         JSON.stringify(["plan", ID_PLAN]),
         JSON.stringify(["progreso", ID_PLAN]),
-        JSON.stringify(["historial", ID_PLAN]),
         JSON.stringify(["materiales"]),
       ]),
     );
@@ -446,7 +438,7 @@ describe("guardar", () => {
 
     const alerta = await screen.findByRole("alert");
     expect(alerta.textContent).toBe("No pude restaurar tus materiales: sin red");
-    expect(screen.getByText(/ya están guardados/)).toBeTruthy();
+    expect(screen.getByText(/ya están guardadas/)).toBeTruthy();
 
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "Reintentar" }));

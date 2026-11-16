@@ -28,7 +28,8 @@ export type ResultadoArchivo =
   | ErrorImportacion;
 
 /** Entrada única de la UI: detecta el formato y lo lee. En legacy, `materiales` queda vacío. */
-export function importarArchivo(json: unknown, plan: PlanCompleto): ResultadoArchivo {
+/** `hoy` ("AAAA-MM-DD") fecha las notas viejas que no traen fecha. */
+export function importarArchivo(json: unknown, plan: PlanCompleto, hoy?: string): ResultadoArchivo {
   const formato = detectarFormatoRespaldo(json);
   if (formato === null) {
     return {
@@ -40,6 +41,6 @@ export function importarArchivo(json: unknown, plan: PlanCompleto): ResultadoArc
     const resultado = leerRespaldo(json, plan);
     return resultado.ok ? { ...resultado, formato } : resultado;
   }
-  const resultado = importarLegacy(json, plan);
+  const resultado = importarLegacy(json, plan, hoy);
   return resultado.ok ? { ...resultado, materiales: [], formato } : resultado;
 }

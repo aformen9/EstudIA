@@ -2,15 +2,15 @@ import { describe, expect, it } from "vitest";
 import legacy from "../../../../fixtures/caso-prueba-legacy.json";
 import {
   datosDe,
-  evento,
   fila,
+  filaConNotas,
+  instancia,
   materia,
   planBase,
   planLcd,
   redondear4,
 } from "../pruebas/auxiliares";
 import {
-  alEditarNota,
   alertaAnioCompleto,
   conteoPorEstado,
   cumpleCondicion,
@@ -22,7 +22,6 @@ import {
   listaAplazos,
   materiasPorEstado,
   notasDeEscala,
-  parsearAplazos,
   podesCursar,
   progresoCarrera,
   progresoDe,
@@ -31,7 +30,7 @@ import {
   promedioPorArea,
   promedioPorCuatrimestre,
   promocionadas,
-  sugerirEstado,
+  sugerirAprobada,
 } from "../index";
 import { importarLegacy } from "../importacion";
 
@@ -99,7 +98,7 @@ describe("plan vacío y alumno sin notas", () => {
   it("da promedio null sin notas, aunque haya materias", () => {
     const datos = datosDe({
       materias: [materia("A", { area: "Matemática" })],
-      progreso: [fila("A", { estado: "aprobada", nota: null })],
+      progreso: [filaConNotas("A", "aprobada", null)],
     });
     expect(promedio(datos, false)).toEqual({ promedio: null, n: 0 });
     expect(promedioPorCuatrimestre(datos, false)).toEqual([]);
@@ -111,10 +110,7 @@ describe("promedios", () => {
   it("con aplazos suma también los de materias no aprobadas; sin aplazos, no", () => {
     const datos = datosDe({
       materias: [materia("A"), materia("B")],
-      progreso: [
-        fila("A", { estado: "aprobada", nota: 8 }),
-        fila("B", { estado: "final", nota: 9, aplazos: [2] }),
-      ],
+      progreso: [filaConNotas("A", "aprobada", 8), filaConNotas("B", "final", null, [2])],
     });
     expect(promedio(datos, false)).toEqual({ promedio: 8, n: 1 });
     expect(promedio(datos, true)).toEqual({ promedio: 5, n: 2 });
@@ -128,7 +124,7 @@ describe("promedios", () => {
         materia("Z", { anio: 2, cuatrimestre: null }),
         materia("B", { anio: 1, cuatrimestre: 3 }),
       ],
-      progreso: ["A", "E", "Z", "B"].map((id) => fila(id, { estado: "aprobada", nota: 7 })),
+      progreso: ["A", "E", "Z", "B"].map((id) => filaConNotas(id, "aprobada", 7)),
     });
     expect(promedioPorCuatrimestre(datos, false)).toEqual([
       { anio: 1, cuatrimestre: 3, conAplazos: false, promedio: 7, n: 1 },
@@ -144,9 +140,9 @@ describe("promedios", () => {
         materia("C", { area: null }),
       ],
       progreso: [
-        fila("A", { estado: "aprobada", nota: 5 }),
-        fila("B", { estado: "aprobada", nota: 9 }),
-        fila("C", { estado: "aprobada", nota: 10 }),
+        filaConNotas("A", "aprobada", 5),
+        filaConNotas("B", "aprobada", 9),
+        filaConNotas("C", "aprobada", 10),
       ],
     });
     expect(promedioPorArea(datos, false).map((a) => a.area)).toEqual(["Alta", "Baja"]);
@@ -156,15 +152,27 @@ describe("promedios", () => {
 describe("promedio en el tiempo", () => {
   it("acumula a mano: ordena por fecha e ignora ausentes y cursadas desaprobadas", () => {
     const datos = datosDe({
-      materias: [materia("A"), materia("B")],
-      historial: [
-        evento("A", "2024-03-01", "Examen", "Aprobado", 8),
-        evento("B", "2024-01-01", "Examen", "Aprobado", 6),
-        evento("B", "2023-12-01", "Regularidad", "Reprobado", 2),
-        evento("B", "2023-12-02", "Regularidad", "Aprobado", 9),
-        evento("A", "2023-12-15", "Examen", "Ausente", null),
-        evento("A", "2023-12-20", "Examen", "Reprobado", 2),
-        evento("B", "2024-05-01", "Promocion", "Promocionado", 10),
+      materias: [materia("A"), materia("B"), materia("C")],
+      progreso: [
+        {
+          materiaId: "A",
+          estado: "aprobada",
+          instancias: [
+            instancia("final", "2024-03-01", 8),
+            instancia("final", "2023-12-15", null),
+            instancia("final", "2023-12-20", 2),
+          ],
+        },
+        {
+          materiaId: "B",
+          estado: "aprobada",
+          instancias: [
+            instancia("cursada", "2023-12-01", 2),
+            instancia("cursada", "2023-12-02", 9),
+            instancia("promocion", "2024-05-01", 10),
+          ],
+        },
+        { materiaId: "C", estado: "aprobada", instancias: [instancia("final", "2024-01-01", 6)] },
       ],
     });
     // Sin aplazos: 6 → (6+8)/2 = 7 → (6+8+10)/3 = 8.
@@ -183,12 +191,16 @@ describe("promedio en el tiempo", () => {
     ]);
   });
 
-  it("no cuenta exámenes reprobados sin nota ni eventos de materias fuera del plan", () => {
+  it("no cuenta finales sin nota ni materias fuera del plan", () => {
     const datos = datosDe({
       materias: [materia("A")],
-      historial: [
-        evento("A", "2024-01-01", "Examen", "Reprobado", null),
-        evento("OTRA", "2024-01-01", "Examen", "Aprobado", 9),
+      progreso: [
+        { materiaId: "A", estado: "final", instancias: [instancia("final", "2024-01-01", null)] },
+        {
+          materiaId: "OTRA",
+          estado: "aprobada",
+          instancias: [instancia("final", "2024-01-01", 9)],
+        },
       ],
     });
     expect(promedioEnElTiempo(datos, true)).toEqual([]);
@@ -255,17 +267,23 @@ describe("vistas Promedio y Aprobadas", () => {
     expect(con.filter((b) => b.desaprobada).map((b) => b.nota)).toEqual([1, 2, 3]);
   });
 
-  it("redondea las notas no enteras en la distribución", () => {
+  it("agrupa las notas no enteras por su parte entera en la distribución", () => {
     const datos = datosDe({
       materias: [materia("A"), materia("B")],
-      progreso: [
-        fila("A", { estado: "aprobada", nota: 7.5 }),
-        fila("B", { estado: "aprobada", nota: 7.4 }),
-      ],
+      progreso: [filaConNotas("A", "aprobada", 7.5), filaConNotas("B", "aprobada", 7.4)],
     });
     const barras = distribucionNotas(datos, false);
-    expect(barras.find((b) => b.nota === 7)?.cantidad).toBe(1);
-    expect(barras.find((b) => b.nota === 8)?.cantidad).toBe(1);
+    expect(barras.find((b) => b.nota === 7)?.cantidad).toBe(2);
+    expect(barras.find((b) => b.nota === 8)?.cantidad).toBe(0);
+  });
+
+  it("un 3,5 no cae en la barra de una nota que aprueba", () => {
+    const datos = datosDe({
+      materias: [materia("A")],
+      progreso: [filaConNotas("A", "final", null, [3.5])],
+    });
+    const barra = distribucionNotas(datos, true).find((b) => b.cantidad === 1);
+    expect(barra).toMatchObject({ nota: 3, desaprobada: true });
   });
 
   it("lista aplazos con la nota con la que después se aprobó", () => {
@@ -285,8 +303,13 @@ describe("vistas Promedio y Aprobadas", () => {
   it("no cuenta como promocionada a una materia que todavía no está aprobada", () => {
     const datos = datosDe({
       materias: [materia("A")],
-      progreso: [fila("A", { estado: "cursando" })],
-      historial: [evento("A", "2024-01-01", "Promocion", "Promocionado", 8)],
+      progreso: [
+        {
+          materiaId: "A",
+          estado: "cursando",
+          instancias: [instancia("promocion", "2024-01-01", 8)],
+        },
+      ],
     });
     expect(promocionadas(datos)).toEqual([]);
   });
@@ -398,16 +421,12 @@ describe("correlativas", () => {
 describe("escalas distintas", () => {
   const escala1a7Ap4 = planBase({ notaMin: 1, notaMax: 7, notaAprobacion: 4 });
   const escala1a7Ap6 = planBase({ notaMin: 1, notaMax: 7, notaAprobacion: 6 });
-  const valores = { estado: "cursando" as const, p1: null, p2: null, rec: null, nota: null };
 
   it("arma la distribución y los dieces con la escala del plan", () => {
     const datos = datosDe({
       plan: escala1a7Ap6,
       materias: [materia("A"), materia("B")],
-      progreso: [
-        fila("A", { estado: "aprobada", nota: 7 }),
-        fila("B", { estado: "aprobada", nota: 6 }),
-      ],
+      progreso: [filaConNotas("A", "aprobada", 7), filaConNotas("B", "aprobada", 6)],
     });
     const barras = distribucionNotas(datos, false);
     expect(barras.map((b) => b.nota)).toEqual([1, 2, 3, 4, 5, 6, 7]);
@@ -417,75 +436,13 @@ describe("escalas distintas", () => {
   });
 
   it("sugiere aprobada según la aprobación del plan", () => {
-    expect(sugerirEstado({ ...valores, nota: 4 }, escala1a7Ap4)?.estado).toBe("aprobada");
-    expect(sugerirEstado({ ...valores, nota: 4 }, escala1a7Ap6)).toBeNull();
-    expect(sugerirEstado({ ...valores, nota: 6 }, escala1a7Ap6)?.estado).toBe("aprobada");
-  });
-
-  it("sugiere final según la aprobación del plan", () => {
-    const parciales = { ...valores, p1: 5, p2: 5 };
-    expect(sugerirEstado(parciales, escala1a7Ap4)?.estado).toBe("final");
-    expect(sugerirEstado(parciales, escala1a7Ap6)).toBeNull();
-  });
-
-  it("parsea aplazos según la escala del plan", () => {
-    expect(parsearAplazos("2, 8;3 7 0", escala1a7Ap4)).toEqual([2, 3, 7]);
-    expect(parsearAplazos("2, 8;3 7 0", planBase())).toEqual([2, 8, 3, 7]);
+    const con = (nota: number) => [instancia("final", "2025-07-13", nota)];
+    expect(sugerirAprobada("final", con(4), escala1a7Ap4)).toBe(true);
+    expect(sugerirAprobada("final", con(4), escala1a7Ap6)).toBe(false);
+    expect(sugerirAprobada("final", con(6), escala1a7Ap6)).toBe(true);
   });
 
   it("devuelve los valores de la escala", () => {
     expect(notasDeEscala(escala1a7Ap4)).toEqual([1, 2, 3, 4, 5, 6, 7]);
-  });
-});
-
-describe("sugerencias de estado", () => {
-  const plan = planBase();
-  const base = { estado: "cursando" as const, p1: null, p2: null, rec: null, nota: null };
-
-  it("no sugiere aprobada si ya está aprobada", () => {
-    expect(sugerirEstado({ ...base, estado: "aprobada", nota: 8 }, plan)).toBeNull();
-  });
-
-  it("sugiere final con p1 y recuperatorio aprobados", () => {
-    const sugerencia = sugerirEstado({ ...base, p1: 6, p2: 2, rec: 4 }, plan);
-    expect(sugerencia).toMatchObject({ estado: "final", motivo: "parciales" });
-  });
-
-  it("no sugiere final sin p1 aprobado, fuera de cursando o con nota", () => {
-    expect(sugerirEstado({ ...base, p1: 2, p2: 8, rec: 8 }, plan)).toBeNull();
-    expect(sugerirEstado({ ...base, estado: "pendiente", p1: 8, p2: 8 }, plan)).toBeNull();
-    expect(sugerirEstado({ ...base, p1: 8, p2: 8, nota: 2 }, plan)).toBeNull();
-  });
-
-  it("incluso con aprobación 0, una nota vacía no aprueba", () => {
-    const planCero = planBase({ notaMin: 0, notaAprobacion: 0 });
-    expect(sugerirEstado(base, planCero)).toBeNull();
-    expect(parsearAplazos("", planCero)).toEqual([]);
-  });
-
-  it("completa el estado al editar la nota final", () => {
-    const valores = { estado: "cursando" as const, notaFinalExamen: null };
-    expect(alEditarNota("nota", { ...valores, nota: 4 }, plan)).toEqual({
-      estado: "aprobada",
-      nota: 4,
-    });
-    expect(alEditarNota("nota", { ...valores, nota: 3 }, plan)).toEqual({
-      estado: "cursando",
-      nota: 3,
-    });
-  });
-
-  it("copia el examen a la nota final solo si no había nota", () => {
-    const estado = "final" as const;
-    expect(
-      alEditarNota("notaFinalExamen", { estado, nota: null, notaFinalExamen: 7 }, plan),
-    ).toEqual({ estado: "aprobada", nota: 7 });
-    expect(alEditarNota("notaFinalExamen", { estado, nota: 9, notaFinalExamen: 7 }, plan)).toEqual({
-      estado: "final",
-      nota: 9,
-    });
-    expect(
-      alEditarNota("notaFinalExamen", { estado, nota: null, notaFinalExamen: 2 }, plan),
-    ).toEqual({ estado: "final", nota: null });
   });
 });

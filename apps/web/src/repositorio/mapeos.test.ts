@@ -5,7 +5,6 @@ import {
   carreraDesdeFila,
   correlativaAFila,
   correlativaDesdeFila,
-  historialDesdeFila,
   inscripcionDesdeFila,
   materiaDesdeFila,
   materialDesdeFila,
@@ -14,7 +13,7 @@ import {
   nuevoMaterialAFila,
   perfilDesdeFila,
   planDesdeFila,
-  progresoAFila,
+  progresoAParametros,
   progresoDesdeFila,
   siglasDesdeFila,
   universidadDesdeFila,
@@ -30,6 +29,8 @@ const filaPlan: FilaPlanConSiglas = {
   nota_min: 1,
   nota_max: 10,
   nota_aprobacion: 4,
+  nota_paso: 0.1,
+  created_at: "2026-01-01T00:00:00Z",
   cuatrimestres_por_anio: 2,
   cierre_cuatrimestres: [{ cuatrimestre: 1, mes: 7 }],
   carreras: { sigla: "LCD", nombre: "Ciencias de Datos", universidades: { sigla: "UCA" } },
@@ -84,8 +85,10 @@ describe("catálogo", () => {
       notaMin: 1,
       notaMax: 10,
       notaAprobacion: 4,
+      notaPaso: 0.1,
       cuatrimestresPorAnio: 2,
       cierreCuatrimestres: [{ cuatrimestre: 1, mes: 7 }],
+      creadoEn: "2026-01-01T00:00:00Z",
     });
   });
 
@@ -196,52 +199,56 @@ describe("alumno", () => {
     });
   });
 
-  it("progreso, de ida y de vuelta, sin `user_id`", () => {
+  it("progreso con sus instancias, ordenadas por fecha y orden", () => {
+    const fila = {
+      materia_id: "m",
+      estado: "final" as const,
+      instancias: [
+        {
+          id: "2",
+          tipo: "final" as const,
+          fecha: "2025-03-01",
+          nota: null,
+          orden: 2,
+          fuente: "manual" as const,
+        },
+        {
+          id: "1",
+          tipo: "final" as const,
+          fecha: "2025-02-01",
+          nota: 2,
+          orden: 5,
+          fuente: "siu" as const,
+        },
+        {
+          id: "0",
+          tipo: "cursada" as const,
+          fecha: "2025-02-01",
+          nota: 8,
+          orden: 1,
+          fuente: "manual" as const,
+        },
+      ],
+    };
+    expect(progresoDesdeFila(fila).instancias.map((i) => i.id)).toEqual(["0", "1", "2"]);
+    expect(progresoDesdeFila({ ...fila, instancias: null }).instancias).toEqual([]);
+  });
+
+  it("los parámetros de guardar_materia no llevan user_id ni ids de instancias", () => {
     const progreso: ProgresoMateria = {
       materiaId: "m",
       estado: "final",
-      p1: 7,
-      p2: null,
-      rec: 4.5,
-      notaCursada: 8,
-      notaFinalExamen: null,
-      nota: null,
-      aplazos: [2, 3],
+      instancias: [
+        { id: "x", tipo: "parcial", fecha: "2025-05-01", nota: 7, orden: 0, fuente: "manual" },
+      ],
     };
-    const fila = progresoAFila(progreso);
-    expect(fila).toEqual({
+    const parametros = progresoAParametros(progreso);
+    expect(parametros).toEqual({
       materia_id: "m",
       estado: "final",
-      p1: 7,
-      p2: null,
-      rec: 4.5,
-      nota_cursada: 8,
-      nota_final_examen: null,
-      nota: null,
-      aplazos: [2, 3],
+      instancias: [{ tipo: "parcial", fecha: "2025-05-01", nota: 7, fuente: "manual" }],
     });
-    expect(fila).not.toHaveProperty("user_id");
-    expect(progresoDesdeFila(fila)).toEqual(progreso);
-  });
-
-  it("historial, sin arrastrar el embed de la materia", () => {
-    const fila = {
-      materia_id: "m",
-      fecha: "2025-07-01",
-      tipo: "Examen",
-      nota: 2,
-      resultado: "Reprobado",
-      fuente: "siu",
-      materias: { plan_id: "p" },
-    } as const;
-    expect(historialDesdeFila(fila)).toEqual({
-      materiaId: "m",
-      fecha: "2025-07-01",
-      tipo: "Examen",
-      nota: 2,
-      resultado: "Reprobado",
-      fuente: "siu",
-    });
+    expect(parametros).not.toHaveProperty("user_id");
   });
 });
 

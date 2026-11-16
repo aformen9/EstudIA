@@ -23,6 +23,8 @@ const FILAS: Record<string, unknown> = {
     nota_min: 1,
     nota_max: 10,
     nota_aprobacion: 4,
+    nota_paso: 0.1,
+    created_at: "2026-01-01T00:00:00Z",
     cuatrimestres_por_anio: 2,
     cierre_cuatrimestres: [],
     carreras: { sigla: "LCD", universidades: { sigla: "UCA" } },

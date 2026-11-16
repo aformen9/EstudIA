@@ -10,9 +10,18 @@ export type EstadoMateria = (typeof ESTADOS_MATERIA)[number];
 export type EstadoCatalogo = "publicado" | "pendiente";
 export type ParaCorrelativa = "cursar" | "rendir";
 export type CondicionCorrelativa = "regular" | "aprobada";
+/** Tipos de evento del formato legacy y del respaldo v1: al importar se convierten en instancias. */
 export type TipoHistorial = "Regularidad" | "Examen" | "Promocion" | "En curso";
 export type ResultadoHistorial = "Aprobado" | "Reprobado" | "Ausente" | "Promocionado" | "En curso";
 export type FuenteHistorial = "siu" | "manual" | "ia";
+export type TipoInstancia = "parcial" | "recuperatorio" | "cursada" | "final" | "promocion";
+export const TIPOS_INSTANCIA: readonly TipoInstancia[] = [
+  "parcial",
+  "recuperatorio",
+  "cursada",
+  "final",
+  "promocion",
+];
 export type TipoMaterial = "archivo" | "link" | "nota";
 export type VisibilidadMaterial = "privado" | "compartido";
 export type ExtraidoCon = "pdfjs" | "ocr" | "ia";
@@ -48,8 +57,12 @@ export interface Plan {
   notaMin: number;
   notaMax: number;
   notaAprobacion: number;
+  /** De a cuánto se mueve una nota al cargarla: 0,1 en la UCA. */
+  notaPaso: number;
   cuatrimestresPorAnio: number;
   cierreCuatrimestres: CierreCuatrimestre[];
+  /** Cuándo se cargó: decide cuál es el plan vigente de una carrera. */
+  creadoEn: string;
 }
 
 export interface Materia {
@@ -105,18 +118,31 @@ export interface Inscripcion {
 }
 
 /** Si una materia no tiene fila de progreso, está `pendiente`. */
+/**
+ * Una instancia de evaluación: solo tipo, fecha y nota. No tiene estado: lo que significa (aprobado,
+ * aplazo, ausente, programada, vigente) se deduce del estado de la materia y de las demás instancias.
+ */
+export interface Instancia {
+  /** Único dentro de la materia. La base genera el suyo: este sirve para la pantalla. */
+  id: string;
+  tipo: TipoInstancia;
+  /** "AAAA-MM-DD". */
+  fecha: string;
+  /** Null: sin nota. Un final sin nota con fecha pasada es un ausente. */
+  nota: number | null;
+  /** Desempata dos instancias con la misma fecha: el orden en que se cargaron. */
+  orden: number;
+  fuente: FuenteHistorial;
+}
+
+/** El estado lo elige el alumno; las notas son las instancias. */
 export interface ProgresoMateria {
   materiaId: string;
   estado: EstadoMateria;
-  p1: number | null;
-  p2: number | null;
-  rec: number | null;
-  notaCursada: number | null;
-  notaFinalExamen: number | null;
-  nota: number | null;
-  aplazos: number[];
+  instancias: Instancia[];
 }
 
+/** Evento del historial del formato legacy y del respaldo v1. Solo existe al importar. */
 export interface EventoHistorial {
   materiaId: string;
   fecha: string;
@@ -129,7 +155,6 @@ export interface EventoHistorial {
 /** Entrada de todos los cálculos de `core`. */
 export interface DatosAlumno extends PlanCompleto {
   progreso: ProgresoMateria[];
-  historial: EventoHistorial[];
 }
 
 /* ---------- Material ---------- */
@@ -203,11 +228,10 @@ export interface MateriaPropiaImportada extends Omit<BorradorMateriaPropia, "cor
 }
 
 /**
- * Lo que produce un importador. Se aplica de una vez y reemplaza `progreso` e `historial`
- * del plan. En `progreso` e `historial`, `materiaId` es un uuid del catálogo o una `clave`.
+ * Lo que produce un importador. Se aplica de una vez y reemplaza `progreso` (con sus instancias)
+ * del plan. En `progreso`, `materiaId` es un uuid del catálogo o una `clave`.
  */
 export interface DatosImportados {
   materiasPropias: MateriaPropiaImportada[];
   progreso: ProgresoMateria[];
-  historial: EventoHistorial[];
 }

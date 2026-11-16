@@ -2,6 +2,7 @@
  * Único lugar donde se traduce entre las filas de Postgres (snake_case) y los tipos de `core`
  * (camelCase). Los nombres de columnas que se piden también viven acá, junto a su tipo de fila.
  */
+import { ordenarInstancias } from "@estudia/core";
 import type {
   BorradorCorrelativa,
   BorradorMateriaPropia,
@@ -12,7 +13,6 @@ import type {
   Documento,
   EstadoCatalogo,
   EstadoMateria,
-  EventoHistorial,
   FuenteHistorial,
   Inscripcion,
   Material,
@@ -23,8 +23,8 @@ import type {
   Perfil,
   Plan,
   ProgresoMateria,
-  ResultadoHistorial,
-  TipoHistorial,
+  Instancia,
+  TipoInstancia,
   TipoMaterial,
   Universidad,
   VisibilidadMaterial,
@@ -73,7 +73,7 @@ export function carreraDesdeFila(fila: FilaCarrera): Carrera {
 }
 
 export const COLUMNAS_PLAN =
-  "id, carrera_id, version, estado, nota_min, nota_max, nota_aprobacion, cuatrimestres_por_anio, cierre_cuatrimestres";
+  "id, carrera_id, version, estado, nota_min, nota_max, nota_aprobacion, nota_paso, cuatrimestres_por_anio, cierre_cuatrimestres, created_at";
 
 export interface FilaPlan {
   id: string;
@@ -83,8 +83,10 @@ export interface FilaPlan {
   nota_min: number;
   nota_max: number;
   nota_aprobacion: number;
+  nota_paso: number;
   cuatrimestres_por_anio: number;
   cierre_cuatrimestres: CierreCuatrimestre[];
+  created_at: string;
 }
 
 export function planDesdeFila(fila: FilaPlan): Plan {
@@ -96,8 +98,10 @@ export function planDesdeFila(fila: FilaPlan): Plan {
     notaMin: fila.nota_min,
     notaMax: fila.nota_max,
     notaAprobacion: fila.nota_aprobacion,
+    notaPaso: fila.nota_paso,
     cuatrimestresPorAnio: fila.cuatrimestres_por_anio,
     cierreCuatrimestres: fila.cierre_cuatrimestres,
+    creadoEn: fila.created_at,
   };
 }
 
@@ -258,75 +262,59 @@ export function inscripcionDesdeFila(fila: FilaInscripcion): Inscripcion {
   return { id: fila.id, planId: fila.plan_id, activa: fila.activa };
 }
 
-const COLUMNAS_PROGRESO =
-  "materia_id, estado, p1, p2, rec, nota_cursada, nota_final_examen, nota, aplazos";
+const COLUMNAS_PROGRESO = "materia_id, estado, instancias(id, tipo, fecha, nota, orden, fuente)";
 
-/** Progreso con el plan de su materia, para filtrar por plan. */
+/** Progreso con sus instancias y el plan de su materia, para filtrar por plan. */
 export const COLUMNAS_PROGRESO_CON_PLAN = `${COLUMNAS_PROGRESO}, materias!inner(plan_id)`;
+
+export interface FilaInstancia {
+  id: string;
+  tipo: TipoInstancia;
+  fecha: string;
+  nota: number | null;
+  orden: number;
+  fuente: FuenteHistorial;
+}
 
 export interface FilaProgreso {
   materia_id: string;
   estado: EstadoMateria;
-  p1: number | null;
-  p2: number | null;
-  rec: number | null;
-  nota_cursada: number | null;
-  nota_final_examen: number | null;
-  nota: number | null;
-  aplazos: number[];
+  instancias: FilaInstancia[] | null;
+}
+
+export function instanciaDesdeFila(fila: FilaInstancia): Instancia {
+  return {
+    id: fila.id,
+    tipo: fila.tipo,
+    fecha: fila.fecha,
+    nota: fila.nota,
+    orden: fila.orden,
+    fuente: fila.fuente,
+  };
 }
 
 export function progresoDesdeFila(fila: FilaProgreso): ProgresoMateria {
   return {
     materiaId: fila.materia_id,
     estado: fila.estado,
-    p1: fila.p1,
-    p2: fila.p2,
-    rec: fila.rec,
-    notaCursada: fila.nota_cursada,
-    notaFinalExamen: fila.nota_final_examen,
-    nota: fila.nota,
-    aplazos: fila.aplazos,
+    instancias: ordenarInstancias((fila.instancias ?? []).map(instanciaDesdeFila)),
   };
 }
 
-/** Sin `user_id`: lo pone la base con `auth.uid()`, y la RLS lo exige. */
-export function progresoAFila(progreso: ProgresoMateria): FilaProgreso {
+/**
+ * Los parámetros de `guardar_materia`. Las instancias van en orden de fecha: la base les pone el orden
+ * según su posición. Sin `id`: la base genera uno nuevo en cada guardado.
+ */
+export function progresoAParametros(progreso: ProgresoMateria) {
   return {
     materia_id: progreso.materiaId,
     estado: progreso.estado,
-    p1: progreso.p1,
-    p2: progreso.p2,
-    rec: progreso.rec,
-    nota_cursada: progreso.notaCursada,
-    nota_final_examen: progreso.notaFinalExamen,
-    nota: progreso.nota,
-    aplazos: progreso.aplazos,
-  };
-}
-
-const COLUMNAS_HISTORIAL = "materia_id, fecha, tipo, nota, resultado, fuente";
-
-/** Historial con el plan de su materia, para filtrar por plan. */
-export const COLUMNAS_HISTORIAL_CON_PLAN = `${COLUMNAS_HISTORIAL}, materias!inner(plan_id)`;
-
-export interface FilaHistorial {
-  materia_id: string;
-  fecha: string;
-  tipo: TipoHistorial;
-  nota: number | null;
-  resultado: ResultadoHistorial;
-  fuente: FuenteHistorial;
-}
-
-export function historialDesdeFila(fila: FilaHistorial): EventoHistorial {
-  return {
-    materiaId: fila.materia_id,
-    fecha: fila.fecha,
-    tipo: fila.tipo,
-    nota: fila.nota,
-    resultado: fila.resultado,
-    fuente: fila.fuente,
+    instancias: ordenarInstancias(progreso.instancias).map(({ tipo, fecha, nota, fuente }) => ({
+      tipo,
+      fecha,
+      nota,
+      fuente,
+    })),
   };
 }
 

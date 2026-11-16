@@ -14,14 +14,14 @@ import { useEffect, useId, useRef, useState, type ChangeEvent } from "react";
 import { TiempoDeGuardadoAgotado } from "../guardado/almacenGuardado";
 import { useFalloVisible } from "../guardado/IndicadorGuardado";
 import { consultas, invalidarDatosDelPlan } from "../plan/planActivo";
-import { ETIQUETAS_ESTADO, formatoNota } from "../plan/presentacion";
+import { ETIQUETAS_ESTADO, fechaDeHoy, formatoNota } from "../plan/presentacion";
 import { useBorrados } from "../materiales/borradosPendientes";
 import { LimiteDeDocumento } from "../repositorio/limites";
 import { useRepositorio } from "../sesion/sesion";
 
 interface Existentes {
   progreso: number;
-  historial: number;
+  instancias: number;
   hayDatos: boolean;
 }
 
@@ -93,7 +93,7 @@ function VistaPrevia({
           nombre="Promedio con aplazos"
           valor={formatoNota(promedio(quedaria, true).promedio)}
         />
-        <Dato nombre="Eventos de historial" valor={resumen.eventos} />
+        <Dato nombre="Instancias de evaluación" valor={resumen.eventos} />
         <Dato nombre="Materias propias" valor={resumen.materiasPropias} />
         <Dato nombre="Materiales" valor={resumen.materiales} />
       </dl>
@@ -116,7 +116,7 @@ function VistaPrevia({
 
 /**
  * Importa un respaldo legacy o nuevo sobre el plan de `datos`, que ya tiene que estar activo: lee el
- * archivo, muestra la vista previa, reemplaza `progreso` e `historial` (todo o nada) y restaura los
+ * archivo, muestra la vista previa, reemplaza `progreso` con sus instancias (todo o nada) y restaura los
  * materiales (no es todo o nada: los que fallan se pueden reintentar sin duplicar). Termina en Inicio;
  * quien ya está en Inicio pasa `alTerminar`, porque ahí cambiar el hash no haría nada.
  */
@@ -170,7 +170,7 @@ export function ImportarRespaldo({
       setEstado({ fase: "elegir", ocupado: false, error: parseado.error });
       return;
     }
-    const leido = importarArchivo(parseado.json, datos);
+    const leido = importarArchivo(parseado.json, datos, fechaDeHoy());
     if (!leido.ok) {
       setEstado({ fase: "elegir", ocupado: false, error: leido.error });
       return;
@@ -178,18 +178,18 @@ export function ImportarRespaldo({
     try {
       // Se lee de nuevo: lo cacheado podría no saber de lo guardado desde otro dispositivo.
       const opciones = { staleTime: 0 };
-      const [progreso, historial] = await Promise.all([
-        clienteQuery.fetchQuery({ ...consultas.progreso(repositorio, planId), ...opciones }),
-        clienteQuery.fetchQuery({ ...consultas.historial(repositorio, planId), ...opciones }),
-      ]);
+      const progreso = await clienteQuery.fetchQuery({
+        ...consultas.progreso(repositorio, planId),
+        ...opciones,
+      });
       setEstado({
         fase: "previa",
         archivo: archivo.name,
         leido,
         existentes: {
           progreso: progreso.length,
-          historial: historial.length,
-          hayDatos: !sinDatosCargados({ progreso, historial }),
+          instancias: progreso.reduce((total, fila) => total + fila.instancias.length, 0),
+          hayDatos: !sinDatosCargados({ progreso }),
         },
         guardando: false,
         error: null,
@@ -303,7 +303,7 @@ export function ImportarRespaldo({
     const terminado = !restaurando && error === null;
     return (
       <div className="importar" ref={contenedor} tabIndex={-1}>
-        <p className="msg">Tus materias, notas e historial ya están guardados.</p>
+        <p className="msg">Tus materias y sus notas ya están guardadas.</p>
         {restaurando && (
           <p className="sub" role="status">
             Restaurando tus materiales…
@@ -384,8 +384,8 @@ export function ImportarRespaldo({
             <p>
               <b>Esto reemplaza lo que ya tenés en este plan.</b> Hoy tenés {existentes.progreso}{" "}
               {existentes.progreso === 1 ? "materia" : "materias"} con datos y{" "}
-              {existentes.historial} {existentes.historial === 1 ? "evento" : "eventos"} de
-              historial: se borran y quedan los del archivo. Tus materiales no se borran.
+              {existentes.instancias} {existentes.instancias === 1 ? "nota" : "notas"} de parciales,
+              cursadas y finales: se borran y quedan los del archivo. Tus materiales no se borran.
             </p>
           </div>
         )}
@@ -396,7 +396,7 @@ export function ImportarRespaldo({
               checked={aceptado}
               onChange={(e) => setAceptado(e.target.checked)}
             />
-            <span>Entiendo que se reemplazan mi progreso y mi historial de este plan.</span>
+            <span>Entiendo que se reemplazan mis materias y sus notas en este plan.</span>
           </label>
         )}
         {error && (

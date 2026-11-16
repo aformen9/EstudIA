@@ -2,7 +2,7 @@ import catalogoLcd from "../../../../fixtures/lcd-7023-catalogo.json";
 import type {
   Correlativa,
   DatosAlumno,
-  EventoHistorial,
+  Instancia,
   Materia,
   Plan,
   PlanCompleto,
@@ -18,6 +18,8 @@ export function planBase(cambios: Partial<Plan> = {}): Plan {
     notaMin: 1,
     notaMax: 10,
     notaAprobacion: 4,
+    notaPaso: 0.1,
+    creadoEn: "2026-01-01T00:00:00Z",
     cuatrimestresPorAnio: 2,
     cierreCuatrimestres: [],
     ...cambios,
@@ -31,6 +33,8 @@ export function planLcd(entorno = 0): PlanCompleto {
     notaMin: catalogoLcd.plan.escala.min,
     notaMax: catalogoLcd.plan.escala.max,
     notaAprobacion: catalogoLcd.plan.escala.aprobacion,
+    notaPaso: catalogoLcd.plan.escala.paso,
+    creadoEn: "2026-01-01T00:00:00Z",
   });
   const uuid = (i: number) =>
     `${String(entorno).padStart(8, "0")}-0000-4000-8000-${String(i).padStart(12, "0")}`;
@@ -87,25 +91,17 @@ export function fila(materiaId: string, cambios: Partial<ProgresoMateria> = {}):
   return {
     materiaId,
     estado: "pendiente",
-    p1: null,
-    p2: null,
-    rec: null,
-    notaCursada: null,
-    notaFinalExamen: null,
-    nota: null,
-    aplazos: [],
+    instancias: [],
     ...cambios,
   };
 }
 
-export function evento(
-  materiaId: string,
-  fecha: string,
-  tipo: EventoHistorial["tipo"],
-  resultado: EventoHistorial["resultado"],
-  nota: number | null,
-): EventoHistorial {
-  return { materiaId, fecha, tipo, resultado, nota, fuente: "manual" };
+let ordenDeInstancia = 0;
+
+/** Una instancia para los tests. */
+export function instancia(tipo: Instancia["tipo"], fecha: string, nota: number | null): Instancia {
+  const orden = ordenDeInstancia++;
+  return { id: `i${orden}`, tipo, fecha, nota, orden, fuente: "manual" };
 }
 
 export function datosDe(cambios: Partial<DatosAlumno> = {}): DatosAlumno {
@@ -117,11 +113,25 @@ export function datosDe(cambios: Partial<DatosAlumno> = {}): DatosAlumno {
     materias: [],
     correlativas: [],
     progreso: [],
-    historial: [],
     ...cambios,
   };
 }
 
 export function redondear4(valor: number): number {
   return Math.round(valor * 10000) / 10000;
+}
+
+/**
+ * Una fila con la nota de la materia y sus aplazos como instancias: los aplazos son finales
+ * anteriores y la nota, el último final.
+ */
+export function filaConNotas(
+  materiaId: string,
+  estado: ProgresoMateria["estado"],
+  nota: number | null,
+  aplazos: number[] = [],
+): ProgresoMateria {
+  const instancias = aplazos.map((n, i) => instancia("final", `2023-0${i + 1}-01`, n));
+  if (nota != null) instancias.push(instancia("final", "2024-01-01", nota));
+  return { materiaId, estado, instancias };
 }

@@ -44,6 +44,22 @@ function limpiarBrillo(el: HTMLElement) {
   el.style.removeProperty("--ry");
 }
 
+/** Tope del imán: sin tope, un botón ancho como el del login se corría unos 40 px. */
+export const TOPE_IMAN = { x: 4, y: 3 } as const;
+
+/** Cuánto se corre un botón primario hacia el puntero. */
+export function desplazamientoIman(
+  r: Pick<DOMRect, "left" | "top" | "width" | "height">,
+  clientX: number,
+  clientY: number,
+): { x: number; y: number } {
+  const acotar = (v: number, tope: number) => Math.max(-tope, Math.min(tope, v));
+  return {
+    x: acotar((clientX - r.left - r.width / 2) * 0.25, TOPE_IMAN.x),
+    y: acotar((clientY - r.top - r.height / 2) * 0.35, TOPE_IMAN.y),
+  };
+}
+
 /** Devuelve la función que los apaga. */
 export function iniciarEfectosDePuntero(): () => void {
   if (prefiereMenosMovimiento()) return () => {};
@@ -83,9 +99,9 @@ export function iniciarEfectosDePuntero(): () => void {
       }
     });
     if (boton && pointerType === "mouse") {
-      const r = boton.getBoundingClientRect();
-      boton.style.setProperty("--bx", `${((clientX - r.left - r.width / 2) * 0.25).toFixed(1)}px`);
-      boton.style.setProperty("--by", `${((clientY - r.top - r.height / 2) * 0.35).toFixed(1)}px`);
+      const { x, y } = desplazamientoIman(boton.getBoundingClientRect(), clientX, clientY);
+      boton.style.setProperty("--bx", `${x.toFixed(1)}px`);
+      boton.style.setProperty("--by", `${y.toFixed(1)}px`);
     }
   }
 
@@ -206,7 +222,8 @@ export function iniciarConstelacion(lienzo: HTMLCanvasElement): () => void {
   }
 
   function animar() {
-    if (!document.hidden) dibujar();
+    // Con un modal abierto queda quieta: el blur de atrás no tiene que recalcularse en cada cuadro.
+    if (!document.hidden && !document.querySelector("dialog[open]")) dibujar();
     cuadro = requestAnimationFrame(animar);
   }
 
@@ -230,10 +247,13 @@ export function iniciarConstelacion(lienzo: HTMLCanvasElement): () => void {
   };
 }
 
-/** Festejo al aprobar una materia. Usa el `<canvas id="confetti">` de `Fondo`. */
-export function lanzarConfeti(): void {
+/**
+ * Festejo al aprobar una materia: papeles desde los dos costados. Usa el lienzo que le pasen o, si no,
+ * el `<canvas id="confetti">` de `Fondo`.
+ */
+export function lanzarConfeti(destino?: HTMLCanvasElement | null): void {
   if (prefiereMenosMovimiento()) return;
-  const lienzo = document.getElementById("confetti");
+  const lienzo = destino ?? document.getElementById("confetti");
   if (!(lienzo instanceof HTMLCanvasElement)) return;
   const ctx = lienzo.getContext("2d");
   if (!ctx) return;
@@ -246,11 +266,11 @@ export function lanzarConfeti(): void {
   c.scale(dpr, dpr);
 
   const colores = coloresDelTema(["--accent", "--accent-2", "--lav", "--ok", "--cur"]);
-  const papeles = Array.from({ length: 140 }, () => ({
-    x: ancho / 2,
-    y: alto * 0.45,
-    vx: (Math.random() - 0.5) * 16,
-    vy: -Math.random() * 15 - 4,
+  const papeles = Array.from({ length: 180 }, (_, i) => ({
+    x: i % 2 ? ancho + 10 : -10,
+    y: alto * (0.2 + Math.random() * 0.35),
+    vx: (i % 2 ? -1 : 1) * (Math.random() * ancho * 0.018 + 3),
+    vy: -Math.random() * 10 - 3,
     r: Math.random() * 6 + 4,
     a: Math.random() * 6,
     va: (Math.random() - 0.5) * 0.4,
@@ -261,7 +281,7 @@ export function lanzarConfeti(): void {
   function cuadro(t: number) {
     c.clearRect(0, 0, ancho, alto);
     for (const p of papeles) {
-      p.vy += 0.42;
+      p.vy += 0.2;
       p.vx *= 0.99;
       p.x += p.vx;
       p.y += p.vy;
@@ -273,7 +293,7 @@ export function lanzarConfeti(): void {
       c.fillRect(-p.r / 2, -p.r / 4, p.r, p.r / 2);
       c.restore();
     }
-    if (t - inicio < 2600) requestAnimationFrame(cuadro);
+    if (t - inicio < 4000 && c.canvas.isConnected) requestAnimationFrame(cuadro);
     else c.clearRect(0, 0, ancho, alto);
   }
   cuadro(inicio);

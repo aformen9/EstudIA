@@ -80,10 +80,16 @@ export function GrillaRapida({
   datos,
   alVolver,
   alTerminar,
+  pedidoVolver = 0,
 }: {
   datos: DatosAlumno;
   alVolver: () => void;
   alTerminar: () => void;
+  /**
+   * Cada vez que aumenta, pide volver como el botón "Volver": con la misma espera y el mismo aviso si
+   * algo no se guardó. Lo usa el "Paso anterior" del onboarding, que está afuera de la grilla.
+   */
+  pedidoVolver?: number;
 }) {
   const almacen = useGuardado();
   const conteo = conteoPorEstado(datos);
@@ -115,6 +121,13 @@ export function GrillaRapida({
   useEffect(() => {
     if (avisando) botonReintentar.current?.focus();
   }, [avisando]);
+
+  // Se ajusta al renderizar, no en un efecto: así no hay un render de más.
+  const [pedidoVisto, setPedidoVisto] = useState(pedidoVolver);
+  if (pedidoVolver !== pedidoVisto) {
+    setPedidoVisto(pedidoVolver);
+    setSalida({ accion: "volver" });
+  }
 
   function reintentarFallidas() {
     fallidas.forEach((id) => reintentos.current.get(id)?.());

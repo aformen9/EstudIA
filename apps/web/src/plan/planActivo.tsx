@@ -1,6 +1,5 @@
 import type {
   DatosAlumno,
-  EventoHistorial,
   Inscripcion,
   Material,
   Perfil,
@@ -18,7 +17,6 @@ export const clavesPlan = {
   perfil: ["perfil"] as const,
   plan: (planId: string) => ["plan", planId] as const,
   progreso: (planId: string) => ["progreso", planId] as const,
-  historial: (planId: string) => ["historial", planId] as const,
 };
 
 export const consultas = {
@@ -46,11 +44,6 @@ export const consultas = {
     queryOptions<ProgresoMateria[]>({
       queryKey: clavesPlan.progreso(planId),
       queryFn: () => repositorio.obtenerProgreso(planId),
-    }),
-  historial: (repositorio: Repositorio, planId: string) =>
-    queryOptions<EventoHistorial[]>({
-      queryKey: clavesPlan.historial(planId),
-      queryFn: () => repositorio.obtenerHistorial(planId),
     }),
 };
 
@@ -89,21 +82,17 @@ export function useDatosAlumno(): PlanDelAlumno {
 
   const plan = useQuery({ ...consultas.plan(repositorio, planId), enabled });
   const progreso = useQuery({ ...consultas.progreso(repositorio, planId), enabled });
-  const historial = useQuery({ ...consultas.historial(repositorio, planId), enabled });
 
   if (inscripcion.estado === "error") return inscripcion;
   if (inscripcion.estado === "cargando") return { estado: "cargando" };
   if (inscripcion.estado === "ninguna") return { estado: "sin-plan" };
-  if (plan.data && progreso.data && historial.data) {
+  if (plan.data && progreso.data) {
     return {
       estado: "listo",
-      datos: { ...plan.data, progreso: progreso.data, historial: historial.data },
+      datos: { ...plan.data, progreso: progreso.data },
     };
   }
-  const error =
-    (!plan.data && plan.error) ||
-    (!progreso.data && progreso.error) ||
-    (!historial.data && historial.error);
+  const error = (!plan.data && plan.error) || (!progreso.data && progreso.error);
   if (error) {
     return {
       estado: "error",
@@ -111,7 +100,6 @@ export function useDatosAlumno(): PlanDelAlumno {
       reintentar: () => {
         if (!plan.data) void plan.refetch();
         if (!progreso.data) void progreso.refetch();
-        if (!historial.data) void historial.refetch();
       },
     };
   }
@@ -132,12 +120,9 @@ export async function invalidarDatosDelPlan(
   planId: string,
 ): Promise<void> {
   await Promise.all(
-    [
-      clavesPlan.plan(planId),
-      clavesPlan.progreso(planId),
-      clavesPlan.historial(planId),
-      clavesPlan.materiales,
-    ].map((queryKey) => clienteQuery.invalidateQueries({ queryKey })),
+    [clavesPlan.plan(planId), clavesPlan.progreso(planId), clavesPlan.materiales].map((queryKey) =>
+      clienteQuery.invalidateQueries({ queryKey }),
+    ),
   );
 }
 

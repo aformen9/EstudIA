@@ -1,12 +1,21 @@
 import type { DatosAlumno, EstadoMateria, Materia } from "@estudia/core";
+import type { NombreIcono } from "../interfaz/Iconos";
 
-/** Los nombres de la referencia. */
+/** Decididos con Agu el 2026-11-07: "Por cursar" y "Falta final" reemplazan a los de la referencia. */
 export const ETIQUETAS_ESTADO: Record<EstadoMateria, string> = {
-  pendiente: "Pendiente",
+  pendiente: "Por cursar",
   cursando: "En curso",
-  final: "Final pendiente",
+  final: "Falta final",
   aprobada: "Aprobada",
 };
+
+/** El estado no depende solo del color: cada uno tiene su ícono. */
+export const ICONO_ESTADO = {
+  pendiente: "circulo",
+  cursando: "clock",
+  final: "flag",
+  aprobada: "check",
+} as const satisfies Record<EstadoMateria, NombreIcono>;
 
 /** Como `fmt` de la referencia: hasta dos decimales con coma. */
 export function formatoNota(valor: number | null): string {
@@ -59,4 +68,10 @@ export function formatoPeso(bytes: number | null): string {
   if (bytes == null) return "";
   if (bytes < 1048576) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
   return `${(bytes / 1048576).toLocaleString("es-AR", { maximumFractionDigits: 1 })} MB`;
+}
+
+/** La fecha de hoy en este dispositivo, "AAAA-MM-DD": decide qué instancia está programada. */
+export function fechaDeHoy(ahora = new Date()): string {
+  const dos = (n: number) => String(n).padStart(2, "0");
+  return `${ahora.getFullYear()}-${dos(ahora.getMonth() + 1)}-${dos(ahora.getDate())}`;
 }

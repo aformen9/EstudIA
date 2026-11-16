@@ -1,5 +1,6 @@
 import {
   conteoPorEstado,
+  agruparPorArchivo,
   materialesDelPlan,
   promedio,
   type DatosAlumno,
@@ -19,6 +20,7 @@ import { resolverVista } from "../navegacion/guardaOnboarding";
 import { VISTAS, type Vista } from "../navegacion/rutas";
 import { reemplazarVista, useVista } from "../navegacion/useVista";
 import { RegionAvisosPrincipal } from "../materiales/AvisosBorrado";
+import { CapaFestejo } from "./Festejo";
 import { ProveedorBorrados } from "../materiales/ProveedorBorrados";
 import { useMaterialesDelAlumno } from "../materiales/useMateriales";
 import { ProveedorAbrirMateria } from "../plan/abrirMateria";
@@ -94,7 +96,9 @@ function contadores(
     finales: conteo.final,
     pendientes: conteo.pendiente,
     promedio: formatoNota(promedio(datos, false).promedio),
-    materiales: materiales && materialesDelPlan(materiales, datos.materias).length,
+    // Cuenta tarjetas: un archivo en varias materias es una sola.
+    materiales:
+      materiales && agruparPorArchivo(materialesDelPlan(materiales, datos.materias)).length,
   };
 }
 
@@ -492,6 +496,7 @@ function ContenidoShell() {
         </div>
       </div>
       <RegionAvisosPrincipal />
+      <CapaFestejo />
     </ProveedorAbrirMateria>
   );
 }

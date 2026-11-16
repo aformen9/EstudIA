@@ -1,6 +1,16 @@
 import type { DatosAlumno, Materia } from "../tipos";
 import { lectorDeEstados } from "./estados";
 import { notasDeEscala } from "./sugerencias";
+import { ordenarInstancias, resumirMateria } from "./instancias";
+import type { Instancia } from "../tipos";
+
+const notasDeInstancias = (lista: Instancia[]) =>
+  lista.flatMap((i) => (i.nota == null ? [] : [i.nota]));
+
+function ordenarPorInstancia<T extends { i: Instancia }>(lista: T[]): T[] {
+  const orden = ordenarInstancias(lista.map((x) => x.i));
+  return [...lista].sort((a, b) => orden.indexOf(a.i) - orden.indexOf(b.i));
+}
 
 export interface ResultadoPromedio {
   /** Null si no hay notas que cuenten. Sin redondear. */
@@ -61,8 +71,9 @@ export function notasDe(
   for (const materia of materias) {
     const progreso = progresoPorMateria.get(materia.id);
     if (!progreso) continue;
-    if (progreso.estado === "aprobada" && progreso.nota != null) notas.push(progreso.nota);
-    if (conAplazos) notas.push(...progreso.aplazos);
+    const resumen = resumirMateria(progreso, datos.plan);
+    if (progreso.estado === "aprobada" && resumen.nota != null) notas.push(resumen.nota);
+    if (conAplazos) notas.push(...notasDeInstancias(resumen.aplazos));
   }
   return notas;
 }
@@ -123,24 +134,27 @@ export function promedioPorArea(datos: DatosAlumno, conAplazos: boolean): Promed
 }
 
 /**
- * Promedio acumulado evento por evento del historial: exámenes y promociones aprobados con nota y,
- * con aplazos, exámenes reprobados con nota. A igual fecha conserva el orden de `datos.materias`.
+ * Promedio acumulado instancia por instancia: el final aprobado o la promoción de cada materia
+ * aprobada y, con aplazos, los aplazos. A igual fecha conserva el orden de `datos.materias`.
  */
 export function promedioEnElTiempo(
   datos: DatosAlumno,
   conAplazos: boolean,
 ): PuntoPromedioEnElTiempo[] {
   const eventos: Omit<PuntoPromedioEnElTiempo, "promedio">[] = [];
+  const progresoPorMateria = new Map(datos.progreso.map((p) => [p.materiaId, p]));
   for (const materia of datos.materias) {
-    for (const evento of datos.historial) {
-      if (evento.materiaId !== materia.id || evento.nota == null) continue;
-      const aprobado =
-        (evento.tipo === "Examen" || evento.tipo === "Promocion") &&
-        (evento.resultado === "Aprobado" || evento.resultado === "Promocionado");
-      const esAplazo = conAplazos && evento.tipo === "Examen" && evento.resultado === "Reprobado";
-      if (aprobado || esAplazo) {
-        eventos.push({ fecha: evento.fecha, nota: evento.nota, materia, esAplazo });
-      }
+    const progreso = progresoPorMateria.get(materia.id);
+    if (!progreso) continue;
+    const resumen = resumirMateria(progreso, datos.plan);
+    const aprobada =
+      progreso.estado === "aprobada" ? (resumen.finalAprobado ?? resumen.promocion) : null;
+    const deLaMateria = [
+      ...(conAplazos ? resumen.aplazos.map((i) => ({ i, esAplazo: true })) : []),
+      ...(aprobada ? [{ i: aprobada, esAplazo: false }] : []),
+    ];
+    for (const { i, esAplazo } of ordenarPorInstancia(deLaMateria)) {
+      if (i.nota != null) eventos.push({ fecha: i.fecha, nota: i.nota, materia, esAplazo });
     }
   }
   eventos.sort((a, b) => (a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0));
@@ -151,12 +165,15 @@ export function promedioEnElTiempo(
   });
 }
 
-/** Cantidad de notas por cada valor entero de la escala del plan; redondea las no enteras. */
+/**
+ * Cantidad de notas por cada valor entero de la escala del plan. Agrupa por la parte entera: un 3,5
+ * va en la barra del 3 y no en la del 4, que aprueba.
+ */
 export function distribucionNotas(datos: DatosAlumno, conAplazos: boolean): BarraDistribucion[] {
   const notas = notasDe(datos, conAplazos);
   return notasDeEscala(datos.plan).map((nota) => ({
     nota,
-    cantidad: notas.filter((n) => Math.round(n) === nota).length,
+    cantidad: notas.filter((n) => Math.floor(n) === nota).length,
     desaprobada: nota < datos.plan.notaAprobacion,
   }));
 }
@@ -166,7 +183,12 @@ export function listaAplazos(datos: DatosAlumno): AplazoMateria[] {
   return datos.materias.flatMap((materia) => {
     const progreso = progresoPorMateria.get(materia.id);
     if (!progreso) return [];
-    return progreso.aplazos.map((nota) => ({ materia, nota, notaMateria: progreso.nota }));
+    const resumen = resumirMateria(progreso, datos.plan);
+    return notasDeInstancias(resumen.aplazos).map((nota) => ({
+      materia,
+      nota,
+      notaMateria: resumen.nota,
+    }));
   });
 }
 
@@ -175,17 +197,20 @@ export function dieces(datos: DatosAlumno): Materia[] {
   const progresoPorMateria = new Map(datos.progreso.map((p) => [p.materiaId, p]));
   return datos.materias.filter((materia) => {
     const progreso = progresoPorMateria.get(materia.id);
-    return progreso?.estado === "aprobada" && progreso.nota === datos.plan.notaMax;
+    return (
+      progreso?.estado === "aprobada" &&
+      resumirMateria(progreso, datos.plan).nota === datos.plan.notaMax
+    );
   });
 }
 
-/** Materias aprobadas con un evento de promoción en el historial. */
+/** Materias aprobadas con una promoción. */
 export function promocionadas(datos: DatosAlumno): Materia[] {
   const estadoDeMateria = lectorDeEstados(datos);
   const conPromocion = new Set(
-    datos.historial
-      .filter((h) => h.tipo === "Promocion" && h.resultado === "Promocionado")
-      .map((h) => h.materiaId),
+    datos.progreso
+      .filter((p) => p.instancias.some((i) => i.tipo === "promocion"))
+      .map((p) => p.materiaId),
   );
   return datos.materias.filter(
     (materia) => estadoDeMateria(materia.id) === "aprobada" && conPromocion.has(materia.id),

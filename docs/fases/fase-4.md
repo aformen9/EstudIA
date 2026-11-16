@@ -2,6 +2,8 @@
 
 **Objetivo:** cualquiera baja EstudIA desde una página (APK, dmg, exe) sin pasar por GitHub ni tiendas.
 
+**Postergada hasta que haya demanda** (decisión de Agu del 2026-11-16, `docs/backlog.md` §6). No se trabaja sin que Agu la retome explícitamente.
+
 Prerrequisito: fase 3 aprobada.
 
 ## Antes de implementar (preguntar)

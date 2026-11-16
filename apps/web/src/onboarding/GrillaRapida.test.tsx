@@ -6,6 +6,7 @@ import { IndicadorGuardado } from "../guardado/IndicadorGuardado";
 import { ConPlan } from "../plan/planActivo";
 import {
   fila,
+  inst,
   ID_PLAN,
   INSCRIPCION,
   PLAN,
@@ -68,9 +69,9 @@ describe("GrillaRapida", () => {
       screen.getByRole("radiogroup", { name: M1.nombre }),
     ).getAllByRole<HTMLInputElement>("radio");
     expect(radios.map((r) => r.closest("label")?.textContent)).toEqual([
-      "Pendiente",
+      "Por cursar",
       "En curso",
-      "Final pendiente",
+      "Falta final",
       "Aprobada",
     ]);
     // Mismo `name`: Tab entra una vez al grupo y las flechas cambian la opción.
@@ -82,7 +83,7 @@ describe("GrillaRapida", () => {
     const repositorio = repositorioFalso({ inscripciones: [INSCRIPCION] });
     montar(repositorio);
     await screen.findByRole("radiogroup", { name: M1.nombre });
-    expect(opcion(M1.nombre, "Pendiente").checked).toBe(true);
+    expect(opcion(M1.nombre, "Por cursar").checked).toBe(true);
     expect(indicador()).toBe("Sin cambios");
 
     fireEvent.click(opcion(M1.nombre, "En curso"));
@@ -99,13 +100,7 @@ describe("GrillaRapida", () => {
   it("conserva los demás campos de una fila que ya existe", async () => {
     const existente = fila(M1.id, {
       estado: "final",
-      p1: 7,
-      p2: 8,
-      rec: 6,
-      notaCursada: 7.5,
-      notaFinalExamen: 2,
-      nota: null,
-      aplazos: [2, 3],
+      instancias: [inst("parcial", "2025-04-01", 7), inst("final", "2025-07-01", 2)],
     });
     const repositorio = repositorioFalso({
       inscripciones: [INSCRIPCION],
@@ -113,7 +108,7 @@ describe("GrillaRapida", () => {
     });
     montar(repositorio);
     await screen.findByRole("radiogroup", { name: M1.nombre });
-    expect(opcion(M1.nombre, "Final pendiente").checked).toBe(true);
+    expect(opcion(M1.nombre, "Falta final").checked).toBe(true);
 
     fireEvent.click(opcion(M1.nombre, "Aprobada"));
 
@@ -136,7 +131,7 @@ describe("GrillaRapida", () => {
     const alerta = await screen.findByRole("alert");
     expect(alerta.textContent).toContain(`No se guardó ${M1.nombre}`);
     expect(alerta.textContent).toContain("se cortó");
-    expect(opcion(M1.nombre, "Pendiente").checked).toBe(true);
+    expect(opcion(M1.nombre, "Por cursar").checked).toBe(true);
     expect(opcion(M1.nombre, "Aprobada").checked).toBe(false);
     expect(indicador()).toBe("No se pudo guardar");
 
@@ -159,7 +154,7 @@ describe("GrillaRapida", () => {
       fireEvent.click(opcion(M1.nombre, "Aprobada"));
       expect(await screen.findByRole("alert")).toBeTruthy();
       expect(repositorio.guardarProgreso).toHaveBeenCalledOnce();
-      expect(opcion(M1.nombre, "Pendiente").checked).toBe(true);
+      expect(opcion(M1.nombre, "Por cursar").checked).toBe(true);
     } finally {
       onlineManager.setOnline(true);
     }
@@ -244,9 +239,9 @@ describe("GrillaRapida", () => {
     montar(repositorio, alTerminar);
     await screen.findByRole("radiogroup", { name: M1.nombre });
 
-    const conteo = conteoPorEstado({ ...PLAN, progreso: repositorio.base.progreso, historial: [] });
+    const conteo = conteoPorEstado({ ...PLAN, progreso: repositorio.base.progreso });
     expect(screen.getByText(new RegExp(`Aprobada: ${conteo.aprobada}`))).toBeTruthy();
-    expect(screen.getByText(new RegExp(`Pendiente: ${conteo.pendiente}`))).toBeTruthy();
+    expect(screen.getByText(new RegExp(`Por cursar: ${conteo.pendiente}`))).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Listo, ir a Inicio" }));
     expect(alTerminar).toHaveBeenCalled();
@@ -271,7 +266,7 @@ describe("guardado colgado en la grilla", () => {
     expect(await screen.findByText("1 materia no se guardó")).toBeTruthy();
     expect(screen.queryByText("Terminando de guardar…")).toBeNull();
     expect(alTerminar).not.toHaveBeenCalled();
-    expect(opcion(M1.nombre, "Pendiente").checked).toBe(true);
+    expect(opcion(M1.nombre, "Por cursar").checked).toBe(true);
     expect(indicador()).toBe("No se pudo guardar");
 
     fireEvent.click(
@@ -327,7 +322,7 @@ describe("guardado colgado en la grilla", () => {
 
     expect(indicador()).toBe("No se pudo guardar");
     expect(screen.getByRole("alert")).toBeTruthy();
-    expect(opcion(M1.nombre, "Pendiente").checked).toBe(true);
+    expect(opcion(M1.nombre, "Por cursar").checked).toBe(true);
   });
 
   it("reintentar es idempotente: si el primero llegó a la base, queda una sola fila igual", async () => {

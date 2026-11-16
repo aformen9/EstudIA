@@ -142,7 +142,7 @@ Para que Agu decida; no está decidido:
 
 ### Decisiones que le tocan a Agu
 
-1. Formato inicial: PDF, XLS o ambos, después de la prueba.
+1. ~~Formato inicial: PDF, XLS o ambos, después de la prueba.~~ Resuelto el 2026-11-07: **ambos**. Falta elegir la dependencia para XLS, después de ver un archivo real.
 2. Si el archivo no trae código: ¿match por nombre con revisión? Contradice "match por código" de la fase 1 y puede afectar el criterio 1 ("sin correcciones manuales").
 3. Equivalencias: ¿nuevo `tipo` en `historial` (cambio de modelo) o se mapean a un tipo existente? UTN-Tracker las trata como aprobación.
 4. Notas en acta abierta: ¿aceptar también Actuación Provisoria, avisar que pueden faltar o dejarlo para más adelante?

@@ -19,7 +19,7 @@ grant select, insert, update, delete on
   public.correlativas,
   public.inscripciones,
   public.progreso,
-  public.historial,
+  public.instancias,
   public.materiales
 to authenticated;
 
@@ -51,5 +51,6 @@ grant execute on function
   public.material_compartido(uuid),
   public.activar_plan(uuid),
   public.crear_materia_propia(uuid, uuid, jsonb, jsonb),
-  public.reemplazar_datos_del_plan(uuid, jsonb)
+  public.reemplazar_datos_del_plan(uuid, jsonb),
+  public.guardar_materia(uuid, text, jsonb)
 to authenticated;

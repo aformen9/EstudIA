@@ -53,18 +53,7 @@ describe("crearRepositorioSupabase", () => {
       repositorio.listarInscripciones(),
       repositorio.activarPlan("p"),
       repositorio.obtenerProgreso("p"),
-      repositorio.guardarProgreso({
-        materiaId: "m",
-        estado: "cursando",
-        p1: null,
-        p2: null,
-        rec: null,
-        notaCursada: null,
-        notaFinalExamen: null,
-        nota: null,
-        aplazos: [],
-      }),
-      repositorio.obtenerHistorial("p"),
+      repositorio.guardarProgreso({ materiaId: "m", estado: "cursando", instancias: [] }),
       repositorio.crearMateriaPropia("p", BORRADOR, "id-nuevo"),
       repositorio.actualizarMateriaPropia("m", BORRADOR),
       repositorio.borrarMateriaPropia("m"),
@@ -85,10 +74,10 @@ describe("crearRepositorioSupabase", () => {
       }),
       repositorio.moverMaterial("m", null),
       repositorio.borrarMaterial("m"),
-      repositorio.reemplazarDatosDelPlan("p", { materiasPropias: [], progreso: [], historial: [] }),
+      repositorio.reemplazarDatosDelPlan("p", { materiasPropias: [], progreso: [] }),
     ];
     const resultados = await Promise.allSettled(llamadas);
-    expect(resultados).toHaveLength(20);
+    expect(resultados).toHaveLength(19);
     for (const resultado of resultados) {
       expect(resultado.status).toBe("rejected");
       if (resultado.status === "rejected") {
@@ -143,16 +132,56 @@ describe("crearRepositorioSupabase", () => {
     await expect(repositorio.borrarMateriaPropia("m")).rejects.toThrow("no es tuya");
   });
 
-  it("obtenerProgreso y obtenerHistorial filtran por plan", async () => {
-    const { cliente, pedidos } = clienteConFetchFalso(() => ({ cuerpo: [] }));
-    const repositorio = crearRepositorioSupabase(cliente);
-    await repositorio.obtenerProgreso("p1");
-    await repositorio.obtenerHistorial("p1");
-    expect(pedidos).toHaveLength(2);
-    for (const pedido of pedidos) {
-      expect(pedido.url.searchParams.get("materias.plan_id")).toBe("eq.p1");
-      expect(pedido.url.searchParams.get("select")).toContain("materias!inner(plan_id)");
-    }
+  it("obtenerProgreso filtra por plan y trae las instancias, ordenadas", async () => {
+    const { cliente, pedidos } = clienteConFetchFalso(() => ({
+      cuerpo: [
+        {
+          materia_id: "m",
+          estado: "aprobada",
+          instancias: [
+            { id: "b", tipo: "final", fecha: "2025-07-13", nota: 7, orden: 1, fuente: "manual" },
+            { id: "a", tipo: "final", fecha: "2025-02-01", nota: 2, orden: 0, fuente: "siu" },
+          ],
+          materias: { plan_id: "p1" },
+        },
+      ],
+    }));
+    const progreso = await crearRepositorioSupabase(cliente).obtenerProgreso("p1");
+    const pedido = pedidos[0];
+    expect(pedido?.url.searchParams.get("materias.plan_id")).toBe("eq.p1");
+    expect(pedido?.url.searchParams.get("select")).toContain("materias!inner(plan_id)");
+    expect(pedido?.url.searchParams.get("select")).toContain("instancias(");
+    expect(progreso).toEqual([
+      {
+        materiaId: "m",
+        estado: "aprobada",
+        instancias: [
+          { id: "a", tipo: "final", fecha: "2025-02-01", nota: 2, orden: 0, fuente: "siu" },
+          { id: "b", tipo: "final", fecha: "2025-07-13", nota: 7, orden: 1, fuente: "manual" },
+        ],
+      },
+    ]);
+  });
+
+  it("guardarProgreso guarda estado e instancias juntos, en orden de fecha y sin ids", async () => {
+    const { cliente, pedidos } = clienteConFetchFalso(() => ({ cuerpo: null }));
+    await crearRepositorioSupabase(cliente).guardarProgreso({
+      materiaId: "m",
+      estado: "final",
+      instancias: [
+        { id: "x", tipo: "final", fecha: "2025-07-13", nota: null, orden: 3, fuente: "manual" },
+        { id: "y", tipo: "cursada", fecha: "2025-06-24", nota: 8, orden: 0, fuente: "siu" },
+      ],
+    });
+    expect(pedidos[0]?.url.pathname).toBe("/rest/v1/rpc/guardar_materia");
+    expect(pedidos[0]?.cuerpo).toEqual({
+      materia_id: "m",
+      estado: "final",
+      instancias: [
+        { tipo: "cursada", fecha: "2025-06-24", nota: 8, fuente: "siu" },
+        { tipo: "final", fecha: "2025-07-13", nota: null, fuente: "manual" },
+      ],
+    });
   });
 
   it("registrarDocumento arma el Documento con los datos de entrada", async () => {
@@ -263,7 +292,7 @@ describe("crearRepositorioSupabase", () => {
 
   it("reemplazarDatosDelPlan manda los datos en camelCase y devuelve las claves", async () => {
     const { cliente, pedidos } = clienteConFetchFalso(() => ({ cuerpo: { X1: "uuid" } }));
-    const datos = { materiasPropias: [], progreso: [], historial: [] };
+    const datos = { materiasPropias: [], progreso: [] };
     const claves = await crearRepositorioSupabase(cliente).reemplazarDatosDelPlan("p", datos);
     expect(pedidos[0]?.url.pathname).toBe("/rest/v1/rpc/reemplazar_datos_del_plan");
     expect(pedidos[0]?.cuerpo).toEqual({ plan_id: "p", datos });

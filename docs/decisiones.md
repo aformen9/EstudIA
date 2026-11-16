@@ -19,7 +19,7 @@ Una línea por decisión de Agu. Agregar al final, con fecha. Si una decisión n
 - IA: tres modos (local, clave propia con Gemini gratis por defecto, MCP con la suscripción del alumno). Herramientas únicas compartidas.
 - MCP: remoto (datos en Supabase) primero; local (escritorio, archivos) después.
 - Distribución: PWA + binarios (APK, dmg, exe) desde una landing; binarios en GitHub Releases.
-- Orden de fases: 0 → 1 → 1b → 2 → 3 → 4 → 5 (ver `docs/fases/`).
+- ~~Orden de fases: 0 → 1 → 1b → 2 → 3 → 4 → 5 (ver `docs/fases/`).~~ Cambiado el 2026-11-16: la 1b entra en la fase 1 y las fases 3, 4 y 5 se postergan.
 - Implementación con **Claude Code + subagentes** sobre este repo; ante decisiones grandes de diseño o dudas, **parar y preguntar**.
 - Repo **público**, licencia **AGPL-3.0**. Fixtures con un **alumno inventado** (sin datos reales). `referencia/` (código de la hermana) en `.gitignore`: solo local, con crédito en el README.
 
@@ -67,9 +67,9 @@ Una línea por decisión de Agu. Agregar al final, con fecha. Si una decisión n
 
 ## 2026-11-04 (hash de documentos)
 
-- Deduplicación **global** por `sha256`, para privados y compartidos. Resuelve el pendiente bloqueante de la fase 1 y acepta que quien ya tenga el hash de un documento pueda leer su texto.
+- ~~Deduplicación **global** por `sha256`, para privados y compartidos. Resuelve el pendiente bloqueante de la fase 1 y acepta que quien ya tenga el hash de un documento pueda leer su texto.~~ Reemplazada el 2026-11-16: la deduplicación es solo de lo compartido.
 - Ningún usuario puede obtener el `sha256` de documentos ajenos por ninguna vía. Se mantienen los tests de la fase 0.
-- Al subir un archivo que ya existe: si está compartido en esa misma materia y el alumno puede verlo, se muestra "Este archivo ya está en el material de la materia, ¿lo querés ver?" y se lo lleva ahí, sin guardar nada nuevo. Si solo existe como privado de otro usuario, se reutiliza en silencio y para el alumno aparece como subido por él.
+- Al subir un archivo que ya existe: si está compartido en esa misma materia y el alumno puede verlo, se muestra "Este archivo ya está en el material de la materia, ¿lo querés ver?" y se lo lleva ahí, sin guardar nada nuevo. ~~Si solo existe como privado de otro usuario, se reutiliza en silencio y para el alumno aparece como subido por él.~~ (Sin efecto desde el 2026-11-16: lo privado ya no se deduplica.)
 - Fase 1b: casi duplicados por similitud de texto (`pg_trgm`) contra el material compartido de la materia. Si se parece mucho, se pregunta "¿Es el mismo?" con las opciones Ver / Subir igual. El umbral se define y se prueba con PDFs reales en esa fase.
 
 ## 2026-11-04 (dudas de la tanda 1 de `web`)
@@ -107,8 +107,8 @@ Una línea por decisión de Agu. Agregar al final, con fecha. Si una decisión n
 
 - Correlativas en ciclo entre materias propias: no se guardan, y se explica qué materias forman el ciclo.
 - Al editar correlativas, las ya marcadas conservan su condición; las nuevas usan la predeterminada (cursar: regular; rendir: aprobada).
-- Notas en el panel: selector de enteros, como la referencia. Una nota guardada con decimales aparece como opción extra y se conserva. Desde el panel no se cargan decimales nuevos.
-- Cuando haya carreras con decimales, el selector debería salir de la escala del plan, con un "paso" de nota (queda abierto en `arquitectura.md` §12).
+- ~~Notas en el panel: selector de enteros, como la referencia. Una nota guardada con decimales aparece como opción extra y se conserva. Desde el panel no se cargan decimales nuevos.~~ Reemplazada por el slider del 2026-11-07, con decimales según el paso del plan.
+- ~~Cuando haya carreras con decimales, el selector debería salir de la escala del plan, con un "paso" de nota (queda abierto en `arquitectura.md` §12).~~ Resuelta el 2026-11-07: se implementa ya.
 - El bloqueo por ciclos solo mira los que pasan por la materia editada. Un ciclo importado impide guardarla hasta sacarlo. Puede bloquear de más con promociones y no mira la regla de año completo.
 - La vista Materiales filtra igual que Inicio y el contador: plan activo y "sin materia".
 - Crear y borrar materias propias entra en la tanda 4.
@@ -129,7 +129,7 @@ Una línea por decisión de Agu. Agregar al final, con fecha. Si una decisión n
 - Materias y materiales se crean con un id de idempotencia generado en el cliente: un reintento después de un timeout no duplica.
 - Dudas de `web`: un ciclo importado no impide guardar notas, solo cambiar correlativas. La casilla de cerrar sesión se oculta si no hay archivos. Si `avatar_url` no sirve, se prueba con `picture`. El resto queda como lo dejó `web`: cambiar de plan no borra datos, fuentes variables, año y cuatrimestre editables en materias propias, y el manejo de filas fallidas.
 - Fuentes: se recortan al subset `latin`. El peso del JS se baja en esta tanda.
-- Un material puede estar en varias materias: "Mover a otra materia" y "Agregar también a…" (otra referencia al mismo documento, sin duplicar archivo ni copia local).
+- Un material puede estar en varias materias: ~~"Mover a otra materia" y~~ "Agregar también a…" (otra referencia al mismo documento, sin duplicar archivo ni copia local). "Mover" se saca por la decisión del 2026-11-07.
 - Al mover un material compartido, pasa a privado en la materia nueva. La copia local se borra solo si ninguna otra referencia del usuario la usa.
 - Borrar un material es inmediato en pantalla, con "Deshacer" en un aviso de unos 8 s; el borrado real ocurre al vencer. Reemplaza al doble toque.
 - En el panel de materia, los materiales se separan visualmente del formulario.
@@ -155,3 +155,89 @@ Una línea por decisión de Agu. Agregar al final, con fecha. Si una decisión n
 - JS: `zod` se saca de la carga inicial con la entrada `@estudia/core/importacion`. Lo demás (`react-dom` y Supabase) se acepta para la fase 0 y se revisa antes de publicar.
 - Para más adelante, en `arquitectura.md` §12: cuota que no vuelve y `extraido_con` (fase 1), y republicar para quedar primero (fase 1b).
 - Bloqueantes de la fase 1: M2, B2, B5 y B6. Para la fase 1b: M3 (el autor no puede volver a compartir un contenido oculto y el admin puede suspenderle compartir) y B9 (el contador de denuncias se reinicia al restaurar). B4 queda como riesgo aceptado.
+
+## 2026-11-07 (prueba manual en Safari)
+
+- Fase 0, antes de cerrarla, ocho cambios de diseño. Se implementan después del dale de Agu a los mockups:
+  - Onboarding como modal centrado con fondo blur, línea de pasos abajo clickeable para volver a pasos anteriores y botón sin relleno "Paso anterior" arriba.
+  - Todos los paneles laterales pasan a modales centrados con fondo blur; en el celular ocupan casi toda la pantalla.
+  - Selector de materias propio y reutilizable: agrupado por año, con buscador y con el estado bien visible (color e ícono).
+  - Un mismo archivo en varias materias se muestra como una sola tarjeta, con las materias como etiquetas y opciones para quitar de una materia o agregar a otra.
+  - Celebración al aprobar: overlay a pantalla completa con blur, confeti y detrás el texto "¡Felicitaciones! Aprobaste X", sin el recuadro blanco.
+  - Tarjeta de Promedio: los 4 números del mismo tamaño y distribuidos a lo ancho.
+  - Botón de iniciar sesión con menos movimiento al pasar el mouse.
+  - Zona de subida que deje más claro que se pueden arrastrar archivos.
+- Fase 1: importar la Historia Académica del SIU en **PDF y XLS** (resuelve la decisión 1 de `docs/investigacion/siu-guarani.md`), con una guía "¿Cómo consigo el archivo?" con capturas que aporta Agu. La dependencia para XLS sigue a decisión de Agu.
+- ~~Fase 1: vista previa de la primera página del PDF en la tarjeta, generada en la misma pasada que la extracción de texto.~~ Adelantada a la fase 0, ver abajo.
+- Fase 2: gráficos a pedido desde el asistente ("quiero ver tal cosa de mi carrera").
+
+## 2026-11-07 (revisión de los mockups de la fase 0)
+
+Agu aprobó las 9 decisiones de los mockups con dos ajustes y sumó pedidos. Sigue sin implementarse nada: espera su ok a la versión nueva de los mockups.
+
+- Onboarding: se puede volver a los pasos anteriores con el plan ya activado. Otro plan se activa recién al confirmar, y lo cargado queda guardado en el plan anterior.
+- Modales: tocar afuera no los cierra; se cierran con la X, Cancelar o Esc. El menú lateral del celular no cambia.
+- **Ninguna lista nativa en la app:**
+  - Materias: selector propio con grupo "En curso ahora" arriba de los años.
+  - ~~Nota: fila de botones 1 a 10. El valor guardado con decimales aparece como opción extra y se conserva, como ya estaba decidido.~~ Reemplazada por el slider, ver abajo.
+  - Año y cuatrimestre: botones de opción (segmented).
+- Estados: en toda la app, "Pendiente" pasa a "Por cursar" y "Final pendiente" a "Falta final".
+- Tarjeta de archivo:
+  - ~~"Mover a otra materia"~~ se saca: agregar y quitar hacen lo mismo. Reemplaza esa parte de lo decidido el 2026-11-05.
+  - Quitar la última etiqueta deja el archivo en "Sin materia", sin borrarlo.
+  - "Borrar archivo" lo saca de todas las materias del plan activo, con un solo Deshacer. El aviso dice de cuántas materias se borró: "Borrado de 2 materias · Deshacer".
+  - Solo se agrupan archivos: una nota o un link agregado a otra materia es una copia independiente. No cambia la base, y el contador del menú pasa a contar tarjetas.
+- Celebración: muestra la nota si la materia tiene ("con un 9"). Sale solo al aprobar desde el panel de materia, no desde la grilla ni al importar.
+- Imán: tope de 4 px en todos los botones primarios, no solo en el login.
+- **Onboarding, elección de plan:** si la carrera tiene un solo plan, se saltea y se elige solo. Si tiene varios, se preselecciona el más reciente como "vigente", con la ayuda "¿No sabés cuál es? Figura en tu Historia Académica del Guaraní".
+- **Onboarding, paso de carga:** después de la carrera ofrece "Importar desde SIU Guaraní" (en la fase 0 como "Próximamente", con el botón "¿Cómo consigo el archivo?" ya previsto en el diseño), "Cargar a mano" e "Importar respaldo de EstudIA".
+- El importador del SIU es el primer punto de la fase 1.
+- **Vista previa adelantada a la fase 0:** primera página del PDF y miniatura de imágenes en las tarjetas, generadas en el dispositivo y cacheadas localmente. La librería de PDF se carga solo al entrar a Materiales, sin sumar al peso inicial. Esto adelanta PDF.js, que estaba previsto para la fase 1.
+- **Archivos:** se acepta cualquier tipo hasta 50 MB. Hay vista previa para PDF, imágenes (HEIC si se puede) y texto (`.txt`, `.md`, `.csv`, `.py`); el resto va con ícono por tipo y descarga. Nada fuera de esos tipos se abre adentro de la app.
+- Fase 1: extraer texto de `.docx`, `.pptx`, `.txt` e imágenes (OCR).
+- Fase 1b: bloquear ejecutables al compartir.
+- **Nota con slider, en vez de botones:** escala y paso salen del plan (UCA: 1 a 10, paso 0,1). Número grande arriba que cambia en vivo, imán suave en los enteros, botones − y +, tocar el número permite escribirlo, botón "Sin nota" aparte. Teclado: flechas de a un paso y Shift+flechas de a 1; rol `slider` con `aria-valuetext` ("8,5").
+- **Paso de nota del plan:** se implementa ya lo que estaba abierto en `arquitectura.md` §12, con 0,1 por defecto. Agu aprobó que toque la base y `core`: columna `planes.nota_paso` editando la migración original, `"paso"` en el fixture y el seed, y funciones en `core`. Las notas guardadas no se migran ni se redondean. La distribución de notas agrupa por la parte entera, y el cambio de estado por nota se aplica al soltar el slider.
+- **Notas visibles por estado:** Por cursar, ninguna. En curso: Parcial 1, Parcial 2 y Recuperatorio. Falta final: Nota de cursada y Final. Aprobada: Nota final, Final y Nota de cursada. Una nota ya cargada se ve siempre, y hay un botón "Ver todas las notas".
+- Plan "más reciente": por fecha de carga (`created_at`) y, si empatan, la versión más alta. No cambia la base.
+- "¿Cómo consigo el archivo?" se ve desactivado en la fase 0.
+- HEIC sin librería nueva: miniatura donde el navegador lo sepa leer; en los demás, ícono y descarga.
+- `pdfjs-dist` aprobada (Apache-2.0), con carga diferida: se baja solo si en Materiales falta generar la vista previa de algún PDF.
+- Abrir PDF, imágenes y texto sigue siendo en una pestaña nueva, sin visor nuevo. El texto se abre siempre como texto plano. SVG va con ícono y descarga. La vista previa va solo en las tarjetas de Materiales.
+
+## 2026-11-07 (panel de materia por instancias de evaluación)
+
+- El panel deja de tener notas fijas ("Nota final", parciales, recuperatorio, cursada). La materia arranca sin instancias y se agregan con "+ Agregar instancia": Parcial, Recuperatorio, Cursada, Final o Promoción. Cada una tiene solo nota y fecha (hoy al crearla, editable), con su slider y un botón para quitarla, ordenadas por fecha.
+- Hasta 6 parciales y 6 recuperatorios, nunca más recuperatorios que parciales. Numeración por fecha: uno solo es "Parcial"; con dos o más, "Parcial 1", "Parcial 2"; igual con recuperatorios. Finales y cursadas, varias. Promoción, una sola.
+- Las instancias no tienen estado: el estado es de la materia y lo elige el alumno. Se deduce:
+  - Aprobada: el último final con nota es el aprobado y su nota es la de la materia; los anteriores con nota son aplazos. Con promoción, la nota es la de la promoción y los finales con nota son aplazos.
+  - No aprobada: todos los finales con nota son aplazos.
+  - Final sin nota con fecha pasada: ausente, no cuenta como aplazo. Sin nota con fecha de hoy o futura: "Programada", preparada para "Próximos exámenes".
+  - Cursadas: la última por fecha es la vigente; las anteriores, desaprobadas.
+  - Último final de una materia Aprobada con nota menor a la de aprobación: se toma igual como aprobado, con un aviso suave.
+- En "Falta final", un final con nota que aprueba sugiere "¿La aprobaste? Pasar a Aprobada"; decide el alumno. Se sacan el cambio automático a Aprobada y la sugerencia de parciales aprobados.
+- "En vivo": en el panel, lo calculado cambia al mover cada nota; el resto de la app se actualiza al Guardar.
+- Fecha con el control nativo del navegador, estilado como el resto de la app.
+- Base: tabla `instancias` (reemplaza a `historial`) y `progreso` queda solo con el estado. Se editan las migraciones originales y se resetea la base local. Promoción única en la base; los topes los controlan `core` y la pantalla.
+- Importador legacy y respaldo v1: el historial pasa a instancias (Regularidad → cursada, Examen → final, Ausente → final sin nota, Promoción → promoción; "En curso" se descarta) y las notas sin evento se crean con la fecha del respaldo. Respaldo nuevo v2 con instancias. El fixture y los resultados esperados no cambian.
+- Numeración también para cursadas y finales: con más de una del mismo tipo se llaman "Cursada 1", "Cursada 2", "Final 1", "Final 2", por fecha. La promoción, única, no lleva número.
+- Arriba de las instancias, botones para ver Todas, Cursadas, Parciales (con los recuperatorios) o Finales (con la promoción).
+
+## 2026-11-16 (revisión general del proyecto, `docs/backlog.md`)
+
+Agu aprobó todos los puntos del backlog. Acá van las decisiones de sus secciones 3, 4, 6 y 7; el detalle y lo demás quedan en `docs/backlog.md`.
+
+- **Fase 0 congelada:** no se suma nada más. Se cierra con los pasos de la sección 1 del backlog.
+- **Toda idea nueva va a `docs/backlog.md`**, no a la fase en curso. Una fase cambia de alcance solo si Agu lo aprueba explícitamente.
+- **Fase 1 reordenada** (antes: SIU → IA → Drive y texto; comunidades en la fase 1b). Orden nuevo, priorizando lo que hace única a la app:
+  1. Importador de SIU Guaraní (PDF y XLS), con la guía "¿Cómo consigo el archivo?" con capturas. Detecta el plan desde el archivo. Requiere que Agu baje su Historia Académica real (fuera del repo).
+  2. Comunidad por materia (lo que era la fase 1b): compartir material, denuncias, casi duplicados y cierre de cuatrimestre. Se siembra con material de Agu y de Lucía para que no arranque vacía. Ejecutables bloqueados al compartir.
+  3. Drive y texto en la nube: originales en el Drive del alumno y extracción de texto (PDF, `.docx`, `.pptx`, `.txt`, imágenes con OCR).
+  4. Onboarding con IA y clave propia, último por ser el de más fricción: la app tiene que ser excelente sin IA.
+- La fase 1b deja de existir como fase aparte: su contenido pasa a ser el bloque 2 de la fase 1.
+- **Antes de empezar la fase 1:** averiguar qué exige la verificación de Google para salir del modo "prueba" (límite de usuarios, política de privacidad, dominio propio, vencimiento de sesiones) y cómo afecta al permiso de Drive; y reconsiderar Playwright (incluye el motor de Safari). Playwright es una dependencia nueva: se aprueba antes.
+- **Deduplicación: de global a solo lo compartido.** Lo privado guarda su propio texto por alumno. Se mantiene que nunca se expone el hash de documentos ajenos. Reemplaza la deduplicación global del 2026-11-04. Se aplica al arrancar la fase 1, no antes.
+- **Materias propias sin correlativas:** se quita la edición de correlativas en materias propias (y con ella los ciclos, su restauración y sus duplicados). Antes de tocar nada se le propone a Agu cómo migrar las que ya existan. Se aplica al arrancar la fase 1, no antes.
+- **Postergado hasta que haya demanda:** apps descargables (dmg, exe, APK) y landing de descargas (la PWA cubre lo mismo sin firmas), IA local embebida y en el celular, MCP para Claude y ChatGPT, moderadores por carrera y otras carreras (Ingeniería Química). Las fases 3, 4 y 5 quedan en pausa.
+- **Forma de trabajo:** las decisiones menores las toma la coordinadora y las informa; solo se consulta lo de diseño grande.
+- **Agu hace a mano**, para aprender y poder defenderlo: el job de backups, el deploy en Vercel y la protección de ramas. La coordinadora lo guía paso a paso.
