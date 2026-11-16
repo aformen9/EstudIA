@@ -4,8 +4,14 @@ import { prefiereMenosMovimiento } from "./efectos";
 
 export type Tema = "light" | "dark";
 
-/** El script de `index.html` lee esta misma clave antes de pintar, para que el tema no parpadee. */
+/**
+ * El script de `index.html` lee esta misma clave antes de pintar, para que el tema no parpadee. Sin
+ * nada guardado (primera visita) el tema es oscuro: `<html data-theme="dark">`.
+ */
 const CLAVE_TEMA = "estudia.theme";
+
+/** Color de la barra del navegador, igual a `--bg` de cada tema en styles.css. */
+export const COLOR_BARRA: Record<Tema, string> = { dark: "#0f1115", light: "#f6f7f9" };
 
 function aplicarTema(tema: Tema) {
   document.documentElement.dataset.theme = tema;
@@ -14,9 +20,7 @@ function aplicarTema(tema: Tema) {
   } catch {
     // Sin localStorage (modo privado) el tema dura hasta recargar.
   }
-  document
-    .getElementById("themeColor")
-    ?.setAttribute("content", tema === "dark" ? "#130c13" : "#fff7fb");
+  document.getElementById("themeColor")?.setAttribute("content", COLOR_BARRA[tema]);
 }
 
 export function useTema(): { tema: Tema; alternar: () => void } {

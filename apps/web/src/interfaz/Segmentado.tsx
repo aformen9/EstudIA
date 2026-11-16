@@ -7,6 +7,8 @@ export interface OpcionSegmentada<V> {
   icono?: NombreIcono;
   /** Clase extra para el botón elegido, por ejemplo el color de un estado. */
   clase?: string;
+  /** Un punto de este color antes del texto, por ejemplo para elegir el color de acento. */
+  muestra?: string;
 }
 
 /**
@@ -72,6 +74,9 @@ export function Segmentado<V extends string | number | null>({
             onClick={() => alCambiar(opcion.valor)}
           >
             {opcion.icono && <Icono nombre={opcion.icono} />}
+            {opcion.muestra && (
+              <span className="muestra" aria-hidden="true" style={{ background: opcion.muestra }} />
+            )}
             {opcion.texto}
           </button>
         );

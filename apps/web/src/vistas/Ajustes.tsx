@@ -4,7 +4,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useId, useRef, useState, type FormEvent } from "react";
 import { ImportarRespaldo } from "../importacion/ImportarRespaldoDiferido";
 import { descargarBlob } from "../interfaz/descargar";
+import { useAcento, type Acento } from "../interfaz/acento";
 import { Icono } from "../interfaz/Iconos";
+import { Segmentado, type OpcionSegmentada } from "../interfaz/Segmentado";
 import { useMaterialesDelAlumno } from "../materiales/useMateriales";
 import { PasoElegir, type Opcion } from "../onboarding/Onboarding";
 import { ConPlan, clavesPlan, consultas, ponerInscripcionActiva } from "../plan/planActivo";
@@ -267,10 +269,39 @@ function SeccionRespaldo({ datos }: { datos: DatosAlumno }) {
   );
 }
 
+/** La muestra es el color del botón principal en modo claro: se ve bien sobre los dos fondos. */
+const OPCIONES_ACENTO: OpcionSegmentada<Acento>[] = [
+  { valor: "azul", texto: "Azul", muestra: "#2563eb" },
+  { valor: "rosa", texto: "Rosa", muestra: "#d0156f" },
+  { valor: "violeta", texto: "Violeta", muestra: "#7c3aed" },
+  { valor: "verde", texto: "Verde", muestra: "#059669" },
+  { valor: "naranja", texto: "Naranja", muestra: "#ea580c" },
+];
+
+function SeccionApariencia() {
+  const { acento, elegir } = useAcento();
+  const idEtiqueta = useId();
+  return (
+    <section className="card ajustes-seccion rise" style={retardo(4)}>
+      <h2>Apariencia</h2>
+      <p className="sub" id={idEtiqueta}>
+        Color de acento. Se guarda en este dispositivo.
+      </p>
+      <Segmentado
+        idEtiqueta={idEtiqueta}
+        opciones={OPCIONES_ACENTO}
+        valor={acento}
+        alCambiar={elegir}
+        columnasCelular={3}
+      />
+    </section>
+  );
+}
+
 function SeccionSesion() {
   const { pedir, dialogo, error } = useCerrarSesion({});
   return (
-    <section className="card ajustes-seccion rise" style={retardo(4)}>
+    <section className="card ajustes-seccion rise" style={retardo(5)}>
       <h2>Sesión</h2>
       <p className="sub">Cierra la sesión solo en este dispositivo.</p>
       {error && (
@@ -302,6 +333,7 @@ export function Ajustes() {
           </>
         )}
       </ConPlan>
+      <SeccionApariencia />
       <SeccionSesion />
     </>
   );

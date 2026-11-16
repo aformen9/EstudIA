@@ -42,11 +42,43 @@ const PARES: [string, string][] = [
   ["--accent-ink", "--lav"],
 ];
 
-describe.each([
+const TEMAS: [string, string][] = [
   ["claro", ':root[data-theme="light"]'],
   ["oscuro", ':root[data-theme="dark"]'],
-])("contraste AA en modo %s", (_tema, selector) => {
-  const variables = variablesDe(selector);
+];
+
+/** Azul vive en los bloques del tema; los demás acentos pisan algunas variables encima. */
+const ACENTOS: [string, (tema: string) => string | null][] = [
+  ["azul", () => null],
+  ...["rosa", "violeta", "verde", "naranja"].map((acento): [string, (tema: string) => string] => [
+    acento,
+    (tema) =>
+      tema === "oscuro"
+        ? `:root[data-theme="dark"][data-accent="${acento}"]`
+        : `:root[data-accent="${acento}"]`,
+  ]),
+];
+
+describe.each(
+  TEMAS.flatMap(([tema, selector]) =>
+    ACENTOS.map(([acento, bloque]): [string, string, string, string | null] => [
+      tema,
+      acento,
+      selector,
+      bloque(tema),
+    ]),
+  ),
+)("contraste AA en modo %s con acento %s", (_tema, _acento, selector, bloqueAcento) => {
+  const variables = {
+    ...variablesDe(selector),
+    ...(bloqueAcento ? variablesDe(bloqueAcento) : {}),
+  };
+
+  if (bloqueAcento) {
+    it("el bloque del acento existe", () => {
+      expect(css.includes(`${bloqueAcento} {`)).toBe(true);
+    });
+  }
 
   it.each(PARES)("%s sobre %s", (texto, fondo) => {
     const [a, b] = [variables[texto], variables[fondo]];
