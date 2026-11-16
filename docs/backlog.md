@@ -23,7 +23,11 @@ Chico, pero necesario para no perder datos ni quedar a ciegas:
 - [ ] **Backups**: job diario de GitHub Actions con volcado cifrado de la base. Además evita que el proyecto gratis de Supabase se pause por inactividad. (Lo hace Agu a mano.)
 - [ ] **Verificación en dos pasos** en GitHub, Supabase y Google. (Agu.)
 - [ ] **Almacenamiento persistente**: pedir `navigator.storage.persist()` y avisar al alumno que los archivos viven solo en ese dispositivo hasta que llegue Drive. Safari puede borrar datos locales de sitios sin uso si la app no está instalada.
-- [ ] **Registro de errores** (Sentry, plan gratis) y **analítica** que respete la privacidad. Dependencias nuevas: aprobar antes.
+- [ ] **Registro de errores** (Sentry, plan gratis). Dependencia nueva: aprobar antes.
+- [ ] **Analítica con Umami**: sin cookies ni datos personales, con eventos del onboarding (en qué paso se abandona). Servicio nuevo: aprobar antes, incluido si va alojado o en la nube de Umami.
+- [ ] **Pantalla de métricas para admin**: consultas a la base (alumnos, inscripciones, materias cargadas, materiales), solo para `es_admin`, sin exponer datos de alumnos individuales.
+- [ ] **Monitoreo de caídas** (UptimeRobot o similar, plan gratis): aviso si la web o Supabase no responden.
+- [ ] **Botón "Reportar un problema o sugerencia"**: a dónde llega (mail, issue de GitHub, tabla en la base) se decide antes de implementarlo.
 - [ ] **Cabeceras de seguridad (CSP)** en Vercel, permitiendo los hosts de las fotos de Google.
 - [ ] **Dependabot** y `pnpm audit` en el CI.
 - [ ] **Política de privacidad y términos de uso** (borrador), con un mail de contacto visible.
@@ -60,6 +64,11 @@ Aprobadas por Agu el 16/11/2026. Se aplican al arrancar la fase 1, no ahora.
 - **Navegación inferior en el celular**, en lugar del menú lateral (evaluar con usuarios).
 - **Slider de notas**: validar con usuarios; si la mayoría carga enteros, volver a botones.
 - **Gráficos a pedido** con el asistente (fase 2).
+- **Dominio propio** (costo nuevo: aprobar antes). También ayuda a la verificación de Google.
+- **Página pública de presentación**: qué es EstudIA y cómo empezar, antes del login.
+- **Vista previa al compartir el link** (Open Graph): título, descripción e imagen.
+- **Invitar compañeros**: compartir un link a la app desde adentro.
+- **Aviso de novedades**: qué cambió desde la última vez que entró el alumno.
 
 ## 6. Postergado hasta que haya demanda
 
