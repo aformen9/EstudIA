@@ -10,7 +10,7 @@
 - **El repo está en `/Users/aformen9/Dev/EstudIA`.** Abrir la sesión nueva desde esa carpeta: desde ahí se cargan los agentes de `.claude/agents/`.
 - **Supabase remoto** (`uckdkqsdyindmyrvdccw`): vinculado por Agu con `supabase link`, con las migraciones y el seed subidos (`supabase db push --include-seed`). **Desde ahora, cualquier cambio a la base va en una migración nueva**: las originales ya no se editan.
 - **Analítica y monitoreo:** Umami Cloud (solo producción, `apps/web/src/analitica/analitica.ts`) y UptimeRobot (web y Supabase, página pública https://stats.uptimerobot.com/pypY6ca17D). Detalle en el README.
-- **`#admin`:** totales, embudo del onboarding, estado del servicio (Edge Function `estado-servicio`, desplegada a mano), panel de visitas de Umami (variable de Vercel `VITE_UMAMI_SHARE_URL`) y reportes.
+- **`#admin`:** totales, embudo del onboarding, estado del servicio (Edge Function `estado-servicio`, desplegada a mano), panel de visitas de Umami (secreto de Supabase `UMAMI_SHARE_URL`, lo devuelve la misma función) y reportes.
 - **Deploy en Vercel:** https://estudia-liard.vercel.app, hecho por Agu. Root Directory `apps/web`, preset Vite, con `VITE_SUPABASE_URL` y `VITE_SUPABASE_PUBLISHABLE_KEY` del remoto, sin la integración de Supabase. La URL está en Supabase (Site URL y Redirect URLs) y en Google (orígenes autorizados).
 - **Entorno local:** para probar contra la base local:
   - Docker abierto, `supabase start` y `pnpm dev` desde la carpeta del repo (`pnpm dev` usa `.env.development.local`, o sea la base local).
