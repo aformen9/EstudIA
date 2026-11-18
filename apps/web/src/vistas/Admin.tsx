@@ -39,26 +39,28 @@ function Metricas({ m }: { m: MetricasAdmin }) {
         {m.inscripcionesPorPlan.length === 0 ? (
           <p className="sub">Todavía nadie activó un plan.</p>
         ) : (
-          <table className="admin-tabla">
-            <thead>
-              <tr>
-                <th scope="col">Universidad</th>
-                <th scope="col">Carrera</th>
-                <th scope="col">Plan</th>
-                <th scope="col">Alumnos</th>
-              </tr>
-            </thead>
-            <tbody>
-              {m.inscripcionesPorPlan.map((fila) => (
-                <tr key={`${fila.universidad}-${fila.carrera}-${fila.plan}`}>
-                  <td>{fila.universidad ?? "—"}</td>
-                  <td>{fila.carrera ?? "—"}</td>
-                  <td>{fila.plan}</td>
-                  <td>{fila.alumnos}</td>
+          <div className="admin-tabla-scroll">
+            <table className="admin-tabla">
+              <thead>
+                <tr>
+                  <th scope="col">Universidad</th>
+                  <th scope="col">Carrera</th>
+                  <th scope="col">Plan</th>
+                  <th scope="col">Alumnos</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {m.inscripcionesPorPlan.map((fila) => (
+                  <tr key={`${fila.universidad}-${fila.carrera}-${fila.plan}`}>
+                    <td>{fila.universidad ?? "—"}</td>
+                    <td>{fila.carrera ?? "—"}</td>
+                    <td>{fila.plan}</td>
+                    <td>{fila.alumnos}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
     </>
@@ -78,7 +80,7 @@ function Reportes({ reportes }: { reportes: ReporteAdmin[] }) {
           {reportes.map((r) => (
             <li key={r.id}>
               <p className="admin-reporte-meta">
-                <span className={`est ${r.tipo === "problema" ? "e-final" : "e-cursando"}`}>
+                <span className={`admin-tipo ${r.tipo === "problema" ? "e-final" : "e-cursando"}`}>
                   {r.tipo === "problema" ? "Problema" : "Sugerencia"}
                 </span>
                 <time dateTime={r.createdAt}>{FECHA.format(new Date(r.createdAt))}</time>
