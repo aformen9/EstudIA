@@ -1,6 +1,6 @@
 import type { MetricasAdmin, Perfil } from "@estudia/core";
 import { screen, waitFor, within } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { Shell } from "../interfaz/Shell";
 import { INSCRIPCION, renderConRepositorio, repositorioFalso } from "../pruebas/entornoVistas";
 
@@ -12,6 +12,8 @@ const ADMIN: Perfil = {
   acento: "azul",
   tema: "dark",
 };
+
+const PANEL = "https://cloud.umami.is/analytics/eu/share/Prueba123";
 
 const METRICAS: MetricasAdmin = {
   alumnos: 12,
@@ -35,11 +37,14 @@ function comoAdmin() {
   repositorio.obtenerPerfil.mockResolvedValue(ADMIN);
   repositorio.obtenerMetricasAdmin.mockResolvedValue(METRICAS);
   repositorio.obtenerEstadoServicio.mockResolvedValue({
-    monitores: [
-      { nombre: "estudia-liard.vercel.app", estado: "arriba", uptime7: 100, uptime30: 99.95 },
-      { nombre: "EstudIA Supabase", estado: "caido", uptime7: 97.5, uptime30: null },
-    ],
-    actualizado: "2026-11-17T20:00:00Z",
+    uptime: {
+      monitores: [
+        { nombre: "estudia-liard.vercel.app", estado: "arriba", uptime7: 100, uptime30: 99.95 },
+        { nombre: "EstudIA Supabase", estado: "caido", uptime7: 97.5, uptime30: null },
+      ],
+      actualizado: "2026-11-17T20:00:00Z",
+    },
+    panelVisitas: PANEL,
   });
   repositorio.listarReportesAdmin.mockResolvedValue([
     {
@@ -71,10 +76,6 @@ function comoAdmin() {
 beforeEach(() => {
   localStorage.clear();
   window.scrollTo = () => {};
-});
-
-afterEach(() => {
-  vi.unstubAllEnvs();
 });
 
 const tarjeta = async (titulo: string) =>
@@ -145,45 +146,75 @@ describe("#admin", () => {
     ).toBe("https://stats.uptimerobot.com/pypY6ca17D");
   });
 
-  it("si falla el estado del servicio, avisa en esa tarjeta y el resto carga igual", async () => {
+  it("si la función falla, avisan solo sus tarjetas y el resto carga igual", async () => {
     window.location.hash = "admin";
     const repositorio = comoAdmin();
     repositorio.obtenerEstadoServicio.mockRejectedValue(
-      new Error("No se pudo leer el estado del servicio: No pude consultar UptimeRobot."),
+      new Error("No se pudo leer el estado del servicio: no respondió"),
     );
     renderConRepositorio(<Shell />, repositorio);
 
     const estado = await tarjeta("Estado del servicio");
-    expect((await estado.findByRole("status")).textContent).toContain(
-      "No pude consultar UptimeRobot",
-    );
+    expect((await estado.findByRole("status")).textContent).toContain("no respondió");
     expect(estado.getByRole("link", { name: "Página pública de estado" })).toBeTruthy();
+    const visitas = await tarjeta("Visitas");
+    expect((await visitas.findByRole("status")).textContent).toContain(
+      "No pude traer el panel de visitas",
+    );
     expect(await tarjeta("Totales")).toBeTruthy();
     expect(await tarjeta("Embudo del onboarding")).toBeTruthy();
     expect(await tarjeta("Últimos reportes")).toBeTruthy();
     expect(screen.queryByRole("alert")).toBeNull();
   });
 
-  it("embebe el panel de Umami si VITE_UMAMI_SHARE_URL es un enlace para compartir", async () => {
-    vi.stubEnv("VITE_UMAMI_SHARE_URL", "https://cloud.umami.is/analytics/eu/share/Prueba123");
+  it("si solo falla UptimeRobot, avisa en su tarjeta y el panel de visitas se ve igual", async () => {
     window.location.hash = "admin";
-    renderConRepositorio(<Shell />, comoAdmin());
+    const repositorio = comoAdmin();
+    repositorio.obtenerEstadoServicio.mockResolvedValue({
+      uptime: { error: "No pude consultar UptimeRobot." },
+      panelVisitas: PANEL,
+    });
+    renderConRepositorio(<Shell />, repositorio);
+
+    const estado = await tarjeta("Estado del servicio");
+    expect((await estado.findByRole("status")).textContent).toBe(
+      "No pude consultar UptimeRobot. El resto de esta página no depende de esto.",
+    );
+    expect(estado.queryByRole("table")).toBeNull();
     const visitas = await tarjeta("Visitas");
-    const panel = visitas.getByTitle("Panel de visitas de Umami");
-    expect(panel.getAttribute("src")).toBe("https://cloud.umami.is/analytics/eu/share/Prueba123");
+    expect((await visitas.findByTitle("Panel de visitas de Umami")).getAttribute("src")).toBe(
+      PANEL,
+    );
+  });
+
+  it("embebe el panel de Umami que devuelve la función, con una sola llamada", async () => {
+    window.location.hash = "admin";
+    const repositorio = comoAdmin();
+    renderConRepositorio(<Shell />, repositorio);
+    const visitas = await tarjeta("Visitas");
+    const panel = await visitas.findByTitle("Panel de visitas de Umami");
+    expect(panel.getAttribute("src")).toBe(PANEL);
     expect(panel.getAttribute("referrerpolicy")).toBe("no-referrer");
     expect(
       visitas.getByRole("link", { name: "Abrir el panel en otra pestaña" }).getAttribute("target"),
     ).toBe("_blank");
+    expect(repositorio.obtenerEstadoServicio).toHaveBeenCalledOnce();
   });
 
-  it("sin la variable, o con otra URL, no embebe nada", async () => {
-    vi.stubEnv("VITE_UMAMI_SHARE_URL", "https://otro.com/share/x");
-    window.location.hash = "admin";
-    renderConRepositorio(<Shell />, comoAdmin());
-    const visitas = await tarjeta("Visitas");
-    expect(visitas.queryByTitle("Panel de visitas de Umami")).toBeNull();
-    expect(visitas.getByText(/Falta configurar/)).toBeTruthy();
+  it("sin el secreto, o con otra URL, no embebe nada", async () => {
+    for (const panelVisitas of [null, "https://otro.com/share/x"]) {
+      window.location.hash = "admin";
+      const repositorio = comoAdmin();
+      repositorio.obtenerEstadoServicio.mockResolvedValue({
+        uptime: { error: "No pude consultar UptimeRobot." },
+        panelVisitas,
+      });
+      const { unmount } = renderConRepositorio(<Shell />, repositorio);
+      const visitas = await tarjeta("Visitas");
+      expect(await visitas.findByText(/Falta configurar el secreto/)).toBeTruthy();
+      expect(visitas.queryByTitle("Panel de visitas de Umami")).toBeNull();
+      unmount();
+    }
   });
 });
 
@@ -198,14 +229,11 @@ describe("link Estado del servicio", () => {
     expect(link.parentElement?.lastElementChild).toBe(link);
   });
 
-  it("el enlace del panel de Umami no aparece fuera de #admin", async () => {
-    vi.stubEnv("VITE_UMAMI_SHARE_URL", "https://cloud.umami.is/analytics/eu/share/Prueba123");
+  it("fuera de #admin no se pide el estado del servicio (ni el enlace del panel)", async () => {
     window.location.hash = "inicio";
-    const { container } = renderConRepositorio(
-      <Shell />,
-      repositorioFalso({ inscripciones: [INSCRIPCION] }),
-    );
+    const repositorio = comoAdmin();
+    renderConRepositorio(<Shell />, repositorio);
     await screen.findByRole("heading", { name: "Inicio" });
-    expect(container.innerHTML).not.toContain("share/Prueba123");
+    expect(repositorio.obtenerEstadoServicio).not.toHaveBeenCalled();
   });
 });

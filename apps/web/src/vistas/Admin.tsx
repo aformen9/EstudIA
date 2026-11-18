@@ -118,25 +118,35 @@ const ESTADOS: Record<EstadoMonitor, { texto: string; clase: string }> = {
 const porcentaje = (n: number | null) =>
   n === null ? "—" : `${n.toLocaleString("es-AR", { maximumFractionDigits: 2 })}%`;
 
-/** Si UptimeRobot o la función fallan, solo esta tarjeta avisa: el resto de #admin carga igual. */
-function EstadoDelServicio() {
+/** Una sola llamada a la Edge Function para las dos tarjetas (misma clave de consulta). */
+function useEstadoServicio() {
   const repositorio = useRepositorio();
-  const estado = useQuery({
+  return useQuery({
     queryKey: ["admin", "estado-servicio"],
     queryFn: () => repositorio.obtenerEstadoServicio(),
     staleTime: CINCO_MINUTOS,
     retry: false,
   });
+}
+
+const sinPunto = (texto: string) => texto.replace(/\.$/, "");
+
+/** Si UptimeRobot o la función fallan, solo esta tarjeta avisa: el resto de #admin carga igual. */
+function EstadoDelServicio() {
+  const estado = useEstadoServicio();
+  const uptime = estado.data?.uptime;
+  const error = estado.error?.message ?? (uptime && "error" in uptime ? uptime.error : null);
+  const datos = uptime && "monitores" in uptime ? uptime : null;
   return (
     <section className="card rise" style={retardo(4)} aria-labelledby="admin-estado">
       <h2 id="admin-estado">Estado del servicio</h2>
       {estado.isPending && <p className="sub">Cargando…</p>}
-      {estado.error && (
+      {error && (
         <p className="msg err" role="status">
-          {estado.error.message.replace(/\.$/, "")}. El resto de esta página no depende de esto.
+          {sinPunto(error)}. El resto de esta página no depende de esto.
         </p>
       )}
-      {estado.data && (
+      {datos && (
         <>
           <div className="admin-tabla-scroll">
             <table className="admin-tabla">
@@ -149,7 +159,7 @@ function EstadoDelServicio() {
                 </tr>
               </thead>
               <tbody>
-                {estado.data.monitores.map((m) => (
+                {datos.monitores.map((m) => (
                   <tr key={m.nombre}>
                     <td>{m.nombre}</td>
                     <td>
@@ -166,10 +176,8 @@ function EstadoDelServicio() {
           </div>
           <p className="sub admin-nota">
             Datos de UptimeRobot del{" "}
-            <time dateTime={estado.data.actualizado}>
-              {FECHA.format(new Date(estado.data.actualizado))}
-            </time>
-            . Se actualizan cada 5 minutos.
+            <time dateTime={datos.actualizado}>{FECHA.format(new Date(datos.actualizado))}</time>.
+            Se actualizan cada 5 minutos.
           </p>
         </>
       )}
@@ -182,12 +190,23 @@ function EstadoDelServicio() {
   );
 }
 
-/** Panel de Umami de solo lectura, embebido. El enlace viene de VITE_UMAMI_SHARE_URL (Vercel). */
-function Visitas({ url = urlPanelVisitas(import.meta.env.VITE_UMAMI_SHARE_URL) }) {
+/**
+ * Panel de Umami de solo lectura, embebido. El enlace lo devuelve la Edge Function solo al admin
+ * (secreto de Supabase `UMAMI_SHARE_URL`): no está en el código.
+ */
+function Visitas() {
+  const estado = useEstadoServicio();
+  const url = urlPanelVisitas(estado.data?.panelVisitas ?? undefined);
   return (
     <section className="card rise" style={retardo(5)}>
       <h2>Visitas</h2>
-      {url ? (
+      {estado.isPending ? (
+        <p className="sub">Cargando…</p>
+      ) : estado.error ? (
+        <p className="msg err" role="status">
+          No pude traer el panel de visitas: {sinPunto(estado.error.message)}.
+        </p>
+      ) : url ? (
         <>
           <iframe
             className="admin-visitas"
@@ -205,7 +224,7 @@ function Visitas({ url = urlPanelVisitas(import.meta.env.VITE_UMAMI_SHARE_URL) }
         </>
       ) : (
         <p className="sub">
-          Falta configurar <code>VITE_UMAMI_SHARE_URL</code> en las variables de entorno de Vercel.
+          Falta configurar el secreto <code>UMAMI_SHARE_URL</code> en Supabase.
         </p>
       )}
     </section>
