@@ -20,6 +20,10 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # Bloquea alertas altas o críticas en lo que llega al navegador. Las de desarrollo (Vite,
+      # Vitest, ESLint) las avisa Dependabot sin frenar el CI: a veces no tienen versión corregida.
+      - name: Sin vulnerabilidades altas en las dependencias de producción
+        run: pnpm audit --prod --audit-level high
       - name: El seed coincide con el catálogo
         run: pnpm seed && git diff --exit-code -- supabase/seed.sql
       - run: pnpm lint

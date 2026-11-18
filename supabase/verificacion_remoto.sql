@@ -181,6 +181,15 @@ vacios (chequeo, encontrados) as (
 -- Seed: valor real contra el esperado.
 seed (chequeo, real, esperado) as (
   values
+  ('rol respaldos: entra, se saltea la RLS, solo pg_read_all_data y sesiones de solo lectura',
+   (select row(r.rolcanlogin, r.rolbypassrls, r.rolsuper, r.rolcreatedb, r.rolcreaterole, r.rolreplication)::text
+      || ' ' || coalesce((select string_agg(g.rolname::text, ',' order by g.rolname)
+                          from pg_auth_members m join pg_roles g on g.oid = m.roleid
+                          where m.member = r.oid), '-')
+      || ' ' || coalesce((select array_to_string(setconfig, ',') from pg_db_role_setting
+                          where setrole = r.oid and setdatabase = 0), '-')
+    from pg_roles r where r.rolname = 'respaldos'),
+   '(t,t,f,f,f,f) pg_read_all_data default_transaction_read_only=on'),
   ('migración del embudo: inscripciones.importado_en (timestamptz)',
    (select data_type from information_schema.columns
     where table_schema = 'public' and table_name = 'inscripciones' and column_name = 'importado_en'),

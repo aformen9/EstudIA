@@ -296,3 +296,6 @@ Agu aprobó todos los puntos del backlog. Acá van las decisiones de sus seccion
 - La restauración (de prueba o real) aplica `20261103120000_privilegios_por_defecto.sql` antes del esquema: el respaldo solo trae los `GRANT`, y Supabase les da a `anon` y `authenticated` privilegios por defecto sobre cada tabla nueva.
 - Subida con `aws s3api put-object` (la CLI de AWS ya viene en el runner) con checksums solo cuando hacen falta, porque B2 no acepta los que la CLI agrega por defecto.
 - La clave privada de age queda en dos lugares: `~/estudia-respaldos-clave.age` en la compu de Agu y su gestor de contraseñas (archivo cifrado y frase). Sin copia en pendrive: se saca esa condición.
+- Respaldos con el rol de solo lectura `respaldos` (`LOGIN BYPASSRLS`, `pg_read_all_data`, sesiones de solo lectura). Como `supabase db dump` entra siempre como `postgres`, el respaldo lo saca `scripts/respaldos/sacar-respaldo.sh` con `pg_dump` y las mismas listas y sustituciones de la CLI 3.0.0.
+- Dependabot: actualizaciones de versión solo para las actions de GitHub (semanal, agrupado); npm solo con alertas y PRs de seguridad. El CI corre `pnpm audit --prod --audit-level high`: las alertas de desarrollo no frenan el CI.
+- Fase 1b: revisar dejar como anónimos los aportes compartidos al borrar una cuenta.
