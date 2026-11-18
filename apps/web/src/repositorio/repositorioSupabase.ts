@@ -5,6 +5,7 @@ import type {
   Documento,
   NuevoDocumento,
   NuevoMaterial,
+  EstadoServicio,
   Repositorio,
   MetricasAdmin,
 } from "@estudia/core";
@@ -401,6 +402,21 @@ export function crearRepositorioSupabase(cliente: SupabaseClient): Repositorio {
     async obtenerMetricasAdmin() {
       const respuesta = await cliente.rpc("metricas_admin");
       return filas<MetricasAdmin>("No se pudieron leer las métricas", respuesta);
+    },
+
+    async obtenerEstadoServicio() {
+      const { data, error } = await cliente.functions.invoke<EstadoServicio>("estado-servicio");
+      if (error || !data) {
+        // La función responde { error } con un mensaje propio, sin detalles de UptimeRobot.
+        let motivo = "no respondió";
+        const contexto: unknown = (error as { context?: unknown } | null)?.context;
+        if (contexto instanceof Response) {
+          const cuerpo = (await contexto.json().catch(() => null)) as { error?: unknown } | null;
+          if (typeof cuerpo?.error === "string") motivo = cuerpo.error;
+        }
+        throw new Error(`No se pudo leer el estado del servicio: ${motivo}`);
+      }
+      return data;
     },
 
     /* ---------- Importación ---------- */

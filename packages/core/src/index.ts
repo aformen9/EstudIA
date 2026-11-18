@@ -16,4 +16,5 @@ export * from "./materiales/archivos";
 export * from "./preferencias/preferencias";
 export * from "./reportes/reportes";
 export * from "./reportes/datosTecnicos";
+export * from "./admin/estadoServicio";
 export * from "./admin/metricas";

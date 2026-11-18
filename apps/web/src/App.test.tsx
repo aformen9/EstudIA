@@ -82,6 +82,9 @@ describe("App", () => {
     render(<App conexion={conexion} />);
 
     expect(screen.getByRole("heading", { name: "EstudIA" })).toBeTruthy();
+    const estado = screen.getByRole("link", { name: "Estado del servicio" });
+    expect(estado.getAttribute("href")).toBe("https://stats.uptimerobot.com/pypY6ca17D");
+    expect(estado.getAttribute("target")).toBe("_blank");
     fireEvent.click(screen.getByRole("button", { name: "Entrar con Google" }));
 
     expect(oauth).toHaveBeenCalledWith({

@@ -115,6 +115,7 @@ describe("Repositorio contra Supabase local", () => {
     ).resolves.toBeUndefined();
     await expect(repositorio.listarReportesAdmin()).rejects.toThrow();
     await expect(repositorio.obtenerMetricasAdmin()).rejects.toThrow();
+    await expect(repositorio.obtenerEstadoServicio()).rejects.toThrow();
   });
 
   it("lista universidad → carrera → plan", async () => {
