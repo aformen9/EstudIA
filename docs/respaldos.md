@@ -6,7 +6,7 @@ Respaldo diario de la base de producción. Diseño aprobado por Agu el 2026-11-1
 
 `.github/workflows/respaldos.yml` corre todos los días a las 06:17 UTC (03:17 en Argentina) y a mano desde Actions → Respaldos → Run workflow.
 
-1. **Saca el respaldo** con `supabase db dump`, por el Session pooler: `roles.sql`, `schema.sql` y `data.sql`. Los datos incluyen los usuarios de Auth (`auth.users`, `auth.identities`), pero no las sesiones, los tokens ni el registro de actividad (`auth.sessions`, `auth.refresh_tokens`, `auth.mfa_amr_claims`, `auth.one_time_tokens`, `auth.flow_state`, `auth.audit_log_entries`): al restaurar, cada uno vuelve a entrar con Google.
+1. **Saca el respaldo** con el rol de solo lectura `respaldos`, por el Session pooler: `roles.sql`, `schema.sql` y `data.sql` (`scripts/respaldos/sacar-respaldo.sh`). Hace lo mismo que `supabase db dump` (mismos esquemas y sustituciones, comparado línea por línea), pero sin `--role postgres`, que la CLI pone siempre y el rol de solo lectura no puede usar. `pg_dump` corre dentro del contenedor de la base de prueba. Los datos incluyen los usuarios de Auth (`auth.users`, `auth.identities`), pero no las sesiones, los tokens ni el registro de actividad (`auth.sessions`, `auth.refresh_tokens`, `auth.mfa_amr_claims`, `auth.one_time_tokens`, `auth.flow_state`, `auth.audit_log_entries`): al restaurar, cada uno vuelve a entrar con Google.
 2. **Prueba restaurarlo** en una base Supabase vacía dentro del runner (`scripts/respaldos/probar-restauracion.sh`): compara las filas de cada tabla con las del archivo, comprueba que haya usuarios de Auth y que coincidan con los perfiles, y corre `supabase/verificacion_remoto.sql` (tienen que dar todas "ok"). Si algo falla, no sube nada.
 3. **Lo cifra** con la clave pública de age de Agu (`AGE_RECIPIENT`), en un solo archivo `estudia-AAAAMMDDTHHMMSSZ.tar.gz.age`. La clave privada nunca está en GitHub: sin ella, el archivo no se puede abrir.
 4. **Lo sube a B2** (`estudia-respaldos-6623d6`, EU Central) con una clave que solo puede escribir: no puede leer, listar ni borrar lo que ya está.
@@ -29,7 +29,7 @@ Una cuenta borrada puede seguir hasta 6 meses en los respaldos mensuales: lo tie
 
 | Qué | Dónde |
 |---|---|
-| `SUPABASE_DB_URL` (Session pooler, con la contraseña de la base) | GitHub, environment `respaldos` (solo rama `main`) |
+| `SUPABASE_DB_URL` (Session pooler, usuario `respaldos.uckdkqsdyindmyrvdccw` con su contraseña) | GitHub, environment `respaldos` (solo rama `main`) |
 | `B2_KEY_ID` y `B2_APPLICATION_KEY` (clave `github-respaldos-v2`: `listBuckets`, `writeFiles`) | GitHub, environment `respaldos` |
 | `B2_BUCKET`, `B2_ENDPOINT`, `AGE_RECIPIENT` (no secretos) | variables del environment `respaldos` |
 | Clave privada de age (cifrada con frase) y la frase | dos lugares: `~/estudia-respaldos-clave.age` en la compu de Agu, y su gestor de contraseñas (el archivo cifrado y la frase). Sin copia en pendrive (decisión de Agu del 2026-11-18) |
@@ -118,5 +118,5 @@ rm -rf ~/restaurar-estudia ~/Downloads/estudia-*.tar.gz.age
 - **Si un respaldo falla**, GitHub le manda un mail a quien hizo el último cambio en la programación del workflow. Revisar el log en Actions: muestra solo códigos de error, sin datos.
 - **60 días sin actividad en el repo:** GitHub desactiva los workflows programados de un repo público. Reactivarlo desde Actions → Respaldos.
 - **Cambiar la clave de B2** una vez por año, o si se filtra: crear otra con la CLI de B2 (`b2 key create --bucket estudia-respaldos-6623d6 <nombre> listBuckets,writeFiles`), reemplazar los dos secretos en GitHub y borrar la anterior.
-- **Si cambia la contraseña de la base**, actualizar `SUPABASE_DB_URL` en el environment `respaldos`.
-- **Versiones fijas:** las actions van por SHA y la CLI de Supabase en 3.0.0. Al actualizarlas, correr el workflow a mano y revisar el log.
+- **El rol `respaldos`** (migración `20261118120000_rol_respaldos.sql`): lee todo, también Auth y lo que la RLS esconde, y no escribe nada; sus sesiones arrancan en solo lectura. Su contraseña no está en el repo. Para ponerla o cambiarla (pide la URL de `postgres` y después la contraseña nueva dos veces, sin mostrarlas): `read -rs DB_URL && psql "$DB_URL" -c '\password respaldos'; unset DB_URL`. Después, actualizar `SUPABASE_DB_URL` en el environment `respaldos`.
+- **Versiones fijas:** las actions van por SHA (Dependabot propone actualizarlas cada lunes) y la CLI de Supabase en 3.0.0. Las listas de esquemas de `sacar-respaldo.sh` son las de la CLI 3.0.0: si la CLI cambia las suyas, revisarlas. Al actualizarlas, correr el workflow a mano y revisar el log.

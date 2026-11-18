@@ -29,10 +29,8 @@ Chico, pero necesario para no perder datos ni quedar a ciegas.
 
 **Segunda tanda** (orden y PRs del 18/11/2026; invitar usuarios queda sin fecha: primero la prueba Agu). Al cerrarla, arranca la fase 1 por el importador del SIU.
 
-1. [ ] **Backups diarios** (PR #18 mergeado). Falta: el arreglo de la restauración con el respaldo real (PR `respaldos/arreglo-restauracion`), la primera corrida a mano y la primera restauración de prueba. La clave de age queda en la compu de Agu y en su gestor, sin pendrive.
-2. [ ] **PR 1, infraestructura (sin pantallas):**
-   - **Rol de solo lectura para los respaldos**, en lugar de la contraseña de `postgres` en GitHub. Probado en local el 17/11/2026: `postgres` puede crear un rol con `LOGIN BYPASSRLS` y darle `pg_read_all_data`; ese rol lee `auth.users` y `public` y no puede escribir. Falta confirmarlo en el remoto (consulta de solo lectura), conectarse con ese rol por el Session pooler y llamar a `pg_dump` directo (`supabase db dump` entra como `postgres`). Migración con tests; la contraseña la pone Agu, fuera del repo.
-   - **Dependabot** (npm y GitHub Actions) y **`pnpm audit`** en el CI.
+1. [x] **Backups diarios**: funcionando desde el 18/11/2026 (PRs #18 a #21; guía en `docs/respaldos.md`). Falta solo la primera restauración de prueba a mano. La clave de age queda en la compu de Agu y en su gestor, sin pendrive.
+2. [ ] **PR 1, infraestructura (sin pantallas):** rol de solo lectura `respaldos` para los respaldos (migración, tests y `scripts/respaldos/sacar-respaldo.sh`, que reemplaza a `supabase db dump`); Dependabot solo para las actions de GitHub (semanal y agrupado; npm solo con las alertas de seguridad); `pnpm audit --prod --audit-level high` en el CI.
 3. [ ] **PR 2, datos del alumno:**
    - **Almacenamiento persistente**: pedir `navigator.storage.persist()` y avisar que los archivos viven solo en ese dispositivo hasta que llegue Drive. Safari puede borrar datos locales de sitios sin uso si la app no está instalada.
    - **Borrar mi cuenta y mis datos** desde Ajustes, con una Edge Function (borrar el usuario de Auth necesita la clave secreta, que no puede estar en el cliente). Resuelve B6 (documentos huérfanos). El diseño se aprueba antes de implementar.
@@ -55,7 +53,7 @@ Chico, pero necesario para no perder datos ni quedar a ciegas.
 El orden anterior era: SIU → IA → Drive y texto → comunidades. El nuevo prioriza lo que hace única a la app.
 
 1. **Importador de SIU Guaraní** (PDF y XLS), con la guía "¿Cómo consigo el archivo?" con capturas. Detecta el plan desde el archivo. Requiere que Agu baje su Historia Académica real (fuera del repo).
-2. **Comunidad por materia** (antes fase 1b): compartir material, denuncias, casi duplicados, cierre de cuatrimestre. Sembrarla con material de Agu y de Lucía para que no arranque vacía. Bloquear ejecutables al compartir.
+2. **Comunidad por materia** (antes fase 1b): compartir material, denuncias, casi duplicados, cierre de cuatrimestre. Revisar la opción de dejar los aportes compartidos como anónimos cuando alguien borra su cuenta, en lugar de borrarlos (hoy desaparecen para todos; pedido de Agu del 18/11/2026). Sembrarla con material de Agu y de Lucía para que no arranque vacía. Bloquear ejecutables al compartir.
 3. **Drive + texto en la nube**: originales en el Drive del alumno, extracción de texto (PDF, .docx, .pptx, .txt, imágenes con OCR).
 4. **Onboarding con IA y clave propia**: último, porque es el de más fricción. La app tiene que ser excelente sin IA.
 
