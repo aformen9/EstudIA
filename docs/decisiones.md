@@ -273,3 +273,10 @@ Agu aprobó todos los puntos del backlog. Acá van las decisiones de sus seccion
 - PR 3, métricas: la lista propuesta más "alumnos activos en los últimos 7 días" (cargaron o modificaron algo), siempre como total.
 - En la CLI de Agu los comandos contra el remoto llevan siempre `--remote`. Una migración se sube antes de mergear el código que la usa.
 - Reportar desde el onboarding: el botón va en la barra del onboarding (el menú de Ajustes queda inerte detrás del modal). Decisión menor de la coordinadora.
+
+## 2026-11-17 (Umami y UptimeRobot)
+
+- Umami Cloud, región Europa, sitio `5148073e-39e9-406c-9b71-42fe3abb7f00`. Plan gratis: 100.000 eventos por mes, 1 sitio y 6 meses de datos. Solo cuenta en `estudia-liard.vercel.app` y en producción (`data-domains` y chequeo propio), respeta Do Not Track (`data-do-not-track` y chequeo propio) y no se carga en desarrollo.
+- Las visitas se mandan a mano por vista (`data-auto-pageview="false"`): el script solo detecta `pushState` y `replaceState`, y la app navega con `location.hash`. Se excluyen los parámetros de búsqueda de la URL.
+- Eventos: los pasos del onboarding (incluido "terminado"), importar respaldo (ok o error) y reportar (tipo). Nunca ids, mails, nombres ni datos de materias.
+- UptimeRobot: monitor HTTP de la web y monitor de palabra clave `GoTrue` sobre `/auth/v1/health` de Supabase (el HTTP común daba 405 por `HEAD`). Página pública: https://stats.uptimerobot.com/pypY6ca17D.

@@ -31,6 +31,7 @@ import { useRepositorio, useSesion } from "../sesion/sesion";
 import { Avatar, fotosDeUsuario } from "./Avatar";
 import { CargaDiferida, diferido } from "./CargaDiferida";
 import { Icono, type NombreIcono } from "./Iconos";
+import { registrarEvento, registrarVisita } from "../analitica/analitica";
 import { useReportar } from "../reportes/Reportar";
 import { Admin } from "../vistas/Admin";
 import { useSincronizarPreferencias } from "./preferencias";
@@ -373,6 +374,17 @@ function ContenidoShell() {
       window.removeEventListener("resize", moverIndicador);
     };
   }, [vista, achicado, bloqueado]);
+
+  // Analítica: una visita por vista, y el fin del onboarding cuando se pasa a otra vista.
+  const vistaAnterior = useRef<Vista | null>(null);
+  useEffect(() => {
+    if (!vista) return;
+    registrarVisita(vista, `${VISTAS[vista]} · EstudIA`);
+    if (vistaAnterior.current === "onboarding" && vista !== "onboarding") {
+      registrarEvento({ nombre: "onboarding", datos: { paso: "terminado" } });
+    }
+    vistaAnterior.current = vista;
+  }, [vista]);
 
   useEffect(() => {
     if (!vista) return;

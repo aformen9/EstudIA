@@ -11,6 +11,7 @@ import {
 import { importarArchivo, parsearArchivo } from "@estudia/core/importacion";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useId, useRef, useState, type ChangeEvent } from "react";
+import { registrarEvento } from "../analitica/analitica";
 import { TiempoDeGuardadoAgotado } from "../guardado/almacenGuardado";
 import { useFalloVisible } from "../guardado/IndicadorGuardado";
 import { consultas, invalidarDatosDelPlan } from "../plan/planActivo";
@@ -278,7 +279,9 @@ export function ImportarRespaldo({
     let claves: Record<string, string>;
     try {
       claves = await repositorio.reemplazarDatosDelPlan(planId, leido.datos);
+      registrarEvento({ nombre: "importar_respaldo", datos: { resultado: "ok" } });
     } catch (error) {
+      registrarEvento({ nombre: "importar_respaldo", datos: { resultado: "error" } });
       setEstado({
         ...estado,
         guardando: false,

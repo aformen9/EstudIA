@@ -24,8 +24,8 @@ Chico, pero necesario para no perder datos ni quedar a ciegas.
 - [x] **Botón de casita** junto al menú de tres líneas, que lleva a Inicio. (Solo en el celular.)
 - [x] **Acento azul por defecto, fondos y textos neutros y selector de color de acento** en Ajustes (Azul, Rosa, Violeta, Verde, Naranja), con **modo oscuro por defecto** en la primera visita (si el alumno pasa a claro, se recuerda). Incluye logo, favicon e íconos de la PWA en azul y contraste AA de todas las opciones. Valores aprobados por Agu el 16/11/2026 (ver `docs/decisiones.md`).
 - [x] **Pantalla de métricas para admin** (RPC `metricas_admin()`, solo totales) y **botón "Reportar un problema o sugerencia"** (tabla `reportes`: de 1 a 1000 caracteres y hasta 5 por alumno cada 24 horas corridas, controlado en la base, con tests).
-- [ ] **Analítica con Umami Cloud** (plan gratis; verificar el cupo antes de integrar): sin cookies ni datos personales, con eventos del onboarding. Agu crea la cuenta y pasa el ID del sitio.
-- [ ] **Monitoreo de caídas con UptimeRobot** (plan gratis): lo configura Agu con guía, para la web y la API de Supabase.
+- [x] **Analítica con Umami Cloud** (plan gratis; verificar el cupo antes de integrar): sin cookies ni datos personales, con eventos del onboarding. Agu crea la cuenta y pasa el ID del sitio.
+- [x] **Monitoreo de caídas con UptimeRobot** (plan gratis): lo configura Agu con guía, para la web y la API de Supabase.
 
 **Segunda tanda, antes de invitar usuarios** (orden aprobado por Agu el 16/11/2026):
 
@@ -33,7 +33,7 @@ Chico, pero necesario para no perder datos ni quedar a ciegas.
 2. [ ] **Dependabot** y `pnpm audit` en el CI.
 3. [ ] **Almacenamiento persistente**: pedir `navigator.storage.persist()` y avisar que los archivos viven solo en ese dispositivo hasta que llegue Drive. Safari puede borrar datos locales de sitios sin uso si la app no está instalada.
 4. [ ] **Registro de errores con Sentry** (plan gratis, sin datos personales, solo en producción). Dependencia nueva: aprobar antes.
-5. [ ] **Cabeceras de seguridad (CSP)** en Vercel, con todos los hosts ya conocidos: Supabase, fotos de Google, Umami y Sentry.
+5. [ ] **Cabeceras de seguridad (CSP)** en Vercel, con todos los hosts ya conocidos: Supabase, fotos de Google, Umami y Sentry. Umami: `script-src https://cloud.umami.is` y `connect-src https://gateway.umami.is` (adonde manda los datos el script, según su código del 17/11/2026; confirmarlo al armar la CSP).
 6. [ ] **Borrar mi cuenta y mis datos** desde Ajustes. Decisión de diseño a proponer antes de implementar: borrar el usuario de Auth necesita un permiso que no puede estar en el cliente (probablemente una Edge Function), y resuelve B6 (documentos huérfanos).
 7. [ ] **Política de privacidad y términos de uso** (borrador): al final, para describir lo que de verdad quedó (Google, Supabase, Umami, Sentry, borrado de cuenta). Necesita un mail de contacto visible.
 

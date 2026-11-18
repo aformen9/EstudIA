@@ -1,4 +1,12 @@
-import { lazy, Suspense, useState, type ComponentType, type LazyExoticComponent } from "react";
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useState,
+  type ComponentType,
+  type LazyExoticComponent,
+} from "react";
+import { registrarVisita } from "../analitica/analitica";
 import type { PropsLoginDePrueba } from "./loginDePrueba";
 import { useConexion } from "./sesion";
 
@@ -11,6 +19,7 @@ if (import.meta.env.DEV) {
 
 export function Login() {
   const { cliente, url } = useConexion();
+  useEffect(() => registrarVisita("entrar", "Entrar · EstudIA"), []);
   const [entrando, setEntrando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

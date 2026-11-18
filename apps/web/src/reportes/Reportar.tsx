@@ -8,6 +8,7 @@ import {
 } from "@estudia/core";
 import { useMutation } from "@tanstack/react-query";
 import { useId, useState, type FormEvent, type RefObject } from "react";
+import { registrarEvento } from "../analitica/analitica";
 import { Dialogo } from "../interfaz/Dialogo";
 import { Segmentado, type OpcionSegmentada } from "../interfaz/Segmentado";
 import { useRepositorio } from "../sesion/sesion";
@@ -51,6 +52,7 @@ function DialogoReportar({
         versionApp: __VERSION_APP__,
       });
     },
+    onSuccess: () => registrarEvento({ nombre: "reportar", datos: { tipo } }),
   });
 
   function alEnviar(evento: FormEvent) {
