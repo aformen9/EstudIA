@@ -1,5 +1,5 @@
 // Edge Function `estado-servicio` (Deno). Solo conecta la lógica de ./logica.ts con el entorno:
-// las variables de Supabase, el secreto UPTIMEROBOT_API_KEY y fetch. No loguea nada.
+// las variables de Supabase, los secretos UPTIMEROBOT_API_KEY y UMAMI_SHARE_URL, y fetch. No loguea nada.
 import { type Admin, crearManejador, cuerpoPedido, URL_UPTIMEROBOT } from "./logica.ts";
 
 const URL_SUPABASE = Deno.env.get("SUPABASE_URL") ?? "";
@@ -49,6 +49,7 @@ async function pedirMonitores(clave: string): Promise<unknown> {
 Deno.serve(
   crearManejador({
     clave: Deno.env.get("UPTIMEROBOT_API_KEY"),
+    panelVisitas: Deno.env.get("UMAMI_SHARE_URL"),
     esAdmin,
     pedirMonitores,
     ahora: () => Date.now(),

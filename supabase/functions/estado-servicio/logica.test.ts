@@ -1,15 +1,17 @@
 import { describe, expect, it, vi } from "vitest";
 import {
-  aEstadoServicio,
+  aUptime,
   CACHE_MS,
   crearManejador,
   cuerpoPedido,
   type Admin,
   type Dependencias,
+  validarPanelVisitas,
 } from "./logica.ts";
 
 const CLAVE = "ur-clave-secreta-123456";
 const ORIGEN = "https://estudia-liard.vercel.app";
+const PANEL = "https://cloud.umami.is/analytics/eu/share/PanelDePrueba";
 
 const RESPUESTA_OK = {
   stat: "ok",
@@ -35,6 +37,7 @@ function entorno(admin: Admin = "si", cambios: Partial<Dependencias> = {}) {
   let ahora = 1_000_000;
   const deps = {
     clave: CLAVE,
+    panelVisitas: PANEL as string | undefined,
     esAdmin: vi.fn<(token: string) => Promise<Admin>>(async () => admin),
     pedirMonitores: vi.fn<(clave: string) => Promise<unknown>>(async () => RESPUESTA_OK),
     ahora: () => ahora,
@@ -61,23 +64,40 @@ describe("estado-servicio: acceso", () => {
     const { deps, pedir } = entorno();
     const r = await pedir(null);
     expect(r.status).toBe(401);
+    expect(await texto(r.clone())).not.toContain("PanelDePrueba");
     expect(deps.esAdmin).not.toHaveBeenCalled();
     expect(deps.pedirMonitores).not.toHaveBeenCalled();
   });
 
   it("con un token que la base rechaza responde 401", async () => {
     const { deps, pedir } = entorno("sin_sesion");
-    expect((await pedir("vencido")).status).toBe(401);
+    const r = await pedir("vencido");
+    expect(r.status).toBe(401);
+    expect(await texto(r)).not.toContain("PanelDePrueba");
     expect(deps.pedirMonitores).not.toHaveBeenCalled();
   });
 
-  it("un alumno (no admin) recibe 403, sin la clave, y nunca se llama a UptimeRobot", async () => {
+  it("un alumno (no admin) recibe 403, sin la clave ni el panel, y nunca se llama a UptimeRobot", async () => {
     const { deps, pedir } = entorno("no");
     const r = await pedir();
     expect(r.status).toBe(403);
     expect(deps.esAdmin).toHaveBeenCalledWith("token-de-ana");
     expect(deps.pedirMonitores).not.toHaveBeenCalled();
-    expect(await texto(r)).not.toContain(CLAVE);
+    const todo = await texto(r);
+    expect(todo).not.toContain(CLAVE);
+    expect(todo).not.toContain("PanelDePrueba");
+    expect(todo).not.toContain("umami");
+    expect(JSON.parse(todo.slice(todo.indexOf("]{") + 1))).toEqual({ error: "Solo para admins." });
+  });
+
+  it("un no admin no recibe el panel ni aunque un admin ya haya llenado la cache", async () => {
+    let admin: Admin = "si";
+    const { pedir } = entorno("si", { esAdmin: vi.fn(async () => admin) });
+    expect(await (await pedir()).text()).toContain("PanelDePrueba");
+    admin = "no";
+    const r = await pedir();
+    expect(r.status).toBe(403);
+    expect(await r.text()).not.toContain("PanelDePrueba");
   });
 
   it("si no puede comprobar la sesión responde 502, sin detalles", async () => {
@@ -106,23 +126,26 @@ describe("estado-servicio: acceso", () => {
 });
 
 describe("estado-servicio: datos", () => {
-  it("al admin le da estado y disponibilidad de 7 y 30 días, sin URLs ni la clave", async () => {
+  it("al admin le da estado, disponibilidad de 7 y 30 días y el panel, sin otras URLs ni la clave", async () => {
     const { deps, pedir } = entorno();
     const r = await pedir();
     expect(r.status).toBe(200);
     expect(deps.pedirMonitores).toHaveBeenCalledWith(CLAVE);
     expect(await r.clone().json()).toEqual({
-      monitores: [
-        { nombre: "estudia-liard.vercel.app", estado: "arriba", uptime7: 99.99, uptime30: 99.95 },
-        { nombre: "EstudIA Supabase", estado: "caido", uptime7: 97.5, uptime30: 98 },
-      ],
-      actualizado: new Date(1_000_000).toISOString(),
+      uptime: {
+        monitores: [
+          { nombre: "estudia-liard.vercel.app", estado: "arriba", uptime7: 99.99, uptime30: 99.95 },
+          { nombre: "EstudIA Supabase", estado: "caido", uptime7: 97.5, uptime30: 98 },
+        ],
+        actualizado: new Date(1_000_000).toISOString(),
+      },
+      panelVisitas: PANEL,
     });
     expect(await texto(r.clone())).not.toContain(CLAVE);
     const cuerpo = await r.text();
     expect(cuerpo).not.toContain("apikey");
     expect(cuerpo).not.toContain("sb_publishable");
-    expect(cuerpo).not.toContain("https://");
+    expect(cuerpo.replace(PANEL, "")).not.toContain("https://");
     expect(r.headers.get("Cache-Control")).toBe("no-store");
   });
 
@@ -146,7 +169,7 @@ describe("estado-servicio: datos", () => {
     expect(deps.pedirMonitores).toHaveBeenCalledTimes(1);
   });
 
-  it("si UptimeRobot responde fail, 502 sin repetir su error ni la clave, y no guarda nada", async () => {
+  it("si UptimeRobot responde fail, avisa en uptime sin su error ni la clave, da el panel igual y no guarda nada", async () => {
     const { deps, pedir } = entorno("si", {
       pedirMonitores: vi.fn(async () => ({
         stat: "fail",
@@ -154,7 +177,11 @@ describe("estado-servicio: datos", () => {
       })),
     });
     const r = await pedir();
-    expect(r.status).toBe(502);
+    expect(r.status).toBe(200);
+    expect(await r.clone().json()).toEqual({
+      uptime: { error: "No pude consultar UptimeRobot." },
+      panelVisitas: PANEL,
+    });
     const todo = await texto(r);
     expect(todo).not.toContain(CLAVE);
     expect(todo).not.toContain("invalid_parameter");
@@ -162,22 +189,31 @@ describe("estado-servicio: datos", () => {
     expect(deps.pedirMonitores).toHaveBeenCalledTimes(2);
   });
 
-  it("si el pedido a UptimeRobot tira error, 502 sin detalles", async () => {
+  it("si el pedido a UptimeRobot tira error, avisa sin detalles", async () => {
     const { pedir } = entorno("si", {
       pedirMonitores: vi.fn(async () => {
         throw new Error(`timeout api_key=${CLAVE}`);
       }),
     });
     const r = await pedir();
-    expect(r.status).toBe(502);
+    expect(r.status).toBe(200);
+    expect((await r.clone().json()).uptime).toEqual({ error: "No pude consultar UptimeRobot." });
     expect(await texto(r)).not.toContain(CLAVE);
   });
 
-  it("sin la clave configurada responde 503", async () => {
+  it("sin la clave configurada avisa en uptime y no llama a UptimeRobot", async () => {
     const { deps, pedir } = entorno("si", { clave: undefined });
     const r = await pedir();
-    expect(r.status).toBe(503);
+    expect(r.status).toBe(200);
+    expect((await r.json()).uptime).toEqual({ error: "Falta configurar la clave de UptimeRobot." });
     expect(deps.pedirMonitores).not.toHaveBeenCalled();
+  });
+
+  it("sin el secreto del panel, o con otra URL, panelVisitas es null", async () => {
+    for (const panelVisitas of [undefined, "https://otro.com/share/x"]) {
+      const { pedir } = entorno("si", { panelVisitas });
+      expect((await (await pedir()).json()).panelVisitas).toBeNull();
+    }
   });
 
   it("no loguea nada", async () => {
@@ -195,9 +231,9 @@ describe("estado-servicio: datos", () => {
   });
 });
 
-describe("aEstadoServicio y cuerpoPedido", () => {
+describe("aUptime, validarPanelVisitas y cuerpoPedido", () => {
   it("mapea los códigos de UptimeRobot y tolera porcentajes que faltan", () => {
-    const { monitores } = aEstadoServicio(
+    const { monitores } = aUptime(
       {
         stat: "ok",
         monitors: [
@@ -224,5 +260,21 @@ describe("aEstadoServicio y cuerpoPedido", () => {
       format: "json",
       custom_uptime_ratios: "7-30",
     });
+  });
+
+  it("validarPanelVisitas solo acepta enlaces para compartir de Umami Cloud", () => {
+    expect(validarPanelVisitas(` ${PANEL} `)).toBe(PANEL);
+    for (const valor of [
+      undefined,
+      "",
+      "no es una url",
+      "http://cloud.umami.is/analytics/eu/share/x",
+      "https://cloud.umami.is.ejemplo.com/share/x",
+      "https://otro.com/share/x",
+      "https://cloud.umami.is/websites/123",
+      "javascript:alert(1)",
+    ]) {
+      expect(validarPanelVisitas(valor)).toBeNull();
+    }
   });
 });

@@ -4,6 +4,9 @@
  * - Solo para admins: sin token responde 401; con un token que no es de un admin, 403. Nunca le
  *   pregunta a UptimeRobot antes de saber que es admin.
  * - La clave de UptimeRobot solo se usa para el pedido: nunca va en la respuesta ni en un log.
+ * - El enlace del panel de visitas de Umami (secreto `UMAMI_SHARE_URL`) solo se le devuelve al admin.
+ * - Si UptimeRobot falla, igual responde 200 con el error en `uptime` y el enlace del panel: así
+ *   #admin muestra el aviso solo en esa tarjeta.
  * - Guarda la respuesta 5 minutos: la API gratis de UptimeRobot permite 10 pedidos por minuto.
  */
 
@@ -17,9 +20,15 @@ export interface Monitor {
   uptime30: number | null;
 }
 
-export interface EstadoServicio {
+export interface Uptime {
   monitores: Monitor[];
   actualizado: string;
+}
+
+export interface EstadoServicio {
+  uptime: Uptime | { error: string };
+  /** Enlace de solo lectura del panel de Umami, o null si no está configurado o no es válido. */
+  panelVisitas: string | null;
 }
 
 export type Admin = "si" | "no" | "sin_sesion";
@@ -27,6 +36,8 @@ export type Admin = "si" | "no" | "sin_sesion";
 export interface Dependencias {
   /** `UPTIMEROBOT_API_KEY`, el secreto de Supabase. */
   clave: string | undefined;
+  /** `UMAMI_SHARE_URL`, el secreto de Supabase. */
+  panelVisitas: string | undefined;
   /** Pregunta a la base, con el token del usuario, si es admin. */
   esAdmin(token: string): Promise<Admin>;
   /** POST a getMonitors de UptimeRobot. Devuelve el JSON tal cual. */
@@ -65,10 +76,26 @@ function porcentaje(texto: string | undefined): number | null {
 export class ErrorUptimeRobot extends Error {}
 
 /**
+ * Solo un enlace https de cloud.umami.is con /share/: un secreto mal cargado no termina embebiendo
+ * otra página en #admin.
+ */
+export function validarPanelVisitas(valor: string | undefined): string | null {
+  if (!valor) return null;
+  try {
+    const url = new URL(valor.trim());
+    if (url.protocol !== "https:" || url.hostname !== "cloud.umami.is") return null;
+    if (!url.pathname.includes("/share/")) return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Se queda solo con nombre, estado y porcentajes: la URL monitoreada (la de Supabase lleva la
  * publishable key) y el resto de los datos de UptimeRobot no salen de la función.
  */
-export function aEstadoServicio(respuesta: unknown, ahora: number): EstadoServicio {
+export function aUptime(respuesta: unknown, ahora: number): Uptime {
   const r = respuesta as { stat?: unknown; monitors?: unknown } | null;
   if (!r || r.stat !== "ok" || !Array.isArray(r.monitors)) {
     throw new ErrorUptimeRobot("UptimeRobot no respondió ok");
@@ -94,7 +121,22 @@ function json(cuerpo: unknown, status: number, cors: Record<string, string>): Re
 }
 
 export function crearManejador(deps: Dependencias): (pedido: Request) => Promise<Response> {
-  let cache: { datos: EstadoServicio; hasta: number } | null = null;
+  let cache: { datos: Uptime; hasta: number } | null = null;
+  const panelVisitas = validarPanelVisitas(deps.panelVisitas);
+
+  // Solo se llama después de comprobar que es admin.
+  async function uptime(ahora: number): Promise<EstadoServicio["uptime"]> {
+    if (cache && ahora < cache.hasta) return cache.datos;
+    if (!deps.clave) return { error: "Falta configurar la clave de UptimeRobot." };
+    try {
+      const datos = aUptime(await deps.pedirMonitores(deps.clave), ahora);
+      cache = { datos, hasta: ahora + CACHE_MS };
+      return datos;
+    } catch {
+      // Sin detalles: el error de fetch o de UptimeRobot podría traer el pedido.
+      return { error: "No pude consultar UptimeRobot." };
+    }
+  }
 
   return async (pedido) => {
     const origen = pedido.headers.get("Origin");
@@ -122,19 +164,7 @@ export function crearManejador(deps: Dependencias): (pedido: Request) => Promise
     if (admin === "sin_sesion") return json({ error: "Hace falta una sesión." }, 401, cors);
     if (admin !== "si") return json({ error: "Solo para admins." }, 403, cors);
 
-    const ahora = deps.ahora();
-    if (cache && ahora < cache.hasta) return json(cache.datos, 200, cors);
-
-    if (!deps.clave) {
-      return json({ error: "Falta configurar la clave de UptimeRobot." }, 503, cors);
-    }
-    try {
-      const datos = aEstadoServicio(await deps.pedirMonitores(deps.clave), ahora);
-      cache = { datos, hasta: ahora + CACHE_MS };
-      return json(datos, 200, cors);
-    } catch {
-      // Sin detalles: el error de fetch o de UptimeRobot podría traer el pedido.
-      return json({ error: "No pude consultar UptimeRobot." }, 502, cors);
-    }
+    const respuesta: EstadoServicio = { uptime: await uptime(deps.ahora()), panelVisitas };
+    return json(respuesta, 200, cors);
   };
 }
