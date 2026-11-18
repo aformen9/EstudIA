@@ -23,7 +23,7 @@ Chico, pero necesario para no perder datos ni quedar a ciegas.
 
 - [x] **Botón de casita** junto al menú de tres líneas, que lleva a Inicio. (Solo en el celular.)
 - [x] **Acento azul por defecto, fondos y textos neutros y selector de color de acento** en Ajustes (Azul, Rosa, Violeta, Verde, Naranja), con **modo oscuro por defecto** en la primera visita (si el alumno pasa a claro, se recuerda). Incluye logo, favicon e íconos de la PWA en azul y contraste AA de todas las opciones. Valores aprobados por Agu el 16/11/2026 (ver `docs/decisiones.md`).
-- [ ] **Pantalla de métricas para admin** (RPC `metricas_admin()`, solo totales) y **botón "Reportar un problema o sugerencia"** (tabla `reportes`: de 1 a 1000 caracteres y hasta 5 por alumno cada 24 horas corridas, controlado en la base, con tests).
+- [x] **Pantalla de métricas para admin** (RPC `metricas_admin()`, solo totales) y **botón "Reportar un problema o sugerencia"** (tabla `reportes`: de 1 a 1000 caracteres y hasta 5 por alumno cada 24 horas corridas, controlado en la base, con tests).
 - [ ] **Analítica con Umami Cloud** (plan gratis; verificar el cupo antes de integrar): sin cookies ni datos personales, con eventos del onboarding. Agu crea la cuenta y pasa el ID del sitio.
 - [ ] **Monitoreo de caídas con UptimeRobot** (plan gratis): lo configura Agu con guía, para la web y la API de Supabase.
 
@@ -41,6 +41,7 @@ Chico, pero necesario para no perder datos ni quedar a ciegas.
 
 - [x] **Proteger `main`**: ruleset con PR obligatorio y los tres chequeos del CI. (Hecho por Agu el 16/11/2026.)
 - [ ] **Verificación en dos pasos** en GitHub, Supabase y Google. (Agu.)
+- [ ] **Subir las migraciones al remoto desde GitHub Actions al mergear a `main`**, para no depender de que Agu las suba a mano desde una rama. Requiere un secreto en GitHub (token de acceso de Supabase y contraseña de la base) y decidir el orden con el deploy de Vercel: la migración tiene que llegar antes que el código que la usa. (Pedido de Agu del 16/11/2026.)
 - [ ] **Login de Google en las vistas previas de Vercel**, para revisar los cambios visuales de un PR antes de mergear. Hoy solo funciona en el deploy de producción. Probablemente alcance con agregar en Supabase (URL Configuration → Redirect URLs) un comodín para las URLs de vista previa del proyecto; verificar si Google pide algo más. Ojo: las vistas previas usan la base de producción, así que se prueba con la cuenta real. (Pedido de Agu del 16/11/2026.)
 - [ ] **Test automático de la caché de la vista previa**: que un PDF ya cacheado no se vuelva a procesar (`materiales/VistaPrevia.tsx`). En la fase 0 quedó con prueba manual.
 - [ ] **Investigar por qué pgTAP no corre con `supabase test db --remote`**: falla con `function plan(integer) does not exist` (CLI v3.0.0), también fijando `set local search_path = "$user", public, extensions` en el test (se probó el 16/11/2026 y se sacó). La CLI instala pgTAP en `extensions` antes de correr y lo borra al terminar. Hipótesis a confirmar: el rol con el que entra la CLI al remoto no tiene `USAGE` sobre el esquema `extensions`. Mientras tanto, el remoto se verifica con `supabase/verificacion_remoto.sql` (solo lectura, en el SQL Editor). No volver a correr la herramienta contra producción sin el ok de Agu.

@@ -60,4 +60,4 @@ pnpm workspaces · TypeScript estricto · React + Vite (`apps/web`) · lógica p
 - `pnpm i` · `pnpm dev` (contra Supabase local, con `apps/web/.env.development.local`) · `pnpm test` · `pnpm lint` · `pnpm typecheck` · `pnpm build` · `pnpm seed` (regenera `supabase/seed.sql`)
 - `supabase start` / `supabase db reset` (requiere Docker; `db reset` borra los datos locales) · `supabase test db`
 - `pnpm --filter web test:integracion`: escribe en la base local; correr `supabase db reset` antes y después.
-- Remoto (`supabase test db --remote`, `supabase db push`): solo con confirmación de Agu.
+- Remoto: solo con confirmación de Agu, y en la CLI de Agu **siempre con `--remote`** (por ejemplo `supabase db push --remote`). Una migración nueva se sube al remoto **antes** de mergear el código que la usa. `supabase test db --remote` no se usa contra producción: se verifica con `supabase/verificacion_remoto.sql`.

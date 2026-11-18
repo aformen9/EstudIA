@@ -23,4 +23,11 @@ describe("resolverVista", () => {
     expect(resolverVista("onboarding", "activa", true)).toBe("onboarding");
     expect(resolverVista("materias", "activa", true)).toBe("materias");
   });
+
+  it("#admin solo para admins; sin perfil todavía, espera", () => {
+    expect(resolverVista("admin", "activa", false, true)).toBe("admin");
+    expect(resolverVista("admin", "activa", false, false)).toBe("inicio");
+    expect(resolverVista("admin", "activa", false, null)).toBeNull();
+    expect(resolverVista("admin", "ninguna", false, true)).toBe("onboarding");
+  });
 });

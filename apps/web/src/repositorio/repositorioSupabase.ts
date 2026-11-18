@@ -6,9 +6,11 @@ import type {
   NuevoDocumento,
   NuevoMaterial,
   Repositorio,
+  MetricasAdmin,
 } from "@estudia/core";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { TIEMPO_MAXIMO_GUARDADO_MS } from "../guardado/almacenGuardado";
+import { errorDeReporte } from "./errorReporte";
 import {
   COLUMNAS_CARRERA,
   COLUMNAS_CORRELATIVA_CON_PLAN,
@@ -47,6 +49,9 @@ import {
   type FilaPlanConSiglas,
   type FilaProgreso,
   type FilaUniversidad,
+  nuevoReporteAFila,
+  reporteAdminDesdeFila,
+  type FilaReporteAdmin,
 } from "./mapeos";
 import { errorDeLimite } from "./limites";
 
@@ -374,6 +379,28 @@ export function crearRepositorioSupabase(cliente: SupabaseClient): Repositorio {
           .select("id"),
       );
       if (borrados.length === 0) throw new Error(`${contexto}: no existe o no es tuyo.`);
+    },
+
+    /* ---------- Reportes y admin ---------- */
+
+    async crearReporte(reporte) {
+      // Sin .select(): el alumno no puede leer reportes, ni el que acaba de mandar.
+      const respuesta = await cliente.from("reportes").insert(nuevoReporteAFila(reporte));
+      const rechazo = errorDeReporte(respuesta.error);
+      if (rechazo) throw rechazo;
+      comprobar("No se pudo enviar el reporte", respuesta);
+    },
+
+    async listarReportesAdmin(limite = 50) {
+      const respuesta = await cliente.rpc("reportes_admin", { limite });
+      return filas<FilaReporteAdmin[]>("No se pudieron leer los reportes", respuesta).map(
+        reporteAdminDesdeFila,
+      );
+    },
+
+    async obtenerMetricasAdmin() {
+      const respuesta = await cliente.rpc("metricas_admin");
+      return filas<MetricasAdmin>("No se pudieron leer las métricas", respuesta);
     },
 
     /* ---------- Importación ---------- */

@@ -14,3 +14,6 @@ export * from "./importacion/materiales";
 export * from "./materiales/referencias";
 export * from "./materiales/archivos";
 export * from "./preferencias/preferencias";
+export * from "./reportes/reportes";
+export * from "./reportes/datosTecnicos";
+export * from "./admin/metricas";

@@ -25,7 +25,8 @@ end $$;
 
 select tables_are('public', array[
   'universidades', 'carreras', 'planes', 'materias', 'correlativas', 'perfiles',
-  'inscripciones', 'progreso', 'instancias', 'documentos', 'limites_documentos', 'uso_documentos', 'materiales', 'denuncias'
+  'inscripciones', 'progreso', 'instancias', 'documentos', 'limites_documentos', 'uso_documentos', 'materiales', 'denuncias',
+  'reportes'
 ], 'están todas las tablas de §4');
 
 select is(

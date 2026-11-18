@@ -271,3 +271,5 @@ Agu aprobó todos los puntos del backlog. Acá van las decisiones de sus seccion
 - Acento y modo claro/oscuro se sincronizan entre dispositivos en el perfil (columnas `acento` y `tema`, con CHECK y permiso por columna), con copia local para no parpadear. Al entrar gana el perfil; si está vacío se sube lo del dispositivo. PR aparte, antes del PR 3.
 - PR 3, reportes: botón en el menú lateral y en el menú de Ajustes. En `#admin`, sin identidad por defecto; casilla opcional "Pueden contactarme por este reporte" (desmarcada) que deja ver el mail; datos técnicos automáticos sin identidad (navegador, sistema operativo y versión de la app).
 - PR 3, métricas: la lista propuesta más "alumnos activos en los últimos 7 días" (cargaron o modificaron algo), siempre como total.
+- En la CLI de Agu los comandos contra el remoto llevan siempre `--remote`. Una migración se sube antes de mergear el código que la usa.
+- Reportar desde el onboarding: el botón va en la barra del onboarding (el menú de Ajustes queda inerte detrás del modal). Decisión menor de la coordinadora.

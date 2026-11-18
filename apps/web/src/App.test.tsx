@@ -112,7 +112,10 @@ describe("App", () => {
   });
 
   it.each(
-    (Object.entries(VISTAS) as [Vista, string][]).filter(([vista]) => vista !== "onboarding"),
+    // #admin es solo para admins: tiene sus propios tests (vistas/Admin.test.tsx).
+    (Object.entries(VISTAS) as [Vista, string][]).filter(
+      ([vista]) => vista !== "onboarding" && vista !== "admin",
+    ),
   )("la ruta #%s muestra su vista", async (vista, titulo) => {
     window.location.hash = vista;
     const { conexion } = conexionFalsa(sesionFalsa());

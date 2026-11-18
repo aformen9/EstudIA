@@ -247,6 +247,14 @@ export function repositorioFalso(inicial: Inicial = {}): RepositorioFalso {
       base.progreso = datos.progreso;
       return Object.fromEntries(datos.materiasPropias.map((m) => [m.clave, `uuid-${m.clave}`]));
     },
+    crearReporte: async () => {},
+    // Como un alumno: la base rechaza las RPC de admin.
+    listarReportesAdmin: async () => {
+      throw new Error("solo para admins");
+    },
+    obtenerMetricasAdmin: async () => {
+      throw new Error("solo para admins");
+    },
   };
   for (const metodo of Object.keys(repositorio) as (keyof Repositorio)[]) {
     vi.spyOn(repositorio, metodo);
