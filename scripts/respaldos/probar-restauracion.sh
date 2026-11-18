@@ -8,6 +8,8 @@
 # tablas, de chequeos y códigos de error (SQLSTATE), nunca el mensaje completo de Postgres, que puede
 # traer valores de una fila.
 set -euo pipefail
+# Nunca fallar sin decir dónde: la línea del script, sin datos.
+trap 'echo "::error::probar-restauracion.sh falló en la línea $LINENO."' ERR
 
 carpeta="$1"
 contenedor="$2"
@@ -32,7 +34,7 @@ psql_como() {
 #    Solo en esta base de prueba se agregan las que falten, como texto: alcanza para cargar y contar.
 {
   echo "set client_min_messages = warning;"
-  grep -E '^COPY "(auth|storage)"\."[a-z0-9_]+" \(' "$carpeta/data.sql" |
+  { grep -E '^COPY "(auth|storage)"\."[a-z0-9_]+" \(' "$carpeta/data.sql" || true; } |
   sed -E 's/^COPY ("[^"]+"\."[^"]+") \((.*)\) FROM stdin;$/\1|\2/' |
   while IFS='|' read -r tabla columnas; do
     IFS=',' read -ra lista <<<"$columnas"
@@ -72,7 +74,8 @@ errores="$(mktemp)"
 docker exec "$contenedor" psql -U postgres -d postgres -X -q \
   -v ON_ERROR_STOP=0 -v VERBOSITY=sqlstate -v SHOW_CONTEXT=never \
   -f /tmp/restaurar/roles.sql >/dev/null 2>"$errores" || true
-grep -oE 'roles\.sql:[0-9]+: ERROR: +[0-9A-Z]+' "$errores" | while read -r ubicacion; do
+# `|| true`: sin avisos, grep no encuentra nada y con pipefail cortaría el script sin decir nada.
+{ grep -oE 'roles\.sql:[0-9]+: ERROR: +[0-9A-Z]+' "$errores" || true; } | while read -r ubicacion; do
   linea="$(echo "$ubicacion" | cut -d: -f2)"
   echo "::warning::No se aplicó $ubicacion — $(sentencia roles.sql "$linea")"
 done
