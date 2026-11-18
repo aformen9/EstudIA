@@ -32,7 +32,7 @@ Una cuenta borrada puede seguir hasta 6 meses en los respaldos mensuales: lo tie
 | `SUPABASE_DB_URL` (Session pooler, con la contraseña de la base) | GitHub, environment `respaldos` (solo rama `main`) |
 | `B2_KEY_ID` y `B2_APPLICATION_KEY` (clave `github-respaldos-v2`: `listBuckets`, `writeFiles`) | GitHub, environment `respaldos` |
 | `B2_BUCKET`, `B2_ENDPOINT`, `AGE_RECIPIENT` (no secretos) | variables del environment `respaldos` |
-| Clave privada de age (cifrada con frase) y la frase | gestor de contraseñas de Agu, más una copia fuera de línea |
+| Clave privada de age (cifrada con frase) y la frase | dos lugares: `~/estudia-respaldos-clave.age` en la compu de Agu, y su gestor de contraseñas (el archivo cifrado y la frase). Sin copia en pendrive (decisión de Agu del 2026-11-18) |
 | Master key de B2 | gestor de contraseñas de Agu (solo para crear o borrar claves) |
 
 ## Restaurar

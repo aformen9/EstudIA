@@ -295,3 +295,4 @@ Agu aprobó todos los puntos del backlog. Acá van las decisiones de sus seccion
 - Fuera del respaldo: `auth.sessions`, `auth.refresh_tokens`, `auth.mfa_amr_claims`, `auth.one_time_tokens`, `auth.flow_state` y `auth.audit_log_entries`. Al restaurar, cada uno vuelve a entrar con Google.
 - La restauración (de prueba o real) aplica `20261103120000_privilegios_por_defecto.sql` antes del esquema: el respaldo solo trae los `GRANT`, y Supabase les da a `anon` y `authenticated` privilegios por defecto sobre cada tabla nueva.
 - Subida con `aws s3api put-object` (la CLI de AWS ya viene en el runner) con checksums solo cuando hacen falta, porque B2 no acepta los que la CLI agrega por defecto.
+- La clave privada de age queda en dos lugares: `~/estudia-respaldos-clave.age` en la compu de Agu y su gestor de contraseñas (archivo cifrado y frase). Sin copia en pendrive: se saca esa condición.
