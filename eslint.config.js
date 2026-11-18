@@ -3,7 +3,9 @@ import reactHooks from "eslint-plugin-react-hooks";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["**/dist/**", "**/coverage/**", "referencia/**", "supabase/**"] },
+  {
+    ignores: ["**/dist/**", "**/coverage/**", "referencia/**", "supabase/*", "!supabase/functions"],
+  },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
