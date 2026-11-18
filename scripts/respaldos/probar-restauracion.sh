@@ -46,12 +46,13 @@ psql_como() {
 #    con un agregado: antes del esquema, la migración que quita los privilegios que Supabase da por
 #    defecto a anon y authenticated sobre lo nuevo en public. pg_dump solo escribe los GRANT, así que
 #    sin esto cada tabla restaurada le daría TRUNCATE, REFERENCES, TRIGGER y MAINTAIN a anon.
-#    Y los dos arreglos que indica Supabase para restaurar sin ser supabase_admin: se comentan las
-#    líneas `GRANTED BY "supabase_admin"` de roles.sql (el rol cli_login_postgres que crea la CLI) y
-#    `OWNER TO "supabase_admin"` de schema.sql. Sin esto falla con 42501.
+#    Y los arreglos para restaurar sin ser supabase_admin (la guía de Supabase indica los dos
+#    primeros): se comentan las líneas de roles.sql que nombran a "supabase_admin" (el rol
+#    cli_login_postgres que crea la CLI, ajustes de ese rol) y los `OWNER TO "supabase_admin"` de
+#    schema.sql. Sin esto falla con 42501.
 docker exec "$contenedor" rm -rf /tmp/restaurar
 docker exec "$contenedor" mkdir -p /tmp/restaurar
-sed -E 's/^(.*GRANTED BY "supabase_admin".*)$/-- \1/' "$carpeta/roles.sql" |
+sed -E 's/^(.*"supabase_admin".*)$/-- \1/' "$carpeta/roles.sql" |
   docker exec -i "$contenedor" sh -c 'cat > /tmp/restaurar/roles.sql'
 docker exec -i "$contenedor" sh -c 'cat > /tmp/restaurar/privilegios.sql' \
   <"$raiz/supabase/migrations/20261103120000_privilegios_por_defecto.sql"
@@ -59,19 +60,34 @@ sed -E 's/^(.*OWNER TO "supabase_admin".*)$/-- \1/' "$carpeta/schema.sql" |
   docker exec -i "$contenedor" sh -c 'cat > /tmp/restaurar/schema.sql'
 docker exec -i "$contenedor" sh -c 'cat > /tmp/restaurar/data.sql' <"$carpeta/data.sql"
 
+# psql dice "psql:/tmp/restaurar/<archivo>:<línea>: ERROR:  <código>". roles.sql y schema.sql son
+# solo definiciones (sin datos de alumnos): de esos se muestra la sentencia. De data.sql, nunca.
+sentencia() {
+  docker exec "$contenedor" sed -n "${2}p" "/tmp/restaurar/$1" | cut -c1-300
+}
+
+# 2a. Roles, de a una sentencia: son ajustes de la plataforma (no datos) y en una base nueva algunos
+#     no se pueden aplicar sin ser supabase_admin. Lo que falle queda como aviso, con su sentencia.
 errores="$(mktemp)"
+docker exec "$contenedor" psql -U postgres -d postgres -X -q \
+  -v ON_ERROR_STOP=0 -v VERBOSITY=sqlstate -v SHOW_CONTEXT=never \
+  -f /tmp/restaurar/roles.sql >/dev/null 2>"$errores" || true
+grep -oE 'roles\.sql:[0-9]+: ERROR: +[0-9A-Z]+' "$errores" | while read -r ubicacion; do
+  linea="$(echo "$ubicacion" | cut -d: -f2)"
+  echo "::warning::No se aplicó $ubicacion — $(sentencia roles.sql "$linea")"
+done
+
+# 2b. Esquema y datos: todo o nada.
 if ! docker exec "$contenedor" psql -U postgres -d postgres -X -q \
   -v ON_ERROR_STOP=1 -v VERBOSITY=sqlstate -v SHOW_CONTEXT=never --single-transaction \
-  -f /tmp/restaurar/roles.sql -f /tmp/restaurar/privilegios.sql -f /tmp/restaurar/schema.sql \
+  -f /tmp/restaurar/privilegios.sql -f /tmp/restaurar/schema.sql \
   -c "set session_replication_role = replica" -f /tmp/restaurar/data.sql >/dev/null 2>"$errores"; then
-  # psql dice "psql:/tmp/restaurar/<archivo>:<línea>: ERROR:  <código>". roles.sql y schema.sql son
-  # solo definiciones (sin datos de alumnos): de esos se muestra la sentencia. De data.sql, nunca.
   ubicacion="$(grep -oE '/tmp/restaurar/[a-z]+\.sql:[0-9]+: ERROR: +[0-9A-Z]+' "$errores" | head -1 || true)"
   echo "::error::La restauración falló: ${ubicacion#/tmp/restaurar/}"
   archivo="$(echo "$ubicacion" | sed -nE 's#^/tmp/restaurar/([a-z]+\.sql):.*#\1#p')"
   linea="$(echo "$ubicacion" | sed -nE 's#^[^:]+:([0-9]+):.*#\1#p')"
-  if [[ "$archivo" == "roles.sql" || "$archivo" == "schema.sql" ]] && [[ -n "$linea" ]]; then
-    echo "Sentencia: $(docker exec "$contenedor" sed -n "${linea}p" "/tmp/restaurar/$archivo" | cut -c1-300)"
+  if [[ "$archivo" == "schema.sql" ]] && [[ -n "$linea" ]]; then
+    echo "Sentencia: $(sentencia schema.sql "$linea")"
   fi
   [[ -n "$ubicacion" ]] || grep -oE 'ERROR: +[0-9A-Z]+' "$errores" | head -1
   exit 1
