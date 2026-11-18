@@ -9,6 +9,7 @@
 - **Historial reescrito (2026-11-16):** se sacó `Co-Authored-By: Claude` de los 59 commits de `main` (solo cambiaron los mensajes y los hashes; los archivos son los mismos) y se hizo force push. Desde ahora Agu es el único autor (`CLAUDE.md`, regla 6). En la pestaña "Commits" del PR #1 GitHub conserva los commits originales.
 - **El repo está en `/Users/aformen9/Dev/EstudIA`.** Abrir la sesión nueva desde esa carpeta: desde ahí se cargan los agentes de `.claude/agents/`.
 - **Supabase remoto** (`uckdkqsdyindmyrvdccw`): vinculado por Agu con `supabase link`, con las migraciones y el seed subidos (`supabase db push --include-seed`). **Desde ahora, cualquier cambio a la base va en una migración nueva**: las originales ya no se editan.
+- **Analítica y monitoreo:** Umami Cloud (solo producción, `apps/web/src/analitica/analitica.ts`) y UptimeRobot (web y Supabase, página pública https://stats.uptimerobot.com/pypY6ca17D). Detalle en el README.
 - **Deploy en Vercel:** https://estudia-liard.vercel.app, hecho por Agu. Root Directory `apps/web`, preset Vite, con `VITE_SUPABASE_URL` y `VITE_SUPABASE_PUBLISHABLE_KEY` del remoto, sin la integración de Supabase. La URL está en Supabase (Site URL y Redirect URLs) y en Google (orígenes autorizados).
 - **Entorno local:** para probar contra la base local:
   - Docker abierto, `supabase start` y `pnpm dev` desde la carpeta del repo (`pnpm dev` usa `.env.development.local`, o sea la base local).

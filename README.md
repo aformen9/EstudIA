@@ -81,6 +81,21 @@ No hay pantalla para nombrar admins y la API no lo permite. Se hace una sola vez
 update public.perfiles set es_admin = true where id = '<id-del-usuario>';
 ```
 
+## Analítica
+
+Visitas y algunos eventos con [Umami Cloud](https://umami.is) (plan gratis, sin cookies). El código está en `apps/web/src/analitica/analitica.ts`.
+
+- Solo cuenta en producción y en el dominio `estudia-liard.vercel.app`: ni en `localhost` ni en las vistas previas de Vercel. Respeta Do Not Track.
+- Eventos: los pasos del onboarding, importar un respaldo (ok o error) y reportar (problema o sugerencia). Nunca ids, mails, nombres ni datos de materias.
+- **Si cambia el dominio**, hay que actualizarlo en el panel de Umami (el sitio) y en `UMAMI.dominio` de `analitica.ts`. Si no, deja de contar.
+
+## Estado del servicio
+
+- Página pública: https://stats.uptimerobot.com/pypY6ca17D
+- Monitoreo con [UptimeRobot](https://uptimerobot.com) (plan gratis), cada 5 minutos y con aviso por mail a Agu:
+  - **La web:** monitor HTTP de `https://estudia-liard.vercel.app`.
+  - **Supabase:** monitor de palabra clave (busca `GoTrue`) sobre `/auth/v1/health?apikey=<publishable key>`. Un monitor HTTP común da 405, porque UptimeRobot pide con `HEAD` y ese endpoint no lo acepta. La publishable key es pública, así que puede ir en la URL. Comprueba el servicio de login de Supabase, no la base.
+
 ## Seguridad y datos
 
 - El repo es público. Nunca se commitean secretos ni datos reales de personas: los fixtures son de un alumno inventado. gitleaks revisa todo el historial en cada push.
