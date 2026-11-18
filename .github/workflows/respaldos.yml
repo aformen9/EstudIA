@@ -49,8 +49,18 @@ jobs:
           age --version
           aws --version
 
+      # Primero la base de prueba: su contenedor trae pg_dump 17, que se usa para sacar el respaldo.
+      - name: Levantar una base vacía para la prueba
+        run: |
+          # Una base Supabase nueva, con la misma configuración del proyecto pero sin migraciones.
+          prueba="$RUNNER_TEMP/base-de-prueba"
+          mkdir -p "$prueba/supabase"
+          sed -E 's/^project_id = .*/project_id = "restaurar"/' supabase/config.toml >"$prueba/supabase/config.toml"
+          supabase db start --workdir "$prueba"
+
       - name: Sacar el respaldo (roles, esquema y datos)
         env:
+          # Con el rol de solo lectura `respaldos` (o con postgres, mientras no se cambie el secreto).
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
           # GitHub tapa la URL entera; la contraseña sola también, por si alguna herramienta la imprime.
@@ -59,36 +69,17 @@ jobs:
           clave="${clave#*:}"
           echo "::add-mask::$clave"
 
-          carpeta="$RUNNER_TEMP/respaldo"
-          mkdir -p "$carpeta"
-          supabase db dump --remote="$SUPABASE_DB_URL" --role-only -f "$carpeta/roles.sql"
-          supabase db dump --remote="$SUPABASE_DB_URL" -f "$carpeta/schema.sql"
-          # Sin sesiones, tokens ni registro de actividad de Auth: al restaurar, cada uno vuelve a
-          # entrar con Google, y un respaldo filtrado no trae sesiones que se puedan usar.
-          supabase db dump --remote="$SUPABASE_DB_URL" --data-only --use-copy \
-            -x auth.sessions -x auth.refresh_tokens -x auth.mfa_amr_claims \
-            -x auth.one_time_tokens -x auth.flow_state -x auth.audit_log_entries \
-            -x storage.buckets_vectors -x storage.vector_indexes \
-            -f "$carpeta/data.sql"
-
+          scripts/respaldos/sacar-respaldo.sh "$RUNNER_TEMP/respaldo" supabase_db_restaurar
           {
             echo "Respaldo de EstudIA"
             echo "Fecha (UTC): $(date -u +%Y-%m-%dT%H:%M:%SZ)"
             echo "Commit: $GITHUB_SHA"
-            echo "CLI de Supabase: $(supabase --version)"
+            echo "pg_dump: $(docker exec supabase_db_restaurar pg_dump --version)"
             echo "Restaurar: docs/respaldos.md"
-          } >"$carpeta/info.txt"
-          # Solo tamaños: nunca el contenido.
-          wc -c "$carpeta"/*.sql
+          } >"$RUNNER_TEMP/respaldo/info.txt"
 
-      - name: Probar la restauración en una base vacía
-        run: |
-          # Una base Supabase nueva, con la misma configuración del proyecto pero sin migraciones.
-          prueba="$RUNNER_TEMP/base-de-prueba"
-          mkdir -p "$prueba/supabase"
-          sed -E 's/^project_id = .*/project_id = "restaurar"/' supabase/config.toml >"$prueba/supabase/config.toml"
-          supabase db start --workdir "$prueba"
-          scripts/respaldos/probar-restauracion.sh "$RUNNER_TEMP/respaldo" supabase_db_restaurar
+      - name: Probar la restauración en la base vacía
+        run: scripts/respaldos/probar-restauracion.sh "$RUNNER_TEMP/respaldo" supabase_db_restaurar
 
       - name: Comprimir y cifrar con la clave pública
         env:
