@@ -4,15 +4,15 @@ import { Shell } from "../interfaz/Shell";
 import { INSCRIPCION, renderConRepositorio, repositorioFalso } from "../pruebas/entornoVistas";
 import { reiniciarAnalitica } from "./analitica";
 
-let track: ReturnType<typeof vi.fn>;
+let track: ReturnType<typeof vi.fn<(...args: unknown[]) => void>>;
 
 beforeEach(() => {
   window.location.hash = "";
   localStorage.clear();
   window.scrollTo = () => {};
   reiniciarAnalitica();
-  track = vi.fn();
-  window.umami = { track };
+  track = vi.fn<(...args: unknown[]) => void>();
+  window.umami = { track } as unknown as Window["umami"];
 });
 afterEach(() => {
   delete window.umami;
