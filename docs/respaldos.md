@@ -71,24 +71,28 @@ Los puertos cambian para no chocar con el Supabase local del proyecto. Tiene que
 **2b. Desastre, en un proyecto nuevo de Supabase.** Es el procedimiento de Supabase ([Backup and restore using the CLI](https://supabase.com/docs/guides/platform/migrating-within-supabase/backup-restore)), con un agregado nuestro:
 
 - Crear el proyecto y copiar su cadena de conexión del Session pooler (Connect → Session pooler), con la contraseña.
-- Comentar las dos clases de líneas que solo puede ejecutar `supabase_admin` (lo indica Supabase en su guía; sin esto falla con `42501`): el `GRANT ... GRANTED BY "supabase_admin"` de `roles.sql` (el rol `cli_login_postgres` que crea la CLI) y los `ALTER ... OWNER TO "supabase_admin"` de `schema.sql`:
+- Comentar lo que solo puede ejecutar `supabase_admin` (sin esto falla con `42501`): en `roles.sql`, toda línea que nombre a `"supabase_admin"` (el rol `cli_login_postgres` que crea la CLI y ajustes de ese rol); en `schema.sql`, los `ALTER ... OWNER TO "supabase_admin"`. Los dos primeros casos los indica la guía de Supabase; el ajuste `ALTER ROLE "supabase_admin" SET "statement_timeout"` lo encontró la primera corrida del 18/11/2026.
 
   ```sh
   cd ~/restaurar-estudia
-  sed -i '' -E 's/^(.*GRANTED BY "supabase_admin".*)$/-- \1/' roles.sql
+  sed -i '' -E 's/^(.*"supabase_admin".*)$/-- \1/' roles.sql
   sed -i '' -E 's/^(.*OWNER TO "supabase_admin".*)$/-- \1/' schema.sql
   ```
 
-- Restaurar todo o nada, **con la migración de privilegios por defecto antes del esquema**. Hace falta `psql` (`brew install libpq` y seguir lo que indique para el PATH):
+- Restaurar en dos pasos. Hace falta `psql` (`brew install libpq` y seguir lo que indique para el PATH).
+  - **Roles**, sin cortar si una sentencia falla: son ajustes de la plataforma (no datos), y en un proyecto nuevo algunos no se pueden aplicar sin ser `supabase_admin`. Revisar los errores que muestre: si alguno es de un rol nuestro, aplicarlo a mano.
+  - **Esquema y datos**, todo o nada, **con la migración de privilegios por defecto antes del esquema**.
 
   ```sh
-  read -rs DB_URL && psql --single-transaction --variable ON_ERROR_STOP=1 \
-    --file ~/restaurar-estudia/roles.sql \
+  read -rs DB_URL
+  psql --variable ON_ERROR_STOP=0 --file ~/restaurar-estudia/roles.sql --dbname "$DB_URL"
+  psql --single-transaction --variable ON_ERROR_STOP=1 \
     --file supabase/migrations/20261103120000_privilegios_por_defecto.sql \
     --file ~/restaurar-estudia/schema.sql \
     --command 'SET session_replication_role = replica' \
     --file ~/restaurar-estudia/data.sql \
-    --dbname "$DB_URL"; unset DB_URL
+    --dbname "$DB_URL"
+  unset DB_URL
   ```
 
   **Por qué la migración:** Supabase da por defecto a `anon` y `authenticated` privilegios sobre toda tabla nueva en `public`, y el respaldo solo trae los `GRANT`, no los `REVOKE` de esos defaults. Sin ella, cada tabla restaurada le da `TRUNCATE`, `REFERENCES`, `TRIGGER` y `MAINTAIN` a `anon` (lo encontró la prueba del 2026-11-18).
