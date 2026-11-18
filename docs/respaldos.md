@@ -71,6 +71,14 @@ Los puertos cambian para no chocar con el Supabase local del proyecto. Tiene que
 **2b. Desastre, en un proyecto nuevo de Supabase.** Es el procedimiento de Supabase ([Backup and restore using the CLI](https://supabase.com/docs/guides/platform/migrating-within-supabase/backup-restore)), con un agregado nuestro:
 
 - Crear el proyecto y copiar su cadena de conexión del Session pooler (Connect → Session pooler), con la contraseña.
+- Comentar las dos clases de líneas que solo puede ejecutar `supabase_admin` (lo indica Supabase en su guía; sin esto falla con `42501`): el `GRANT ... GRANTED BY "supabase_admin"` de `roles.sql` (el rol `cli_login_postgres` que crea la CLI) y los `ALTER ... OWNER TO "supabase_admin"` de `schema.sql`:
+
+  ```sh
+  cd ~/restaurar-estudia
+  sed -i '' -E 's/^(.*GRANTED BY "supabase_admin".*)$/-- \1/' roles.sql
+  sed -i '' -E 's/^(.*OWNER TO "supabase_admin".*)$/-- \1/' schema.sql
+  ```
+
 - Restaurar todo o nada, **con la migración de privilegios por defecto antes del esquema**. Hace falta `psql` (`brew install libpq` y seguir lo que indique para el PATH):
 
   ```sh
