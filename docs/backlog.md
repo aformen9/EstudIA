@@ -27,20 +27,17 @@ Chico, pero necesario para no perder datos ni quedar a ciegas.
 - [x] **Analítica con Umami Cloud** (plan gratis; verificar el cupo antes de integrar): sin cookies ni datos personales, con eventos del onboarding. Agu crea la cuenta y pasa el ID del sitio.
 - [x] **Monitoreo de caídas con UptimeRobot** (plan gratis): lo configura Agu con guía, para la web y la API de Supabase.
 
-**Segunda tanda, antes de invitar usuarios** (orden aprobado por Agu el 16/11/2026):
+**Segunda tanda** (orden y PRs del 18/11/2026; invitar usuarios queda sin fecha: primero la prueba Agu). Al cerrarla, arranca la fase 1 por el importador del SIU.
 
-1. [ ] **Backups diarios**: job de GitHub Actions con volcado cifrado de la base. Van primero para proteger los datos desde el primer alumno; además evitan que Supabase pause el proyecto por inactividad. (Lo hace Agu a mano, con guía.)
-2. [ ] **Dependabot** y `pnpm audit` en el CI.
-3. [ ] **Almacenamiento persistente**: pedir `navigator.storage.persist()` y avisar que los archivos viven solo en ese dispositivo hasta que llegue Drive. Safari puede borrar datos locales de sitios sin uso si la app no está instalada.
-4. [ ] **Registro de errores con Sentry** (plan gratis, sin datos personales, solo en producción). Dependencia nueva: aprobar antes.
-5. [ ] **Cabeceras de seguridad (CSP)** en Vercel, con todos los hosts ya conocidos: Supabase, fotos de Google, Umami y Sentry. Umami: `script-src https://cloud.umami.is` y `connect-src https://gateway.umami.is` (adonde manda los datos el script, según su código del 17/11/2026; confirmarlo al armar la CSP). El panel de visitas embebido en `#admin` necesita `frame-src https://cloud.umami.is`. La Edge Function `estado-servicio` está en el mismo dominio de Supabase que ya va en `connect-src`.
-6. [ ] **Borrar mi cuenta y mis datos** desde Ajustes. Decisión de diseño a proponer antes de implementar: borrar el usuario de Auth necesita un permiso que no puede estar en el cliente (probablemente una Edge Function), y resuelve B6 (documentos huérfanos).
-7. [ ] **Política de privacidad y términos de uso** (borrador): al final, para describir lo que de verdad quedó (Google, Supabase, Umami, Sentry, borrado de cuenta). Necesita un mail de contacto visible. Dónde están los datos: la base de Supabase en Canadá (Canada Central) y los respaldos cifrados en Backblaze B2, en la Unión Europea (EU Central). Tiene que decir que los datos de una cuenta borrada pueden seguir **hasta 6 meses en los respaldos** (retención 7 diarios, 4 semanales y 6 mensuales, decisión del 17/11/2026).
-8. [ ] **Rol de solo lectura para los respaldos**, en lugar de la contraseña de `postgres` en GitHub. Probado en local el 17/11/2026 (Postgres 17): `postgres` puede crear un rol con `LOGIN BYPASSRLS` y darle `pg_read_all_data`; ese rol lee `auth.users` y `public` y no puede escribir. Falta:
-   - Confirmar en el remoto, con una consulta de solo lectura en el SQL Editor, que `postgres` tiene `BYPASSRLS`, `CREATEROLE` y admin sobre `pg_read_all_data`.
-   - Conectarse con ese rol por el Session pooler (usuario `rol.ref-del-proyecto`).
-   - `supabase db dump` llama a `pg_dump --role "postgres"`, y ese rol no puede usar `postgres`: probablemente haya que llamar a `pg_dump` directo, con los mismos esquemas excluidos.
-   - Es un cambio de permisos: va en una migración, con tests, y se aprueba antes.
+1. [ ] **Backups diarios** (PR #18 mergeado). Falta: el arreglo de la restauración con el respaldo real (PR `respaldos/arreglo-restauracion`), la primera corrida a mano y la primera restauración de prueba. La clave de age queda en la compu de Agu y en su gestor, sin pendrive.
+2. [ ] **PR 1, infraestructura (sin pantallas):**
+   - **Rol de solo lectura para los respaldos**, en lugar de la contraseña de `postgres` en GitHub. Probado en local el 17/11/2026: `postgres` puede crear un rol con `LOGIN BYPASSRLS` y darle `pg_read_all_data`; ese rol lee `auth.users` y `public` y no puede escribir. Falta confirmarlo en el remoto (consulta de solo lectura), conectarse con ese rol por el Session pooler y llamar a `pg_dump` directo (`supabase db dump` entra como `postgres`). Migración con tests; la contraseña la pone Agu, fuera del repo.
+   - **Dependabot** (npm y GitHub Actions) y **`pnpm audit`** en el CI.
+3. [ ] **PR 2, datos del alumno:**
+   - **Almacenamiento persistente**: pedir `navigator.storage.persist()` y avisar que los archivos viven solo en ese dispositivo hasta que llegue Drive. Safari puede borrar datos locales de sitios sin uso si la app no está instalada.
+   - **Borrar mi cuenta y mis datos** desde Ajustes, con una Edge Function (borrar el usuario de Auth necesita la clave secreta, que no puede estar en el cliente). Resuelve B6 (documentos huérfanos). El diseño se aprueba antes de implementar.
+4. [ ] **PR 3, errores y cabeceras:** **Sentry** (plan gratis, sin datos personales, solo en producción; dependencia nueva) y **CSP** en Vercel primero en modo *Report-Only*, con todos los hosts: Supabase, fotos de Google, Umami (`script-src https://cloud.umami.is`, `connect-src https://gateway.umami.is`, `frame-src https://cloud.umami.is` para el panel de `#admin`) y Sentry. La Edge Function `estado-servicio` está en el dominio de Supabase.
+5. [ ] **PR 4, privacidad y CSP definitiva:** **política de privacidad y términos de uso** (borrador), al final, para describir lo que de verdad quedó (Google, Supabase, Umami, Sentry, borrado de cuenta), con un mail de contacto visible. Dónde están los datos: la base de Supabase en Canadá (Canada Central) y los respaldos cifrados en Backblaze B2, en la Unión Europea (EU Central). Tiene que decir que los datos de una cuenta borrada pueden seguir **hasta 6 meses en los respaldos** (retención 7 diarios, 4 semanales y 6 mensuales). En el mismo PR, la CSP pasa de *Report-Only* a obligatoria si no hubo reportes.
 
 **El resto:**
 
