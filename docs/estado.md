@@ -10,6 +10,12 @@
 - **El repo está en `/Users/aformen9/Dev/EstudIA`.** Abrir la sesión nueva desde esa carpeta: desde ahí se cargan los agentes de `.claude/agents/`.
 - **Supabase remoto** (`uckdkqsdyindmyrvdccw`): vinculado por Agu con `supabase link`, con las migraciones y el seed subidos (`supabase db push --include-seed`). **Desde ahora, cualquier cambio a la base va en una migración nueva**: las originales ya no se editan.
 - **Analítica y monitoreo:** Umami Cloud (solo producción, `apps/web/src/analitica/analitica.ts`) y UptimeRobot (web y Supabase, página pública https://stats.uptimerobot.com/pypY6ca17D). Detalle en el README.
+- **Respaldos diarios (segunda tanda, ítem 1), en curso.** Diseño aprobado el 17/11/2026 (`docs/decisiones.md`). Agu lo arma a mano con guía; Claude no escribe el workflow. Hecho:
+  1. B2: bucket privado `estudia-respaldos-6623d6` (EU Central, cifrado SSE-B2), reglas de borrado `diarios/` 7+1, `semanales/` 28+1, `mensuales/` 180+1 días.
+  2. Clave de B2 `github-respaldos-v2` creada con la CLI, solo `listBuckets,writeFiles` (la de la web traía `deleteFiles` y permisos sobre las reglas).
+  3. age: clave pública `age1mqd6d8yg0dd7e3g9swxgtxj4z4gazvr22l77ax7jxjxdna8la5ss68lsvy`; la privada, cifrada con frase, en el gestor de Agu. **Antes de la primera corrida programada:** confirmar la copia fuera de línea (pendrive probado y frase en papel).
+  4. Session pooler (`aws-1-ca-central-1.pooler.supabase.com:5432`), contraseña de la base reseteada, conexión probada con `--role-only`. En el workflow usar `--remote=<url>` (`--db-url` está deprecado).
+  - **Sigue:** paso 5, environment `respaldos` en GitHub (secretos `SUPABASE_DB_URL`, `B2_KEY_ID`, `B2_APPLICATION_KEY`; variables `B2_BUCKET`, `AGE_RECIPIENT`). Después: paso 6, el workflow (excluir `auth.sessions`, `auth.refresh_tokens` y `auth.audit_log_entries`, a decidir); paso 7, primera corrida; paso 8, restauración a mano; paso 9, `docs/respaldos.md` (lo escribe Claude).
 - **`#admin`:** totales, embudo del onboarding, estado del servicio (Edge Function `estado-servicio`, desplegada a mano), panel de visitas de Umami (secreto de Supabase `UMAMI_SHARE_URL`, lo devuelve la misma función) y reportes.
 - **Deploy en Vercel:** https://estudia-liard.vercel.app, hecho por Agu. Root Directory `apps/web`, preset Vite, con `VITE_SUPABASE_URL` y `VITE_SUPABASE_PUBLISHABLE_KEY` del remoto, sin la integración de Supabase. La URL está en Supabase (Site URL y Redirect URLs) y en Google (orígenes autorizados).
 - **Entorno local:** para probar contra la base local:
