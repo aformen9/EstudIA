@@ -35,7 +35,12 @@ Chico, pero necesario para no perder datos ni quedar a ciegas.
 4. [ ] **Registro de errores con Sentry** (plan gratis, sin datos personales, solo en producción). Dependencia nueva: aprobar antes.
 5. [ ] **Cabeceras de seguridad (CSP)** en Vercel, con todos los hosts ya conocidos: Supabase, fotos de Google, Umami y Sentry. Umami: `script-src https://cloud.umami.is` y `connect-src https://gateway.umami.is` (adonde manda los datos el script, según su código del 17/11/2026; confirmarlo al armar la CSP). El panel de visitas embebido en `#admin` necesita `frame-src https://cloud.umami.is`. La Edge Function `estado-servicio` está en el mismo dominio de Supabase que ya va en `connect-src`.
 6. [ ] **Borrar mi cuenta y mis datos** desde Ajustes. Decisión de diseño a proponer antes de implementar: borrar el usuario de Auth necesita un permiso que no puede estar en el cliente (probablemente una Edge Function), y resuelve B6 (documentos huérfanos).
-7. [ ] **Política de privacidad y términos de uso** (borrador): al final, para describir lo que de verdad quedó (Google, Supabase, Umami, Sentry, borrado de cuenta). Necesita un mail de contacto visible.
+7. [ ] **Política de privacidad y términos de uso** (borrador): al final, para describir lo que de verdad quedó (Google, Supabase, Umami, Sentry, borrado de cuenta). Necesita un mail de contacto visible. Tiene que decir que los datos de una cuenta borrada pueden seguir **hasta 6 meses en los respaldos** (retención 7 diarios, 4 semanales y 6 mensuales, decisión del 17/11/2026).
+8. [ ] **Rol de solo lectura para los respaldos**, en lugar de la contraseña de `postgres` en GitHub. Probado en local el 17/11/2026 (Postgres 17): `postgres` puede crear un rol con `LOGIN BYPASSRLS` y darle `pg_read_all_data`; ese rol lee `auth.users` y `public` y no puede escribir. Falta:
+   - Confirmar en el remoto, con una consulta de solo lectura en el SQL Editor, que `postgres` tiene `BYPASSRLS`, `CREATEROLE` y admin sobre `pg_read_all_data`.
+   - Conectarse con ese rol por el Session pooler (usuario `rol.ref-del-proyecto`).
+   - `supabase db dump` llama a `pg_dump --role "postgres"`, y ese rol no puede usar `postgres`: probablemente haya que llamar a `pg_dump` directo, con los mismos esquemas excluidos.
+   - Es un cambio de permisos: va en una migración, con tests, y se aprueba antes.
 
 **El resto:**
 
