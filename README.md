@@ -56,7 +56,7 @@ Para probar con datos: importar `fixtures/caso-prueba-legacy.json` (un alumno in
 | `apps/web/.env.development.local` | `pnpm dev`, contra Supabase local |
 | `apps/web/.env.local` | `pnpm build`, contra el proyecto remoto |
 
-Las dos variables son `VITE_SUPABASE_URL` y `VITE_SUPABASE_PUBLISHABLE_KEY`. Son públicas por diseño: la seguridad la dan las políticas de RLS. Ningún `.env` se commitea, salvo `.env.example`.
+Las variables son `VITE_SUPABASE_URL` y `VITE_SUPABASE_PUBLISHABLE_KEY`, más una opcional para el panel de visitas de `#admin` (ver `.env.example`). Son públicas por diseño: la seguridad la dan las políticas de RLS. Ningún `.env` se commitea, salvo `.env.example`.
 
 ## Comandos
 
@@ -95,6 +95,14 @@ Visitas y algunos eventos con [Umami Cloud](https://umami.is) (plan gratis, sin 
 - Monitoreo con [UptimeRobot](https://uptimerobot.com) (plan gratis), cada 5 minutos y con aviso por mail a Agu:
   - **La web:** monitor HTTP de `https://estudia-liard.vercel.app`.
   - **Supabase:** monitor de palabra clave (busca `GoTrue`) sobre `/auth/v1/health?apikey=<publishable key>`. Un monitor HTTP común da 405, porque UptimeRobot pide con `HEAD` y ese endpoint no lo acepta. La publishable key es pública, así que puede ir en la URL. Comprueba el servicio de login de Supabase, no la base.
+- En la app: link "Estado del servicio" al final del menú lateral y en la pantalla de entrada.
+- En `#admin`, la tarjeta "Estado del servicio" lee UptimeRobot con la Edge Function `estado-servicio` (`supabase/functions/estado-servicio/`), solo para admins y con 5 minutos de cache. La clave de UptimeRobot (de solo lectura) es un secreto de Supabase y nunca va en el repo. Para cargarla o cambiarla, en tu Terminal (pide la clave sin mostrarla y no queda en el historial):
+
+  ```sh
+  read -rs UR_KEY && supabase secrets set UPTIMEROBOT_API_KEY="$UR_KEY" --remote && unset UR_KEY
+  ```
+
+- Desplegar la función (a mano por ahora, sin Docker): `supabase functions deploy estado-servicio --remote --use-api`. La lógica se prueba con `pnpm --filter @estudia/funciones test`.
 
 ## Seguridad y datos
 
