@@ -2,6 +2,7 @@ import {
   conteoPorEstado,
   agruparPorArchivo,
   materialesDelPlan,
+  PAGINA_ESTADO_SERVICIO,
   promedio,
   type DatosAlumno,
   type Material,
@@ -504,6 +505,16 @@ function ContenidoShell() {
               <span>{tema === "dark" ? "Modo claro" : "Modo oscuro"}</span>
             </button>
             <MenuAjustes email={email} enOnboarding={bloqueado} vista={vista} />
+            <a
+              className="side-btn"
+              href={PAGINA_ESTADO_SERVICIO}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Estado del servicio (se abre en otra pestaña)"
+            >
+              <Icono nombre="pulso" />
+              <span>Estado del servicio</span>
+            </a>
           </div>
           {reportar.dialogo}
         </aside>

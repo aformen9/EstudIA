@@ -6,6 +6,7 @@ import {
   type ComponentType,
   type LazyExoticComponent,
 } from "react";
+import { PAGINA_ESTADO_SERVICIO } from "@estudia/core";
 import { registrarVisita } from "../analitica/analitica";
 import type { PropsLoginDePrueba } from "./loginDePrueba";
 import { useConexion } from "./sesion";
@@ -65,6 +66,11 @@ export function Login() {
             </Suspense>
           )}
         </div>
+        <p className="login-pie">
+          <a href={PAGINA_ESTADO_SERVICIO} target="_blank" rel="noopener noreferrer">
+            Estado del servicio
+          </a>
+        </p>
       </main>
     </div>
   );

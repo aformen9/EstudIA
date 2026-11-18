@@ -95,6 +95,20 @@ Visitas y algunos eventos con [Umami Cloud](https://umami.is) (plan gratis, sin 
 - Monitoreo con [UptimeRobot](https://uptimerobot.com) (plan gratis), cada 5 minutos y con aviso por mail a Agu:
   - **La web:** monitor HTTP de `https://estudia-liard.vercel.app`.
   - **Supabase:** monitor de palabra clave (busca `GoTrue`) sobre `/auth/v1/health?apikey=<publishable key>`. Un monitor HTTP común da 405, porque UptimeRobot pide con `HEAD` y ese endpoint no lo acepta. La publishable key es pública, así que puede ir en la URL. Comprueba el servicio de login de Supabase, no la base.
+- En la app: link "Estado del servicio" al final del menú lateral y en la pantalla de entrada.
+- En `#admin`, las tarjetas "Estado del servicio" y "Visitas" usan la Edge Function `estado-servicio` (`supabase/functions/estado-servicio/`), solo para admins y con 5 minutos de cache. Usa dos secretos de Supabase, que nunca van en el repo:
+  - `UPTIMEROBOT_API_KEY`: la clave de solo lectura de UptimeRobot.
+  - `UMAMI_SHARE_URL`: el enlace para compartir del panel de Umami (solo lectura). La función se lo devuelve solo al admin, y `#admin` lo embebe.
+
+  Para cargarlos o cambiarlos, en tu Terminal (piden el valor sin mostrarlo y no queda en el historial):
+
+  ```sh
+  read -rs UR_KEY && supabase secrets set UPTIMEROBOT_API_KEY="$UR_KEY" --remote && unset UR_KEY
+  read -rs UMAMI_URL && supabase secrets set UMAMI_SHARE_URL="$UMAMI_URL" --remote && unset UMAMI_URL
+  ```
+
+
+- Desplegar la función (a mano por ahora, sin Docker): `supabase functions deploy estado-servicio --remote --use-api`. La lógica se prueba con `pnpm --filter @estudia/funciones test`.
 
 ## Seguridad y datos
 

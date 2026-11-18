@@ -1,0 +1,16 @@
+{
+  "name": "@estudia/funciones",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "AGPL-3.0-only",
+  "description": "Edge Functions de Supabase. Corren en Deno; la lógica no usa nada de Deno y se prueba acá con Vitest.",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3",
+    "vitest": "^5.1.0"
+  }
+}

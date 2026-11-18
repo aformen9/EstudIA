@@ -3,7 +3,8 @@ coverage/
 referencia/
 fixtures/
 docs/
-supabase/
+supabase/*
+!supabase/functions/
 .claude/
 *.md
 LICENSE

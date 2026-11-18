@@ -390,6 +390,11 @@ authorization_url_path = "/oauth/consent"
 # Allow dynamic client registration
 allow_dynamic_registration = false
 
+# La función comprueba la sesión ella misma: le pasa el token a la base, que valida la firma, y llama a
+# es_admin(). Así funciona igual con las claves JWT nuevas de Supabase (asimétricas) y las de antes.
+[functions.estado-servicio]
+verify_jwt = false
+
 [edge_runtime]
 enabled = true
 # Supported request policies: `oneshot`, `per_worker`.

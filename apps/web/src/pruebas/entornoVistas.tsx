@@ -255,6 +255,9 @@ export function repositorioFalso(inicial: Inicial = {}): RepositorioFalso {
     obtenerMetricasAdmin: async () => {
       throw new Error("solo para admins");
     },
+    obtenerEstadoServicio: async () => {
+      throw new Error("solo para admins");
+    },
   };
   for (const metodo of Object.keys(repositorio) as (keyof Repositorio)[]) {
     vi.spyOn(repositorio, metodo);

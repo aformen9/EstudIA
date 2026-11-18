@@ -12,6 +12,7 @@ import type {
   ProgresoMateria,
   Universidad,
 } from "./tipos";
+import type { EstadoServicio } from "./admin/estadoServicio";
 import type { MetricasAdmin } from "./admin/metricas";
 import type { NuevoReporte, ReporteAdmin } from "./reportes/reportes";
 
@@ -127,4 +128,6 @@ export interface Repositorio {
   listarReportesAdmin(limite?: number): Promise<ReporteAdmin[]>;
   /** Solo para admins. */
   obtenerMetricasAdmin(): Promise<MetricasAdmin>;
+  /** Solo para admins: UptimeRobot vía la Edge Function `estado-servicio`. */
+  obtenerEstadoServicio(): Promise<EstadoServicio>;
 }
