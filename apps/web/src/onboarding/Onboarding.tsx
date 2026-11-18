@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } fr
 import { ImportarRespaldo } from "../importacion/ImportarRespaldoDiferido";
 import { Dialogo } from "../interfaz/Dialogo";
 import { Icono } from "../interfaz/Iconos";
+import { registrarEvento, type PasoOnboarding } from "../analitica/analitica";
 import { useTema } from "../interfaz/tema";
 import { useReportar } from "../reportes/Reportar";
 import { VISTAS } from "../navegacion/rutas";
@@ -255,6 +256,13 @@ export function Onboarding({ alActivarPlan }: { alActivarPlan: () => void }) {
   // A dónde ir cuando la grilla termine de guardar y deje volver.
   const destinoAlSalirDeLaGrilla = useRef<Paso | null>(null);
   const yaMontado = useRef(false);
+
+  // Analítica: en qué paso está, para ver dónde se abandona. Sin ningún dato del alumno.
+  useEffect(() => {
+    const nombre: PasoOnboarding =
+      paso === "carga" ? (carga === "camino" ? "carga_elegir" : `carga_${carga}`) : paso;
+    registrarEvento({ nombre: "onboarding", datos: { paso: nombre } });
+  }, [paso, carga]);
 
   useEffect(() => {
     // Al cambiar de paso, el foco va al título nuevo.
