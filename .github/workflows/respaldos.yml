@@ -1,0 +1,141 @@
+# Respaldo diario de la base de producción: lo saca, prueba restaurarlo en una base vacía, lo cifra
+# con la clave pública de Agu (age) y lo sube a Backblaze B2. Diseño: docs/decisiones.md
+# (2026-11-17) y docs/respaldos.md.
+#
+# El repo es público y los logs de Actions también: ningún paso imprime datos de la base, y los
+# archivos sin cifrar nunca salen del runner (sin artifacts).
+name: Respaldos
+
+on:
+  schedule:
+    # 06:17 UTC = 03:17 en Argentina.
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: respaldos
+  cancel-in-progress: false
+
+defaults:
+  run:
+    # Con `bash` explícito GitHub agrega `-o pipefail`: si falla un comando del medio de una cadena
+    # con `|`, falla el paso (sin esto, un respaldo vacío se cifraría y subiría en verde).
+    shell: bash
+
+jobs:
+  respaldar:
+    name: Respaldo diario
+    runs-on: ubuntu-24.04
+    environment: respaldos
+    timeout-minutes: 30
+    steps:
+      - name: Bajar el repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Instalar la CLI de Supabase
+        uses: supabase/setup-cli@689adcfb80d947100a1eab127289b97d1fb07b13 # v3.2.0
+        with:
+          version: 3.0.0
+
+      - name: Instalar age
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq age
+          age --version
+          aws --version
+
+      - name: Sacar el respaldo (roles, esquema y datos)
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          # GitHub tapa la URL entera; la contraseña sola también, por si alguna herramienta la imprime.
+          clave="${SUPABASE_DB_URL#*://}"
+          clave="${clave%%@*}"
+          clave="${clave#*:}"
+          echo "::add-mask::$clave"
+
+          carpeta="$RUNNER_TEMP/respaldo"
+          mkdir -p "$carpeta"
+          supabase db dump --remote="$SUPABASE_DB_URL" --role-only -f "$carpeta/roles.sql"
+          supabase db dump --remote="$SUPABASE_DB_URL" -f "$carpeta/schema.sql"
+          # Sin sesiones, tokens ni registro de actividad de Auth: al restaurar, cada uno vuelve a
+          # entrar con Google, y un respaldo filtrado no trae sesiones que se puedan usar.
+          supabase db dump --remote="$SUPABASE_DB_URL" --data-only --use-copy \
+            -x auth.sessions -x auth.refresh_tokens -x auth.mfa_amr_claims \
+            -x auth.one_time_tokens -x auth.flow_state -x auth.audit_log_entries \
+            -x storage.buckets_vectors -x storage.vector_indexes \
+            -f "$carpeta/data.sql"
+
+          {
+            echo "Respaldo de EstudIA"
+            echo "Fecha (UTC): $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "Commit: $GITHUB_SHA"
+            echo "CLI de Supabase: $(supabase --version)"
+            echo "Restaurar: docs/respaldos.md"
+          } >"$carpeta/info.txt"
+          # Solo tamaños: nunca el contenido.
+          wc -c "$carpeta"/*.sql
+
+      - name: Probar la restauración en una base vacía
+        run: |
+          # Una base Supabase nueva, con la misma configuración del proyecto pero sin migraciones.
+          prueba="$RUNNER_TEMP/base-de-prueba"
+          mkdir -p "$prueba/supabase"
+          sed -E 's/^project_id = .*/project_id = "restaurar"/' supabase/config.toml >"$prueba/supabase/config.toml"
+          supabase db start --workdir "$prueba"
+          scripts/respaldos/probar-restauracion.sh "$RUNNER_TEMP/respaldo" supabase_db_restaurar
+
+      - name: Comprimir y cifrar con la clave pública
+        env:
+          AGE_RECIPIENT: ${{ vars.AGE_RECIPIENT }}
+        run: |
+          nombre="estudia-$(date -u +%Y%m%dT%H%M%SZ).tar.gz.age"
+          archivo="$RUNNER_TEMP/$nombre"
+          tar -C "$RUNNER_TEMP/respaldo" -czf - info.txt roles.sql schema.sql data.sql |
+            age -r "$AGE_RECIPIENT" -o "$archivo"
+
+          if [[ "$(head -c 21 "$archivo")" != "age-encryption.org/v1" ]]; then
+            echo "::error::El archivo no quedó cifrado con age."
+            exit 1
+          fi
+          # Desde acá no queda nada sin cifrar en el runner.
+          rm -rf "$RUNNER_TEMP/respaldo"
+          echo "Cifrado: $nombre ($(wc -c <"$archivo") bytes)"
+          echo "NOMBRE=$nombre" >>"$GITHUB_ENV"
+          echo "ARCHIVO=$archivo" >>"$GITHUB_ENV"
+
+      - name: Subir a B2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.B2_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.B2_APPLICATION_KEY }}
+          # B2 no acepta los checksums que la CLI de AWS agrega por defecto desde la v2.23.
+          AWS_REQUEST_CHECKSUM_CALCULATION: WHEN_REQUIRED
+          AWS_RESPONSE_CHECKSUM_VALIDATION: WHEN_REQUIRED
+          B2_BUCKET: ${{ vars.B2_BUCKET }}
+          B2_ENDPOINT: ${{ vars.B2_ENDPOINT }}
+        run: |
+          # https://s3.eu-central-003.backblazeb2.com → eu-central-003
+          region="$(echo "$B2_ENDPOINT" | sed -E 's#^https://s3\.([^.]+)\.backblazeb2\.com/?$#\1#')"
+
+          # Retención (reglas del bucket): 7 diarios, 4 semanales (domingos) y 6 mensuales (día 1).
+          carpetas=(diarios)
+          if [[ "$(date -u +%u)" == 7 ]]; then carpetas+=(semanales); fi
+          if [[ "$(date -u +%d)" == 01 ]]; then carpetas+=(mensuales); fi
+
+          # La clave solo puede escribir: no lista, no lee ni borra lo que ya está.
+          for carpeta in "${carpetas[@]}"; do
+            aws s3api put-object \
+              --endpoint-url "$B2_ENDPOINT" --region "$region" \
+              --bucket "$B2_BUCKET" --key "$carpeta/$NOMBRE" --body "$ARCHIVO" \
+              --output text --query ETag >/dev/null
+            echo "Subido: $carpeta/$NOMBRE"
+          done
+
+      - name: Borrar los archivos del runner
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/respaldo" "$RUNNER_TEMP"/estudia-*.tar.gz.age

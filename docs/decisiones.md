@@ -288,3 +288,11 @@ Agu aprobó todos los puntos del backlog. Acá van las decisiones de sus seccion
 - Embudo del onboarding en `metricas_admin()`, siempre en totales: registrados, eligieron carrera, cargaron al menos una materia e importaron un respaldo. Columna nueva `inscripciones.importado_en`, que llena `reemplazar_datos_del_plan`; cuenta desde el 17/11/2026.
 - Visitas: el panel de Umami de solo lectura se embebe en `#admin` (Umami manda `frame-ancestors *`). El enlace es el secreto de Supabase `UMAMI_SHARE_URL` y lo devuelve la Edge Function `estado-servicio` solo al admin: no está en el código, en el bundle de la web ni en el README. (Primero se pensó como variable de Vercel `VITE_UMAMI_SHARE_URL`; se descartó porque las variables `VITE_` quedan en el JavaScript público.)
 - Link "Estado del servicio" a la página pública de UptimeRobot al final del menú lateral y al pie de la pantalla de entrada.
+
+## 2026-11-18 (workflow de respaldos)
+
+- El workflow, la prueba de restauración y `docs/respaldos.md` los escribe Claude (cambio de plan de Agu); Agu hizo B2, age y el environment `respaldos`.
+- Fuera del respaldo: `auth.sessions`, `auth.refresh_tokens`, `auth.mfa_amr_claims`, `auth.one_time_tokens`, `auth.flow_state` y `auth.audit_log_entries`. Al restaurar, cada uno vuelve a entrar con Google.
+- La restauración (de prueba o real) aplica `20261103120000_privilegios_por_defecto.sql` antes del esquema: el respaldo solo trae los `GRANT`, y Supabase les da a `anon` y `authenticated` privilegios por defecto sobre cada tabla nueva.
+- Subida con `aws s3api put-object` (la CLI de AWS ya viene en el runner) con checksums solo cuando hacen falta, porque B2 no acepta los que la CLI agrega por defecto.
+- La clave privada de age queda en dos lugares: `~/estudia-respaldos-clave.age` en la compu de Agu y su gestor de contraseñas (archivo cifrado y frase). Sin copia en pendrive: se saca esa condición.
