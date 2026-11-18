@@ -181,6 +181,10 @@ vacios (chequeo, encontrados) as (
 -- Seed: valor real contra el esperado.
 seed (chequeo, real, esperado) as (
   values
+  ('migración del embudo: inscripciones.importado_en (timestamptz)',
+   (select data_type from information_schema.columns
+    where table_schema = 'public' and table_name = 'inscripciones' and column_name = 'importado_en'),
+   'timestamp with time zone'),
   ('seed: universidad UCA Rosario publicada',
    (select count(*)::text from public.universidades where sigla = 'UCA' and sede = 'Rosario' and estado = 'publicado'), '1'),
   ('seed: carrera LCD publicada',
